@@ -1,26 +1,108 @@
 @import "tailwindcss";
 
+/* Untitled Sans Font Family */
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/Untitled Sans/TestUntitledSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/Untitled Sans/TestUntitledSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/Untitled Sans/TestUntitledSans-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/Untitled Sans/TestUntitledSans-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Compagnon Font Family */
+@font-face {
+  font-family: 'Compagnon';
+  src: url('/fonts/Compagnon/Compagnon-Roman.woff2') format('woff2'),
+       url('/fonts/Compagnon/Compagnon-Roman.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Compagnon';
+  src: url('/fonts/Compagnon/Compagnon-Medium.woff2') format('woff2'),
+       url('/fonts/Compagnon/Compagnon-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Compagnon';
+  src: url('/fonts/Compagnon/Compagnon-Bold.woff2') format('woff2'),
+       url('/fonts/Compagnon/Compagnon-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Main colors */
+  --red: #E73C4A;
+  --cream: #FFFCFA;
+  --black: #101010;
+  
+  /* Greys */
+  --grey-50: rgba(75, 49, 48, 0.05);
+  --grey-100: rgba(75, 49, 48, 0.08);
+  --grey-200: rgba(75, 49, 48, 0.1);
+  --grey-300: rgba(75, 49, 48, 0.20);
+  --grey-400: rgba(75, 49, 48, 0.40);
+  --grey-500: rgba(75, 49, 48, 0.65);
+  --grey-900: #412B2A;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-red: var(--red);
+  --color-cream: var(--cream);
+  --color-grey-50: var(--grey-50);
+  --color-grey-100: var(--grey-100);
+  --color-grey-200: var(--grey-200);
+  --color-grey-300: var(--grey-300);
+  --color-grey-400: var(--grey-400);
+  --color-grey-500: var(--grey-500);
+  --color-grey-900: var(--grey-900);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--cream);
+  color: var(--grey-900);
+  font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.font-sans {
+  font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-mono {
+  font-family: 'Compagnon', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
