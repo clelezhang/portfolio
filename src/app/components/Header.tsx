@@ -1,22 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, X } from 'lucide-react';
+import { Mail, X, Heart } from 'lucide-react';
+import LeleIcon from './icons/LeleIcon';
+import HeartIcon from './icons/HeartIcon';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <header>
+      <div className="fixed w-full left-0 top-0 flex justify-between items-center p-4 z-[90]">
         
         {/* Desktop/Tablet: Left pills */}
-        <div className="hidden md:flex items-center gap-3">
-          <div className="bg-grey-500 text-white px-4 py-2 rounded-full text-sm font-sans">
-            currently viewing
+        <div className="hidden md:flex items-center gap-2">
+          <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
+            contact
           </div>
-          <div className="bg-grey-500 text-white px-4 py-2 rounded-full text-sm font-sans">
-            projects
+          <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans flex items-center gap-2 backdrop-blur-[20px]">
+            <HeartIcon className="text-red" size={12} />
+            working & playing
           </div>
         </div>
 
@@ -24,18 +27,17 @@ export default function Header() {
         <div className="md:hidden"></div>
         
         {/* Center: Logo */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 text-red font-mono font-bold text-2xl">
-          lele
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <LeleIcon className="text-red" />
         </div>
         
         {/* Desktop/Tablet: Right pills */}
-        <div className="hidden md:flex items-center gap-3">
-          <div className="bg-grey-500 text-white px-4 py-2 rounded-full text-sm font-sans">
-            contact
+        <div className="hidden md:flex items-center gap-2">
+          <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
+            san francisco, ca
           </div>
-          <div className="bg-grey-500 text-white px-4 py-2 rounded-full text-sm font-sans flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            working & playing
+          <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
+            it sexyy - bass boost
           </div>
         </div>
 
@@ -71,7 +73,7 @@ export default function Header() {
               san francisco, ca
             </div>
             <div className="bg-grey-500 text-white px-6 py-3 rounded-full text-sm flex items-center gap-2 whitespace-nowrap">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <HeartIcon className="text-red" size={12} />
               working & playing
             </div>
           </div>
