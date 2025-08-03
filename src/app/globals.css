@@ -108,3 +108,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* Custom shadow hover effect */
+.group:hover .shadow-hover {
+  box-shadow: var(--shadow-hover) !important;
+}
