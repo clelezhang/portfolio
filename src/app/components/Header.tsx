@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, X, Heart } from 'lucide-react';
+import { Mail, X } from 'lucide-react';
 import LeleIcon from './icons/LeleIcon';
 import HeartIcon from './icons/HeartIcon';
+import MusicPlayer from './MusicPlayer';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,9 +37,7 @@ export default function Header() {
           <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
             san francisco, ca
           </div>
-          <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
-            it sexyy - bass boost
-          </div>
+          <MusicPlayer />
         </div>
 
         {/* Mobile: Social icons */}
