@@ -16,7 +16,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
     title: "Stay tuned...",
-    artwork: "https://picsum.photos/40/40?random=1"
+    artwork: "https://picsum.photos/40/40?random=2"
   });
   
   const widgetRef = useRef<any>(null);
@@ -51,7 +51,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
                 if (sound) {
                   setTrackInfo({
                     title: sound.title || "Stay tuned...",
-                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
+                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=1"
                   });
                 }
               });
@@ -150,13 +150,14 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     if (!isPlaying && !isMuted) {
       // Start playing
       widgetRef.current.play();
+      widgetRef.current.setVolume(25);
     } else if (isPlaying && !isMuted) {
       // Mute (but keep playing)
       widgetRef.current.setVolume(0);
       setIsMuted(true);
     } else if (isMuted) {
       // Unmute
-      widgetRef.current.setVolume(100);
+      widgetRef.current.setVolume(25);
       setIsMuted(false);
     }
   }, [isPlaying, isMuted, isLoading]);
@@ -172,7 +173,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />
       
-      <div className={`flex h-10 w-30 items-center gap-1 bg-grey-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`}>
+      <div className={`flex h-10 w-30 items-center gap-1 bg-grey-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`} style={{ willChange: 'transform' }}>
         <SpinningCD 
           artwork={trackInfo.artwork}
           onClick={handleCDClick}
