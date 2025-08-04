@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback} from 'react';
 import SpinningCD from './SpinningCD';
 import ScrollingTitle from './ScrollingTitle';
 import ProgressBar from './ProgressBar';
@@ -15,15 +15,18 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
-    title: "Loading...",
+    title: "Stay tuned...",
     artwork: "https://picsum.photos/40/40?random=1"
   });
   
   const widgetRef = useRef<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize SoundCloud widget the proper way
+  // Initialize SoundCloud widget with random starting position
   useEffect(() => {
+    // Generate a random starting position (assuming playlist has around 10-20 tracks)
+    const randomStartPosition = Math.floor(Math.random() * 15) + 1;
+    
     // Load SoundCloud API script
     const script = document.createElement('script');
     script.src = 'https://w.soundcloud.com/player/api.js';
@@ -39,17 +42,22 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
           widget.bind((window as any).SC.Widget.Events.READY, () => {
             setIsLoading(false);
             
-            // Get the first track info immediately when widget is ready
-            widget.getCurrentSound((sound: any) => {
-              if (sound) {
-                setTrackInfo({
-                  title: sound.title || "Stay tuned...",
-                  artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
-                });
-              }
-            });
+            // Skip to a random track in the playlist
+            widget.skip(randomStartPosition);
             
-            // Also try to get track info after a short delay to ensure it's loaded
+            // Get the track info after skipping
+            setTimeout(() => {
+              widget.getCurrentSound((sound: any) => {
+                if (sound) {
+                  setTrackInfo({
+                    title: sound.title || "Stay tuned...",
+                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
+                  });
+                }
+              });
+            }, 100);
+            
+            // Also try to get track info after a longer delay to ensure it's loaded
             setTimeout(() => {
               widget.getCurrentSound((sound: any) => {
                 if (sound && sound.title) {
