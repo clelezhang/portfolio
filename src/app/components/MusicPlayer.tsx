@@ -15,7 +15,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
-    title: "Stay tuned...",
+    title: "Loading...",
     artwork: "https://picsum.photos/40/40?random=1"
   });
   
@@ -28,8 +28,6 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     const script = document.createElement('script');
     script.src = 'https://w.soundcloud.com/player/api.js';
     script.onload = () => {
-      console.log('SoundCloud API loaded');
-      
       // Wait a bit for SC to be available
       setTimeout(() => {
         if ((window as any).SC) {
@@ -39,37 +37,42 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
 
           // Bind events
           widget.bind((window as any).SC.Widget.Events.READY, () => {
-            console.log('SoundCloud widget ready');
             setIsLoading(false);
             
-            // Skip to a random track to start with different song each time
-            widget.skip(Math.floor(Math.random() * 10)); // Skip 0-9 tracks randomly
-            
-            // Get initial track info
+            // Get the first track info immediately when widget is ready
             widget.getCurrentSound((sound: any) => {
               if (sound) {
                 setTrackInfo({
-                  title: sound.title || "R&B Classic",
+                  title: sound.title || "Stay tuned...",
                   artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
                 });
               }
             });
+            
+            // Also try to get track info after a short delay to ensure it's loaded
+            setTimeout(() => {
+              widget.getCurrentSound((sound: any) => {
+                if (sound && sound.title) {
+                  setTrackInfo({
+                    title: sound.title,
+                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
+                  });
+                }
+              });
+            }, 500);
           });
 
           widget.bind((window as any).SC.Widget.Events.PLAY, () => {
-            console.log('SoundCloud playing');
             setIsPlaying(true);
             startProgressTracking();
           });
 
           widget.bind((window as any).SC.Widget.Events.PAUSE, () => {
-            console.log('SoundCloud paused');
             setIsPlaying(false);
             stopProgressTracking();
           });
 
           widget.bind((window as any).SC.Widget.Events.FINISH, () => {
-            console.log('Track finished');
             setProgress(0);
           });
 
@@ -81,7 +84,6 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
               lastTrackUpdate = now;
               widget.getCurrentSound((sound: any) => {
                 if (sound && sound.title && sound.title !== trackInfo.title) {
-                  console.log('Track changed to:', sound.title);
                   setTrackInfo({
                     title: sound.title,
                     artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
@@ -133,25 +135,19 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   }, []);
 
   const handleCDClick = useCallback(() => {
-    console.log('CD clicked', { isPlaying, isMuted, widget: !!widgetRef.current, isLoading });
-    
     if (isLoading || !widgetRef.current) {
-      console.log('Widget not ready');
       return;
     }
 
     if (!isPlaying && !isMuted) {
       // Start playing
-      console.log('Calling widget.play()...');
       widgetRef.current.play();
     } else if (isPlaying && !isMuted) {
       // Mute (but keep playing)
-      console.log('Muting...');
       widgetRef.current.setVolume(0);
       setIsMuted(true);
     } else if (isMuted) {
       // Unmute
-      console.log('Unmuting...');
       widgetRef.current.setVolume(100);
       setIsMuted(false);
     }

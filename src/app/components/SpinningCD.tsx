@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
+import ShinesIcon from './icons/ShinesIcon';
 
 interface SpinningCDProps {
   artwork?: string;
@@ -20,15 +21,15 @@ const SpinningCD = memo(function SpinningCD({
       <div 
         className="absolute inset-0 rounded-full transition-all duration-300 shadow-hover"
         style={{
-          '--shadow-normal': '0 4px 8px rgba(75,49,48,0.2), 0 1px 2px rgba(75,49,48,0.1)',
-          '--shadow-hover': '0 6px 12px rgba(75,49,48,0.25), 0 1px 2px rgba(75,49,48,0.15)',
+          '--shadow-normal': '0 4px 8px rgba(75,49,48,0.25), 0 1px 2px rgba(75,49,48,0.2)',
+          '--shadow-hover': '0 4px 12px rgba(75,49,48,0.4), 0 1px 2px rgba(75,49,48,0.5)',
           boxShadow: 'var(--shadow-normal)'
         } as React.CSSProperties}
       />
       
       <motion.button
         onClick={onClick}
-        className="absolute inset-0 rounded-full overflow-hidden bg-grey-200 cursor-pointer"
+        className="absolute inset-0 rounded-full overflow-hidden bg-grey-400 cursor-pointer"
         animate={{ rotate: 360 }}
         transition={{
           duration: 8,
@@ -61,6 +62,11 @@ const SpinningCD = memo(function SpinningCD({
       {/* Center Hole Ring */}
       <div className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full border border-grey-300 transform -translate-x-1/2 -translate-y-1/2" />
       </motion.button>
+      
+      {/* Shines overlay - doesn't spin */}
+      <div className="absolute inset-0 pointer-events-none">
+        <ShinesIcon className="w-full h-full opacity-60" />
+      </div>
     </div>
   );
 });
