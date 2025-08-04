@@ -1,3 +1,7 @@
+'use client';
+
+import { motion } from 'framer-motion';
+
 interface ScrollingTitleProps {
   title: string;
   className?: string;
@@ -8,34 +12,26 @@ export default function ScrollingTitle({
   className = "" 
 }: ScrollingTitleProps) {
   return (
-    <div className={`relative overflow-hidden ${className}`}>
-      <div 
-        className="whitespace-nowrap animate-scroll text-xs font-sans"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, currentColor 10%, currentColor 90%, transparent 100%)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          animation: 'scroll 15s linear infinite'
+    <div 
+      className={`relative overflow-hidden ${className}`}
+      style={{
+        mask: 'linear-gradient(90deg, transparent 0%, var(--grey-500) 10%, var(--grey-500) 90%, transparent 100%)',
+        WebkitMask: 'linear-gradient(90deg, transparent 0%, var(--grey-500) 10%, var(--grey-500) 90%, transparent 100%)'
+      }}
+    >
+      <motion.div 
+        className="whitespace-nowrap text-xs font-sans"
+        animate={{
+          x: [0, -300] // Move from 0px to -300px (fixed distance)
+        }}
+        transition={{
+          duration: 25, // Fixed duration for consistent speed
+          repeat: Infinity,
+          ease: "linear"
         }}
       >
-        {title}
-      </div>
-      
-      <style jsx>{`
-        @keyframes scroll {
-          0% {
-            transform: translateX(100%);
-          }
-          100% {
-            transform: translateX(-100%);
-          }
-        }
-        
-        .animate-scroll {
-          animation: scroll 15s linear infinite;
-        }
-      `}</style>
+        {title} {title} {title} {title} {title} {title} {title} {title}
+      </motion.div>
     </div>
   );
 }

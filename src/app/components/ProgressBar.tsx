@@ -1,25 +1,33 @@
+'use client';
+
+import { memo } from 'react';
+import { motion } from 'framer-motion';
+
 interface ProgressBarProps {
   progress: number; // 0 to 100
   isAnimating: boolean;
   className?: string;
 }
 
-export default function ProgressBar({ 
+const ProgressBar = memo(function ProgressBar({ 
   progress, 
   isAnimating, 
   className = "" 
 }: ProgressBarProps) {
   return (
     <div className={`w-full h-0.5 bg-grey-200 rounded-full overflow-hidden ${className}`}>
-      <div 
-        className={`h-full bg-red rounded-full transition-all duration-200 ${
-          isAnimating ? 'ease-linear' : 'ease-out'
-        }`}
+      <motion.div 
+        className="h-full bg-grey-500 rounded-full"
         style={{
-          width: `${progress}%`,
-          transition: isAnimating ? 'width 0.5s linear' : 'width 0.2s ease-out'
+          width: `${progress}%`
+        }}
+        transition={{
+          duration: isAnimating ? 0.5 : 0.2,
+          ease: isAnimating ? "linear" : "easeOut"
         }}
       />
     </div>
   );
-}
+});
+
+export default ProgressBar;
