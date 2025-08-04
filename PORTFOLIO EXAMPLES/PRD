@@ -1,0 +1,380 @@
+Lele Zhang Portfolio - Product Requirements Document
+Project Overview
+Project Name: Lele Zhang Design Portfolio
+Domain: lelezhang.design
+Platform: Next.js 14 with TypeScript, deployed on Vercel
+Timeline: Development ready for immediate start
+Technical Stack
+Core Technologies
+
+Frontend: Next.js 14 (App Router)
+Language: TypeScript
+Styling: Tailwind CSS
+State Management: Zustand
+Animations: Framer Motion + Rive
+UI Components: shadcn/ui + Radix UI primitives
+Audio: Web Audio API
+Deployment: Vercel
+Database/Storage: Vercel KV (for analytics and rate limiting)
+
+Dependencies
+json{
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.0.0",
+    "zustand": "^4.0.0",
+    "framer-motion": "^10.0.0",
+    "@rive-app/react-canvas": "^4.0.0",
+    "zod": "^3.0.0",
+    "@vercel/kv": "^1.0.0",
+    "lucide-react": "^0.400.0",
+    "@radix-ui/react-dialog": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/web": "^0.0.0"
+  }
+}
+Project Structure
+src/
+├── app/
+│   ├── page.tsx              # Main landing page
+│   ├── layout.tsx            # Root layout with analytics
+│   ├── globals.css           # Global styles
+│   └── api/
+│       ├── chat/route.ts     # AI chat endpoint (Anthropic integration)
+│       └── track/route.ts    # Basic visitor analytics
+├── components/
+│   ├── ui/                   # shadcn/ui components
+│   ├── sections/
+│   │   ├── HeroSection.tsx   # Top section with floating cards
+│   │   ├── AboutSection.tsx  # Red section with chat interface
+│   │   └── WorkSection.tsx   # Portfolio grid section
+│   ├── FloatingCard.tsx      # Interactive tilted cards in hero
+│   ├── ProjectCard.tsx       # Simple grid cards for work section
+│   └── Chat/
+│       ├── ChatInterface.tsx # Single chat component
+│       └── ChatMessage.tsx   # Individual message display
+├── lib/
+│   ├── store.ts              # Zustand global state
+│   ├── analytics.ts          # Visitor tracking utilities
+│   ├── audio.ts              # Web Audio API manager
+│   └── utils.ts              # General utilities
+└── assets/
+    ├── rive/                 # .riv animation files
+    ├── work/                 # Portfolio project assets
+    └── audio/                # Sound effects (button clicks, etc.)
+Design Specifications
+Layout Structure
+Single-page application with three main sections:
+
+Hero Section - White background with floating portfolio cards
+About Section - Red background (#dc2626) with chat interface
+Work Section - Light background with project grid
+
+Visual Design
+
+Typography: Clean, modern sans-serif
+Color Scheme:
+
+Primary: Red (#dc2626)
+Background: White/Light gray
+Text: Dark gray/Black
+
+
+Layout: Responsive, mobile-first design
+Animations: Smooth transitions using Framer Motion and Rive
+
+Section-Specific Requirements
+Hero Section
+
+Background: White
+Content: Introduction text + floating portfolio cards
+Cards: 6-8 tilted, scattered cards showing different work pieces
+Interaction: Cards are clickable buttons that trigger chat conversations
+Animation: Rive animations for loading states and micro-interactions
+
+About Section (Red Background)
+
+Background: Red with overlapping design from hero section
+Implementation: Use negative margins (-mt-32) and z-index layering
+Content: Chat interface prominently displayed
+Chat: Starts in empty state, becomes active when cards clicked or user types
+Layout: Centered, max-width container
+
+Work Section
+
+Layout: Grid of project cards (responsive: 1 col mobile, 2-3 cols desktop)
+Cards: Simple, clean design with hover effects
+Content: Placeholder projects for now (will be updated later)
+
+Functional Requirements
+Core Features
+1. Interactive Floating Cards
+
+Purpose: Act as conversation starters for the chat interface
+Behavior:
+
+Hover effects (scale, straighten rotation)
+Click triggers chat with predefined prompt
+Smooth scroll to chat section on click
+
+
+Content: Represent different aspects of Lele's work/process
+Implementation: Framer Motion animations with click handlers
+
+2. AI Chat Integration
+
+Provider: Anthropic Claude API
+Features:
+
+Streaming responses for real-time text appearance
+Custom tools using Zod schemas (placeholder for future)
+Rate limiting and abuse prevention
+
+
+UI: Single chat interface in About section
+State: Managed via Zustand store
+Rate Limits:
+
+30 messages per day per visitor
+10 messages per hour per visitor
+Basic abuse pattern detection
+
+
+
+3. Audio System
+
+Implementation: Web Audio API
+Features:
+
+Button click sound effects
+Background music control (mute/unmute)
+User interaction required for audio initialization
+
+
+Integration: Global audio manager with Zustand state
+
+4. Animations
+
+Rive Animations:
+
+Loading states and indicators
+Micro-interactions and hover effects
+Custom branded animations
+
+
+Framer Motion:
+
+Page section transitions
+Card hover/click animations
+Smooth scrolling between sections
+
+
+
+Technical Features
+1. Performance Optimization
+
+Code Splitting: Lazy load heavy components (chat, animations)
+Image Optimization: Next.js Image component for all assets
+Bundle Analysis: Tree-shaking for unused code
+Caching: Proper HTTP caching headers for static assets
+
+2. Analytics & Monitoring
+
+Visitor Tracking: Basic daily/unique visitor counts
+Performance: Core Web Vitals monitoring
+Error Tracking: Basic error boundaries and logging
+Rate Limiting: Track and prevent API abuse
+
+3. Responsive Design
+
+Breakpoints: Mobile-first approach with Tailwind responsive classes
+Touch Interactions: Proper touch targets and gestures
+Cross-browser: Support for modern browsers (ES2020+)
+
+User Experience Flow
+Primary User Journey
+
+Landing: User arrives, sees hero section with floating cards
+Discovery: User hovers/explores floating cards
+Engagement: User clicks card → triggers chat conversation
+Interaction: User continues chatting or explores work section
+Portfolio Review: User browses project grid
+Contact: User potentially reaches out via chat
+
+Interaction Patterns
+
+Card Click → Chat: Seamless transition from card to active chat
+Smooth Scrolling: Between sections when cards clicked
+Progressive Disclosure: Chat loads after initial page render
+Audio Feedback: Subtle sound effects for interactions
+
+API Requirements
+Chat Endpoint (/api/chat)
+typescriptinterface ChatRequest {
+  message: string;
+  visitorId: string;
+}
+
+interface ChatResponse {
+  message: string;
+  error?: string;
+}
+Features:
+
+Streaming response support
+Rate limiting by visitor ID
+Input validation with Zod
+Error handling and logging
+
+Analytics Endpoint (/api/track)
+typescriptinterface TrackingRequest {
+  event: 'page_view' | 'chat_start' | 'card_click';
+  data?: Record<string, any>;
+}
+Features:
+
+Simple event tracking
+Daily visitor counts
+No personal data collection
+
+Security & Performance
+Rate Limiting
+
+Chat API: 30 messages/day, 10 messages/hour per visitor
+Visitor Identification: IP + browser fingerprint hash
+Storage: Vercel KV with automatic expiration
+
+Performance Targets
+
+First Contentful Paint: < 1.5s
+Largest Contentful Paint: < 2.5s
+Cumulative Layout Shift: < 0.1
+Time to Interactive: < 3s
+
+Error Handling
+
+API Errors: Graceful fallbacks with user-friendly messages
+Network Issues: Retry logic for failed requests
+Component Errors: Error boundaries prevent crashes
+
+Deployment Configuration
+Environment Variables
+ANTHROPIC_API_KEY=          # For AI chat functionality
+KV_REST_API_URL=           # Vercel KV database
+KV_REST_API_TOKEN=         # Vercel KV authentication
+NEXT_PUBLIC_DOMAIN=lelezhang.design
+Vercel Configuration
+
+Framework: Next.js
+Build Command: npm run build
+Output Directory: .next
+Node Version: 18.x
+Functions: Serverless with streaming support
+
+Content Strategy
+Placeholder Content
+Hero Section Text
+"Hi, I'm Lele Zhang"
+"I'm a designer passionate about creating intuitive and beautiful experiences."
+Floating Cards (6-8 cards with different topics)
+
+Design Process
+Recent Projects
+Tools & Methods
+Collaboration Style
+Problem Solving
+Creative Approach
+
+Work Section Projects (Placeholder)
+javascriptconst placeholderProjects = [
+  {
+    title: "Mobile App Design",
+    description: "User-centered design for iOS application",
+    tags: ["UI/UX", "Mobile", "Figma"]
+  },
+  {
+    title: "Web Platform",
+    description: "Complete redesign of SaaS platform",
+    tags: ["Web Design", "React", "Design System"]
+  },
+  {
+    title: "Brand Identity",
+    description: "Logo and visual identity development",
+    tags: ["Branding", "Typography", "Visual Identity"]
+  }
+  // ... more placeholders
+]
+Success Metrics
+User Engagement
+
+Chat Conversations Started: Track via floating card clicks
+Session Duration: Time spent on portfolio
+Section Engagement: Scroll depth and interaction rates
+
+Technical Performance
+
+Page Load Speed: Core Web Vitals scores
+API Response Times: Chat endpoint performance
+Error Rates: Failed requests and component errors
+
+Business Goals
+
+Portfolio Inquiries: Conversations leading to project discussions
+Professional Network: Connections made through portfolio
+Brand Recognition: Memorable and shareable design
+
+Development Phases
+Phase 1: Foundation (Days 1-3)
+
+Next.js setup with TypeScript and Tailwind
+Basic component structure
+Static content layout
+Responsive design implementation
+
+Phase 2: Animations (Days 4-6)
+
+Framer Motion integration
+Floating card interactions
+Rive animation setup
+Section transitions
+
+Phase 3: Chat Integration (Days 7-10)
+
+Anthropic API integration
+Streaming chat implementation
+Rate limiting and security
+Error handling
+
+Phase 4: Audio & Polish (Days 11-14)
+
+Web Audio API integration
+Sound effects and music
+Performance optimization
+Cross-browser testing
+
+Phase 5: Deployment (Days 15-16)
+
+Vercel deployment setup
+Environment configuration
+Analytics implementation
+Final testing and launch
+
+Future Enhancements
+Potential Features (Post-Launch)
+
+Advanced Chat Tools: Portfolio-specific AI capabilities
+Project Details: Individual project pages
+Contact Integration: Calendar scheduling, email forms
+Analytics Dashboard: Detailed visitor insights
+CMS Integration: Easy content updates
+Internationalization: Multi-language support
+
+Technical Improvements
+
+PWA Features: Offline capability, app installation
+Advanced Analytics: Heat mapping, user session recordings
+A/B Testing: Experiment with different layouts
+SEO Optimization: Meta tags, structured data, sitemap

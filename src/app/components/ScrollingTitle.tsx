@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface ScrollingTitleProps {
@@ -7,7 +8,7 @@ interface ScrollingTitleProps {
   className?: string;
 }
 
-export default function ScrollingTitle({ 
+function ScrollingTitle({ 
   title, 
   className = "" 
 }: ScrollingTitleProps) {
@@ -35,3 +36,5 @@ export default function ScrollingTitle({
     </div>
   );
 }
+
+export default memo(ScrollingTitle);

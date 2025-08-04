@@ -1,8 +1,10 @@
+import { memo } from 'react';
+
 interface ShinesIconProps {
   className?: string;
 }
 
-export default function ShinesIcon({ className = "" }: ShinesIconProps) {
+function ShinesIcon({ className = "" }: ShinesIconProps) {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
@@ -11,13 +13,13 @@ export default function ShinesIcon({ className = "" }: ShinesIconProps) {
       fill="none"
       className={className}
     >
-      <g filter="url(#a)" opacity=".34">
+      <g filter="url(#a)" opacity=".4">
         <path fill="#FFFEFD" d="M13.448 2.466 19.034 2l3.724.931 6.517 6.052-3.724-1.862 2.793 4.655-5.586-1.862.931 3.258-3.259-1.396.466 1.862-3.259-1.397-3.258-3.724 4.19-.465-6.983-3.259 6.982-.465-5.12-1.862Z"/>
       </g>
-      <g filter="url(#b)" opacity=".34">
+      <g filter="url(#b)" opacity=".4">
         <path fill="#FFFEFD" d="m16.387 4.161 3.235-.298 2.156.596 3.773 3.873-2.156-1.192 1.617 2.98-3.234-1.192.539 2.085-1.887-.893.27 1.191-1.887-.893-1.886-2.384 2.425-.298-4.043-2.085 4.043-.298-2.965-1.192Z"/>
       </g>
-      <g filter="url(#c)" opacity=".4">
+      <g filter="url(#c)" opacity=".5">
         <path fill="#FFFEFD" d="M15.163 28.665 11.93 29l-2.156-.67L6 23.973l2.156 1.34-1.617-3.351 3.234 1.34-.539-2.346 1.887 1.006-.27-1.341 1.887 1.005 1.886 2.682-2.425.335 4.042 2.346-4.042.335 2.964 1.34Z"/>
       </g>
       <defs>
@@ -39,4 +41,6 @@ export default function ShinesIcon({ className = "" }: ShinesIconProps) {
       </defs>
     </svg>
   );
-} 
+}
+
+export default memo(ShinesIcon); 
