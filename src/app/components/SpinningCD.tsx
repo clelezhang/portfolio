@@ -21,7 +21,7 @@ const SpinningCD = memo(function SpinningCD({
       <div 
         className="absolute inset-0 rounded-full transition-all duration-300 shadow-hover"
         style={{
-          '--shadow-normal': '0 4px 8px rgba(75,49,48,0.25), 0 1px 2px rgba(75,49,48,0.2)',
+          '--shadow-normal': '0 4px 8px rgba(75,49,48,0.25), 0 1px 2px rgba(75,49,48,0.1)',
           '--shadow-hover': '0 4px 12px rgba(75,49,48,0.4), 0 1px 2px rgba(75,49,48,0.5)',
           boxShadow: 'var(--shadow-normal)'
         } as React.CSSProperties}
