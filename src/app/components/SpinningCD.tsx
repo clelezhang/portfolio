@@ -1,10 +1,15 @@
+'use client';
+
+import { memo } from 'react';
+import { motion } from 'framer-motion';
+
 interface SpinningCDProps {
   artwork?: string;
   onClick: () => void;
   className?: string;
 }
 
-export default function SpinningCD({ 
+const SpinningCD = memo(function SpinningCD({ 
   onClick,
   artwork = "https://picsum.photos/40/40?random=3", 
   className = "" 
@@ -21,14 +26,16 @@ export default function SpinningCD({
         } as React.CSSProperties}
       />
       
-      <button
+      <motion.button
         onClick={onClick}
-        className="absolute inset-0 rounded-full overflow-hidden bg-grey-200 transition-transform animate-spin cursor-pointer hover:scale-105"
-        style={{
-          animationDuration: '8s', // Slow rotation
-          animationTimingFunction: 'linear',
-          animationIterationCount: 'infinite',
+        className="absolute inset-0 rounded-full overflow-hidden bg-grey-200 cursor-pointer"
+        animate={{ rotate: 360 }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "linear"
         }}
+        whileHover={{ scale: 1.05 }}
         aria-label="Toggle music playback"
       >
       {/* Album Artwork with Center Hole Cutout */}
@@ -53,7 +60,9 @@ export default function SpinningCD({
 
       {/* Center Hole Ring */}
       <div className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full border border-grey-300 transform -translate-x-1/2 -translate-y-1/2" />
-      </button>
+      </motion.button>
     </div>
   );
-}
+});
+
+export default SpinningCD;

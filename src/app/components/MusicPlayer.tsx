@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import SpinningCD from './SpinningCD';
 import ScrollingTitle from './ScrollingTitle';
 import ProgressBar from './ProgressBar';
@@ -15,7 +15,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
-    title: "Loading R&B Classics...",
+    title: "Stay tuned...",
     artwork: "https://picsum.photos/40/40?random=1"
   });
   
@@ -41,6 +41,9 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
           widget.bind((window as any).SC.Widget.Events.READY, () => {
             console.log('SoundCloud widget ready');
             setIsLoading(false);
+            
+            // Skip to a random track to start with different song each time
+            widget.skip(Math.floor(Math.random() * 10)); // Skip 0-9 tracks randomly
             
             // Get initial track info
             widget.getCurrentSound((sound: any) => {
@@ -106,7 +109,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     };
   }, []);
 
-  const startProgressTracking = () => {
+  const startProgressTracking = useCallback(() => {
     if (progressInterval.current) return;
     
     progressInterval.current = setInterval(() => {
@@ -120,16 +123,16 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         });
       }
     }, 1000) as NodeJS.Timeout;
-  };
+  }, []);
 
-  const stopProgressTracking = () => {
+  const stopProgressTracking = useCallback(() => {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
       progressInterval.current = null;
     }
-  };
+  }, []);
 
-  const handleCDClick = () => {
+  const handleCDClick = useCallback(() => {
     console.log('CD clicked', { isPlaying, isMuted, widget: !!widgetRef.current, isLoading });
     
     if (isLoading || !widgetRef.current) {
@@ -152,20 +155,20 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       widgetRef.current.setVolume(100);
       setIsMuted(false);
     }
-  };
+  }, [isPlaying, isMuted, isLoading]);
 
   return (
     <>
       {/* Hidden SoundCloud iframe */}
       <iframe
         id="soundcloud-iframe"
-        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/woodnation16/sets/r-b-classics-90s-2000s-best&auto_play=false"
+        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=false&shuffle=true"
         style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
         allow="autoplay; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />
       
-      <div className={`flex h-10 w-30 items-center gap-2 bg-grey-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`}>
+      <div className={`flex h-10 w-30 items-center gap-1 bg-grey-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`}>
         <SpinningCD 
           artwork={trackInfo.artwork}
           onClick={handleCDClick}
