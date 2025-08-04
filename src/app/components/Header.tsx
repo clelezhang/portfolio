@@ -19,7 +19,7 @@ export default function Header() {
             contact
           </div>
           <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans flex items-center gap-2 backdrop-blur-[20px]">
-            <HeartIcon className="text-red" size={12} />
+            <HeartIcon className="text-red"/>
             working & playing
           </div>
         </div>
