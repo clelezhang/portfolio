@@ -45,6 +45,14 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
             // Skip to a random track in the playlist
             widget.skip(randomStartPosition);
             
+            // Start playing automatically with low volume
+            setTimeout(() => {
+              widget.play();
+              widget.setVolume(0);
+              setIsPlaying(true);
+              startProgressTracking();
+            }, 200);
+            
             // Get the track info after skipping
             setTimeout(() => {
               widget.getCurrentSound((sound: any) => {
@@ -167,7 +175,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       {/* Hidden SoundCloud iframe */}
       <iframe
         id="soundcloud-iframe"
-        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=false&shuffle=true"
+        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=true&shuffle=true"
         style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
         allow="autoplay; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-presentation"
