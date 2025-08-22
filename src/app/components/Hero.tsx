@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 export default function Hero() {
   return (
-    <section className="px-4 pt-64 pb-16">
+    <section className="pt-64 pb-16">
       <div className="max-w-6xl mx-auto">
         {/* Intro text */}
         <div className="max-w-[600px] mx-auto text-start mb-16">
@@ -20,13 +20,27 @@ export default function Hero() {
             what i • make
           </div>
         </div>
-        
-        {/* Card stack */}
-        <CardStack className="mb-16" />
-        
-        {/* Practice Card - You can modify this! */}
-
       </div>
-    </section>
+      
+      {/* Full-width card stack and envelope container with gradient background */}
+      <div 
+        className="w-full"
+        style={{
+          background: 'linear-gradient(rgba(154, 156, 184, 0) 0%,  #9A9CB8 41%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
+        }}
+      >
+        <div className="max-w-6xl mx-auto">
+          {/* Card stack */}
+          <CardStack className="mb-16" />
+          
+          {/* Empty section for envelope container */}
+          <div className="mt-16">
+            <div className="h-96 flex items-center justify-center">
+              {/* Envelope container will go here */}
+            </div>
+          </div>
+        </div>
+      </div>
+          </section>
   );
 }

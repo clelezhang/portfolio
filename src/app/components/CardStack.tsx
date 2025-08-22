@@ -76,18 +76,18 @@ export default function CardStack({ className = '' }: CardStackProps) {
   };
 
   // Predefined scattered positions for each card (like polaroid photos) - spread across 1280px
-  const getScatteredPositions = () => {
-    const basePositions = [
-      { x: -500, y: -60, rotate: 12, z: 1 },  // apps - far left
-      { x: -400, y: -100, rotate: 4, z: 2 },     // house - top center
-      { x: -300, y: -40, rotate: -25, z: 3 },    // apple - right
-      { x: -225, y: -150, rotate: -15, z: 4 },   // cyanotype - left
-      { x: -75, y: -110, rotate: -3, z: 9 },     // journal - center left
-      { x: 100, y: -150, rotate: 8, z: 6 },      // charcuterie - center right
-      { x: 200, y: -80, rotate: 5, z: 8 },   // family - upper far left
-      { x: 320, y: -50, rotate: 16, z: 7 },     // lilypad - far right
-      { x: 480, y: -110, rotate: -5, z: 5 }    // friend - upper right
-    ];
+     const getScatteredPositions = () => {
+     const basePositions = [
+       { x: -450, y: 0, rotate: 12, z: 1 },  // apps - far left
+       { x: -350, y: -40, rotate: 4, z: 2 },     // house - top center
+       { x: -250, y: 20, rotate: -25, z: 3 },    // apple - right
+       { x: -175, y: -90, rotate: -15, z: 4 },   // cyanotype - left
+       { x: -20, y: -40, rotate: -3, z: 9 },     // journal - center left
+       { x: 175, y: -80, rotate: 8, z: 6 },      // charcuterie - center right
+       { x: 245, y: -10, rotate: 5, z: 8 },   // family - upper far left
+       { x: 360, y: 30, rotate: 16, z: 7 },     // lilypad - far right
+       { x: 475, y: -60, rotate: -5, z: 5 }    // friend - upper right
+     ];
 
     return basePositions;
   };
@@ -117,14 +117,13 @@ export default function CardStack({ className = '' }: CardStackProps) {
   };
 
   return (
-    <div className={`relative w-full ${className}`} style={{ width: '1280px', maxWidth: 'none', margin: '0 auto' }}>
-      <div 
-        ref={containerRef}
-        className="relative h-[550px] flex items-center justify-center overflow-visible"
-        style={{ perspective: '1000px' }}
-        role="region"
-        aria-label="Interactive portfolio cards"
-      >
+    <div 
+      ref={containerRef}
+      className={`relative w-full h-[400px] flex items-center justify-center ${className}`}
+      style={{ perspective: '1000px' }}
+      role="region"
+      aria-label="Interactive portfolio cards"
+    >
                           {cardData.map((card, index) => {
            const position = getCardPosition(index, card.id);
            const isTapped = tappedCard === card.id;
@@ -225,7 +224,6 @@ export default function CardStack({ className = '' }: CardStackProps) {
             </motion.div>
           );
         })}
-      </div>
     </div>
   );
 }
