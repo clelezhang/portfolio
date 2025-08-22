@@ -19,7 +19,7 @@ export default function Header() {
             contact
           </div>
           <div className="bg-grey-50 text-brown px-5 py-3 rounded-full text-xs font-sans flex items-center gap-2 backdrop-blur-[20px]">
-            <HeartIcon className="text-red"/>
+            <HeartIcon className="text-accentgrey"/>
             working & playing
           </div>
         </div>
@@ -29,7 +29,7 @@ export default function Header() {
         
         {/* Center: Logo */}
         <div className="absolute left-1/2 transform -translate-x-1/2">
-          <LeleIcon className="text-red" />
+          <LeleIcon className="text-accentgrey" />
         </div>
         
         {/* Desktop/Tablet: Right pills */}
@@ -63,16 +63,16 @@ export default function Header() {
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsMenuOpen(false)}>
           <div className="absolute top-20 right-6 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
             <button 
-              className="bg-grey-500 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-grey-600 transition-colors whitespace-nowrap"
+              className="bg-accentgrey text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-grey-600 transition-colors whitespace-nowrap"
               onClick={() => setIsMenuOpen(false)}
             >
               contact
             </button>
-            <div className="bg-grey-500 text-white px-6 py-3 rounded-full text-sm whitespace-nowrap">
+            <div className="bg-accentgrey text-white px-6 py-3 rounded-full text-sm whitespace-nowrap">
               san francisco, ca
             </div>
-            <div className="bg-grey-500 text-white px-6 py-3 rounded-full text-sm flex items-center gap-2 whitespace-nowrap">
-              <HeartIcon className="text-red" size={12} />
+            <div className="bg-accentgrey text-white px-6 py-3 rounded-full text-sm flex items-center gap-2 whitespace-nowrap">
+              <HeartIcon className="text-accentgrey" size={12} />
               working & playing
             </div>
           </div>

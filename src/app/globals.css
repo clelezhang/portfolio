@@ -63,25 +63,27 @@
 
 :root {
   /* Main colors */
-  --red: #E73C4A;
-  --cream: #FFFCFA;
-  --black: #101010;
-  --brown: #412B2A;
+  --accentgrey: rgb(47, 53, 87, 0.55);
+  --lightgrey: #F3F4F7;
+  --slate: #2F3557;
+  --slate2: #2F3557;
 
   
   /* Greys */
-  --grey-50: rgba(75, 49, 48, 0.05);
-  --grey-100: rgba(75, 49, 48, 0.08);
-  --grey-200: rgba(75, 49, 48, 0.1);
-  --grey-300: rgba(75, 49, 48, 0.20);
-  --grey-400: rgba(75, 49, 48, 0.40);
-  --grey-500: rgba(75, 49, 48, 0.65);
-  --grey-900: #412B2A;
+  --grey-50: rgba(47, 53, 87, 0.05);
+  --grey-100: rgba(47, 53, 87, 0.08);
+  --grey-200: rgba(47, 53, 87, 0.1);
+  --grey-300: rgba(47, 53, 87, 0.20);
+  --grey-400: rgba(47, 53, 87, 0.40);
+  --grey-500: rgba(47, 53, 87, 0.55);
+  --grey-900: #2F3557;
 }
 
 @theme inline {
-  --color-red: var(--red);
-  --color-cream: var(--cream);
+  --color-accentgrey: var(--accentgrey);
+  --color-lightgrey: var(--lightgrey);
+  --color-slate: var(--slate);
+  --color-slate2: var(--slate2);
   --color-grey-50: var(--grey-50);
   --color-grey-100: var(--grey-100);
   --color-grey-200: var(--grey-200);
@@ -97,11 +99,16 @@ body {
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8.328 14.248c5.685-3.186 7.084-6.98 6.014-9.646-.52-1.295-1.609-2.223-2.894-2.51-1.132-.251-2.369.003-3.446.858-1.078-.855-2.315-1.11-3.447-.857-1.285.286-2.375 1.214-2.894 2.509-1.07 2.667.33 6.46 6.015 9.646.202.114.45.114.652 0Z" fill="%23E73C4A"/></svg>') 8 8, auto;
 }
 
 .font-sans {
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-detail {
+  font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  font-display: swap;
 }
 
 .font-mono {
@@ -115,12 +122,4 @@ body {
   box-shadow: var(--shadow-hover) !important;
 }
 
-/* Custom heart cursor for all interactive elements */
-* {
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8.328 14.248c5.685-3.186 7.084-6.98 6.014-9.646-.52-1.295-1.609-2.223-2.894-2.51-1.132-.251-2.369.003-3.446.858-1.078-.855-2.315-1.11-3.447-.857-1.285.286-2.375 1.214-2.894 2.509-1.07 2.667.33 6.46 6.015 9.646.202.114.45.114.652 0Z" fill="%23E73C4A"/></svg>') 8 8, auto !important;
-}
 
-/* Keep the utility class for specific use */
-.cursor-heart {
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8.328 14.248c5.685-3.186 7.084-6.98 6.014-9.646-.52-1.295-1.609-2.223-2.894-2.51-1.132-.251-2.369.003-3.446.858-1.078-.855-2.315-1.11-3.447-.857-1.285.286-2.375 1.214-2.894 2.509-1.07 2.667.33 6.46 6.015 9.646.202.114.45.114.652 0Z" fill="%23E73C4A"/></svg>') 8 8, auto;
-}
