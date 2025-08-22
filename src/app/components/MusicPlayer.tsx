@@ -191,7 +191,6 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         <div className="flex-1 min-w-0 space-y-1">
           <ScrollingTitle 
             title={trackInfo.title}
-            className="text-brown"
           />
           
           <ProgressBar 
