@@ -1,7 +1,40 @@
+'use client';
+
 import CardStack from './CardStack';
 import Image from 'next/image';
+import { useState } from 'react';
 
 export default function Hero() {
+  const [activeWord, setActiveWord] = useState('make');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
+
+  const handleCardClick = (cardId: string) => {
+    let newWord = 'make';
+    
+    // Apps, house, apple = what i like
+    if (['apps', 'house', 'apple'].includes(cardId)) {
+      newWord = 'like';
+    }
+    // Cyanotype, journal, charcuterie = what i make
+    else if (['cyanotype', 'journal', 'charcuterie'].includes(cardId)) {
+      newWord = 'make';
+    }
+    // Family, lilypad, friend = what i love
+    else if (['family', 'lilypad', 'friend'].includes(cardId)) {
+      newWord = 'love';
+    }
+
+    if (newWord !== activeWord) {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setActiveWord(newWord);
+        setAnimationKey(prev => prev + 1);
+        setTimeout(() => setIsAnimating(false), newWord.length * 30 + 200);
+      }, 150);
+    }
+  };
+
   return (
     <section className="pt-64 pb-16">
       <div className="max-w-6xl mx-auto">
@@ -15,11 +48,46 @@ export default function Hero() {
         </div>
         
         {/* Section title */}
-        <div className="text-center">
-          <div className="font-detail text-base" style={{ color: 'var(--accentgrey)' }}>
-            what i • make
+        <div className="flex justify-center">
+          <div className="font-detail text-base flex items-center" style={{ color: 'var(--accentgrey)' }}>
+            <span>what i •&nbsp;</span>
+            <span 
+              key={animationKey}
+              className="relative inline-block text-left"
+              style={{ 
+                minWidth: '3rem'
+              }}
+            >
+              {activeWord.split('').map((letter, index) => (
+                <span
+                  key={`${animationKey}-${index}`}
+                  className="inline-block"
+                  style={{
+                    opacity: 0,
+                    filter: 'blur(1px)',
+                    animation: `fadeInLetter 0.2s ease-out forwards`,
+                    animationDelay: `${index * 0.03}s`
+                  }}
+                >
+                  {letter}
+                </span>
+              ))}
+            </span>
           </div>
         </div>
+        
+        <style jsx>{`
+          @keyframes fadeInLetter {
+            0% {
+              opacity: 0;
+              filter: blur(1px);
+            }
+            100% {
+              opacity: 1;
+              filter: blur(0px);
+            }
+          }
+        `}</style>
       </div>
       
       {/* Full-width card stack and envelope container with gradient background */}
@@ -31,7 +99,7 @@ export default function Hero() {
       >
         <div className="max-w-6xl mx-auto">
           {/* Card stack */}
-          <CardStack className="mb-16" />
+          <CardStack className="mb-16" onCardClick={handleCardClick} />
           
           {/* Empty section for envelope container */}
           <div className="mt-16">
