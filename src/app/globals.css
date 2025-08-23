@@ -99,6 +99,8 @@ body {
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   font-weight: 400;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .font-sans {

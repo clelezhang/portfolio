@@ -60,9 +60,10 @@ const cardData: CardData[] = [
 
 interface CardStackProps {
   className?: string;
+  onCardClick?: (cardId: string) => void;
 }
 
-export default function CardStack({ className = '' }: CardStackProps) {
+export default function CardStack({ className = '', onCardClick }: CardStackProps) {
   const [tappedCard, setTappedCard] = useState<string | null>(null);
   const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +74,9 @@ export default function CardStack({ className = '' }: CardStackProps) {
       const filtered = prev.filter(id => id !== cardId);
       return [...filtered, cardId];
     });
+    
+    // Call the parent's onCardClick handler
+    onCardClick?.(cardId);
   };
 
   // Predefined scattered positions for each card (like polaroid photos) - spread across 1280px
@@ -186,7 +190,8 @@ export default function CardStack({ className = '' }: CardStackProps) {
                   borderColor: 'var(--grey-100)',
                   boxShadow: isTapped 
                     ? '0 4px 48px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
-                    : '0 4px 32px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)'
+                    : '0 4px 32px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
+                  willChange: 'transform', // Hint browser to optimize for animations
                 }}
               >
                 {/* Image area - fills available space */}
@@ -210,7 +215,7 @@ export default function CardStack({ className = '' }: CardStackProps) {
                       fill
                       className="flex object-cover pointer-events-none"
                       sizes="(max-width: 768px) 100vw, 240px"
-                      priority={index < 3}
+                      priority={card.id === 'journal' || card.id === 'apple'}
                     />
                 </div>
                 

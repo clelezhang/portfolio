@@ -13,14 +13,16 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const lastProgressUpdate = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
-    title: "Stay tuned...",
+    title: "Click to play music",
     artwork: "https://picsum.photos/40/40?random=2"
   });
   
   const widgetRef = useRef<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const cachedDuration = useRef<number | null>(null);
 
   // Initialize SoundCloud widget with random starting position
   useEffect(() => {
@@ -42,40 +44,26 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
           widget.bind((window as any).SC.Widget.Events.READY, () => {
             setIsLoading(false);
             
-            // Skip to a random track in the playlist
+            // Skip to random track (but don't play) so user sees the right song
             widget.skip(randomStartPosition);
             
-            // Start playing automatically with low volume
-            setTimeout(() => {
-              widget.play();
-              widget.setVolume(0);
-              setIsPlaying(true);
-              startProgressTracking();
-            }, 200);
-            
-            // Get the track info after skipping
+            // Get track info after skipping
             setTimeout(() => {
               widget.getCurrentSound((sound: any) => {
                 if (sound) {
                   setTrackInfo({
-                    title: sound.title || "Stay tuned...",
+                    title: sound.title || "Click to play music",
                     artwork: sound.artwork_url || "https://picsum.photos/40/40?random=1"
                   });
-                }
-              });
-            }, 100);
-            
-            // Also try to get track info after a longer delay to ensure it's loaded
-            setTimeout(() => {
-              widget.getCurrentSound((sound: any) => {
-                if (sound && sound.title) {
+                } else {
+                  // If no current sound, set default
                   setTrackInfo({
-                    title: sound.title,
-                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
+                    title: "Click to play music",
+                    artwork: "https://picsum.photos/40/40?random=1"
                   });
                 }
               });
-            }, 500);
+            }, 800);
           });
 
           widget.bind((window as any).SC.Widget.Events.PLAY, () => {
@@ -90,6 +78,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
 
           widget.bind((window as any).SC.Widget.Events.FINISH, () => {
             setProgress(0);
+            cachedDuration.current = null; // Reset cache on track finish
           });
 
           // Update track info on track change (throttled)
@@ -104,6 +93,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
                     title: sound.title,
                     artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
                   });
+                  cachedDuration.current = null; // Reset cache on track change
                 }
               });
             }
@@ -132,15 +122,35 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     
     progressInterval.current = setInterval(() => {
       if (widgetRef.current) {
-        widgetRef.current.getPosition((position: number) => {
+        // Only get duration once per track, then cache it
+        if (cachedDuration.current === null) {
           widgetRef.current.getDuration((duration: number) => {
             if (duration > 0) {
-              setProgress((position / duration) * 100);
+              cachedDuration.current = duration;
+              // Now get position with cached duration
+              widgetRef.current.getPosition((position: number) => {
+                const newProgress = (position / cachedDuration.current!) * 100;
+                // Only update if progress changed by at least 0.1%
+                if (Math.abs(newProgress - lastProgressUpdate.current) >= 0.1) {
+                  setProgress(newProgress);
+                  lastProgressUpdate.current = newProgress;
+                }
+              });
             }
           });
-        });
+        } else {
+          // Use cached duration, only get position
+          widgetRef.current.getPosition((position: number) => {
+            const newProgress = (position / cachedDuration.current!) * 100;
+            // Only update if progress changed by at least 0.1%
+            if (Math.abs(newProgress - lastProgressUpdate.current) >= 0.1) {
+              setProgress(newProgress);
+              lastProgressUpdate.current = newProgress;
+            }
+          });
+        }
       }
-    }, 1000) as NodeJS.Timeout;
+    }, 2000) as NodeJS.Timeout; // Reduced frequency from 1s to 2s
   }, []);
 
   const stopProgressTracking = useCallback(() => {
@@ -155,27 +165,30 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       return;
     }
 
-    if (!isPlaying && !isMuted) {
-      // Start playing
+    if (!isPlaying) {
+      // Start playing the current track (already skipped to random position)
       widgetRef.current.play();
       widgetRef.current.setVolume(25);
-    } else if (isPlaying && !isMuted) {
-      // Mute (but keep playing)
+      setIsPlaying(true);
+      setIsMuted(false);
+      startProgressTracking();
+    } else if (!isMuted) {
+      // Playing and audible -> mute (but keep playing)
       widgetRef.current.setVolume(0);
       setIsMuted(true);
-    } else if (isMuted) {
-      // Unmute
+    } else {
+      // Playing but muted -> unmute
       widgetRef.current.setVolume(25);
       setIsMuted(false);
     }
-  }, [isPlaying, isMuted, isLoading]);
+  }, [isPlaying, isMuted, isLoading, startProgressTracking]);
 
   return (
     <>
       {/* Hidden SoundCloud iframe */}
       <iframe
         id="soundcloud-iframe"
-        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=true&shuffle=true"
+        src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=false&shuffle=true"
         style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
         allow="autoplay; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-presentation"
