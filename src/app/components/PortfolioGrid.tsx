@@ -80,11 +80,11 @@ export default function PortfolioGrid() {
           {portfolioItems.map((item) => (
             <div
               key={item.id}
-              className={`relative overflow-hidden rounded-lg bg-grey-100 ${getGridClasses(item.size)}`}
+              className={`relative overflow-hidden rounded-lg bg-gray-100 ${getGridClasses(item.size)}`}
             >
-              <div className="w-full h-full bg-gradient-to-br from-grey-200 to-grey-300 flex items-center justify-center">
-                <div className="text-grey-500 text-center font-sans">
-                  <div className="w-16 h-16 bg-grey-400 rounded-lg mx-auto mb-2 opacity-50" />
+              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                <div className="text-gray-500 text-center font-sans">
+                  <div className="w-16 h-16 bg-gray-400 rounded-lg mx-auto mb-2 opacity-50" />
                   <p className="text-sm font-medium">{item.title}</p>
                 </div>
               </div>

@@ -194,7 +194,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />
       
-      <div className={`flex h-10 w-30 items-center gap-1 bg-grey-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`} style={{ willChange: 'transform' }}>
+      <div className={`flex h-10 w-30 items-center gap-1 bg-gray-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`} style={{ willChange: 'transform' }}>
         <SpinningCD 
           artwork={trackInfo.artwork}
           onClick={handleCDClick}

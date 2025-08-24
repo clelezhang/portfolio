@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@rive-app/react-canvas": "^4.22.1",
     "@vercel/kv": "^3.0.0",
@@ -17,6 +18,8 @@
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "simplebar": "^6.3.2",
+    "simplebar-react": "^3.3.2",
     "zod": "^4.0.14",
     "zustand": "^5.0.7"
   },

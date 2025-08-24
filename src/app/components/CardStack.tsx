@@ -82,15 +82,15 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
   // Predefined scattered positions for each card (like polaroid photos) - spread across 1280px
      const getScatteredPositions = () => {
      const basePositions = [
-       { x: -450, y: 0, rotate: 12, z: 1 },  // apps - far left
-       { x: -350, y: -40, rotate: 4, z: 2 },     // house - top center
-       { x: -250, y: 20, rotate: -25, z: 3 },    // apple - right
-       { x: -175, y: -90, rotate: -15, z: 4 },   // cyanotype - left
-       { x: -20, y: -40, rotate: -3, z: 9 },     // journal - center left
-       { x: 175, y: -80, rotate: 8, z: 6 },      // charcuterie - center right
-       { x: 245, y: -10, rotate: 5, z: 8 },   // family - upper far left
-       { x: 360, y: 30, rotate: 16, z: 7 },     // lilypad - far right
-       { x: 475, y: -60, rotate: -5, z: 5 }    // friend - upper right
+       { x: -450, y: 30, rotate: 12, z: 1 },  // apps - far left
+       { x: -350, y: -10, rotate: 4, z: 2 },     // house - top center
+       { x: -250, y: 50, rotate: -25, z: 3 },    // apple - right
+       { x: -175, y: -60, rotate: -15, z: 4 },   // cyanotype - left
+       { x: -20, y: -10, rotate: -3, z: 9 },     // journal - center left
+       { x: 175, y: -50, rotate: 8, z: 6 },      // charcuterie - center right
+       { x: 245, y: 20, rotate: 5, z: 8 },   // family - upper far left
+       { x: 360, y: 60, rotate: 16, z: 7 },     // lilypad - far right
+       { x: 475, y: -30, rotate: -5, z: 5 }    // friend - upper right
      ];
 
     return basePositions;
@@ -123,7 +123,7 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-[400px] flex items-center justify-center ${className}`}
+      className={`relative w-full h-[332px] flex items-center justify-center ${className}`}
       style={{ perspective: '1000px' }}
       role="region"
       aria-label="Interactive portfolio cards"
@@ -187,7 +187,7 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
                 className="bg-white border overflow-hidden p-2 w-60 flex flex-col items-center"
                 style={{ 
                   borderRadius: '24px 24px 24px 24px',
-                  borderColor: 'var(--grey-100)',
+                  borderColor: 'var(--gray-100)',
                   boxShadow: isTapped 
                     ? '0 4px 48px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
                     : '0 4px 32px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
@@ -206,7 +206,7 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
                     className="absolute inset-0 border pointer-events-none z-10"
                     style={{
                         borderRadius: '16px 16px 2px 2px',
-                        borderColor: 'var(--grey-50)',
+                        borderColor: 'var(--gray-50)',
                     }}
                   />
                 <Image
@@ -221,7 +221,7 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
                 
                 {/* Text area - flexible height */}
                 <div className="flex-1 flex flex-col pt-2 pb-3 w-full">
-                  <h3 className="font-detail text-sm font-medium leading-tight text-start" style={{ color: 'var(--grey-900)' }}>
+                  <h3 className="font-detail text-sm font-medium leading-tight text-start" style={{ color: 'var(--gray-900)' }}>
                       {card.title}
                     </h3>
                   </div>
