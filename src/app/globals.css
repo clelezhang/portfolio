@@ -63,39 +63,39 @@
 
 :root {
   /* Main colors */
-  --accentgrey: rgb(47, 53, 87, 0.55);
-  --lightgrey: #F3F4F7;
+  --accentgray: rgb(47, 53, 87, 0.55);
+  --lightgray: #F3F4F7;
   --slate: #2F3557;
   --slate2: #2F3557;
 
   
-  /* Greys */
-  --grey-50: rgba(47, 53, 87, 0.05);
-  --grey-100: rgba(47, 53, 87, 0.08);
-  --grey-200: rgba(47, 53, 87, 0.1);
-  --grey-300: rgba(47, 53, 87, 0.20);
-  --grey-400: rgba(47, 53, 87, 0.40);
-  --grey-500: rgba(47, 53, 87, 0.55);
-  --grey-900: #2F3557;
+  /* Grays */
+  --gray-50: rgba(47, 53, 87, 0.05);
+  --gray-100: rgba(47, 53, 87, 0.08);
+  --gray-200: rgba(47, 53, 87, 0.1);
+  --gray-300: rgba(47, 53, 87, 0.20);
+  --gray-400: rgba(47, 53, 87, 0.40);
+  --gray-500: rgba(47, 53, 87, 0.55);
+  --gray-900: #2F3557;
 }
 
 @theme inline {
-  --color-accentgrey: var(--accentgrey);
-  --color-lightgrey: var(--lightgrey);
+  --color-accentgray: var(--accentgray);
+  --color-lightgray: var(--lightgray);
   --color-slate: var(--slate);
   --color-slate2: var(--slate2);
-  --color-grey-50: var(--grey-50);
-  --color-grey-100: var(--grey-100);
-  --color-grey-200: var(--grey-200);
-  --color-grey-300: var(--grey-300);
-  --color-grey-400: var(--grey-400);
-  --color-grey-500: var(--grey-500);
-  --color-grey-900: var(--grey-900);
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-900: var(--gray-900);
 }
 
 body {
   background: var(--cream);
-  color: var(--grey-900);
+  color: var(--gray-900);
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   font-weight: 400;
@@ -110,7 +110,6 @@ body {
 .font-detail {
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 400;
-  font-display: swap;
 }
 
 .font-mono {
@@ -122,6 +121,39 @@ body {
 /* Custom shadow hover effect */
 .group:hover .shadow-hover {
   box-shadow: var(--shadow-hover) !important;
+}
+
+/* Custom curved scrollbar for envelope */
+.envelope-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.envelope-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.envelope-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 32px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.envelope-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.envelope-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.envelope-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 

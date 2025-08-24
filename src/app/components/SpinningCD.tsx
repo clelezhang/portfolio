@@ -29,7 +29,7 @@ const SpinningCD = memo(function SpinningCD({
       
       <motion.button
         onClick={onClick}
-        className="absolute inset-0 rounded-full overflow-hidden bg-grey-300 cursor-pointer"
+        className="absolute inset-0 rounded-full overflow-hidden bg-gray-300 cursor-pointer"
         animate={{ rotate: 360 }}
         transition={{
           duration: 8,
@@ -45,7 +45,7 @@ const SpinningCD = memo(function SpinningCD({
       >
       {/* Album Artwork with Center Hole Cutout */}
       <div 
-        className="absolute inset-0 rounded-full bg-cover bg-center border border-grey-300"
+        className="absolute inset-0 rounded-full bg-cover bg-center border border-gray-300"
         style={{
           backgroundImage: `url(${artwork})`,
           clipPath: 'circle(50% at 50% 50%)',
@@ -60,22 +60,22 @@ const SpinningCD = memo(function SpinningCD({
       <div className="absolute inset-0 rounded-full">
         {/* Center rings */}
         <div 
-          className="absolute top-1/2 left-1/2 w-6 h-6 rounded-full border border-grey-100 transform -translate-x-1/2 -translate-y-1/2" 
+          className="absolute top-1/2 left-1/2 w-6 h-6 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
           style={{ willChange: 'transform' }}
         />
         <div 
-          className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full border border-grey-100 transform -translate-x-1/2 -translate-y-1/2" 
+          className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
           style={{ willChange: 'transform' }}
         />
                 <div 
-          className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full border border-grey-100 transform -translate-x-1/2 -translate-y-1/2" 
+          className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
           style={{ willChange: 'transform' }}
         />
       </div>
 
       {/* Center Hole Ring */}
       <div 
-        className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full border border-grey-300 transform -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full border border-gray-300 transform -translate-x-1/2 -translate-y-1/2"
         style={{ willChange: 'transform' }}
       />
     </motion.button>

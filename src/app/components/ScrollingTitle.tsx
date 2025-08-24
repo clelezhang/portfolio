@@ -16,8 +16,8 @@ function ScrollingTitle({
     <div 
       className={`relative overflow-hidden ${className}`}
       style={{
-        mask: 'linear-gradient(90deg, transparent 0%, var(--grey-500) 10%, var(--grey-500) 90%, transparent 100%)',
-        WebkitMask: 'linear-gradient(90deg, transparent 0%, var(--grey-500) 10%, var(--grey-500) 90%, transparent 100%)'
+        mask: 'linear-gradient(90deg, transparent 0%, var(--gray-500) 10%, var(--gray-500) 90%, transparent 100%)',
+        WebkitMask: 'linear-gradient(90deg, transparent 0%, var(--gray-500) 10%, var(--gray-500) 90%, transparent 100%)'
       }}
     >
       <motion.div 

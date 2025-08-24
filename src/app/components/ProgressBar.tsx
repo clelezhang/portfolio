@@ -15,9 +15,9 @@ const ProgressBar = memo(function ProgressBar({
   className = "" 
 }: ProgressBarProps) {
   return (
-    <div className={`w-full h-0.5 bg-grey-200 rounded-full overflow-hidden ${className}`}>
+    <div className={`w-full h-0.5 bg-gray-200 rounded-full overflow-hidden ${className}`}>
       <motion.div 
-        className="h-full bg-grey-500 rounded-full"
+        className="h-full bg-gray-500 rounded-full"
         style={{
           width: `${progress}%`
         }}

@@ -1,6 +1,7 @@
 'use client';
 
 import CardStack from './CardStack';
+import Envelope from './Envelope';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -40,7 +41,7 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto">
         {/* Intro text */}
         <div className="max-w-[600px] mx-auto text-start mb-16">
-          <div className="text-base leading-relaxed font-detail" style={{ color: 'var(--grey-900)' }}>
+          <div className="text-base leading-relaxed font-detail" style={{ color: 'var(--gray-900)' }}>
             <p>hello there! I&apos;m lele.</p>
             <p className="mt-3">I&apos;m a designer in meandering pursuit of aesthetics and function. I hope to create a 
             world of seeing, learning, thinking, building, and loving.</p>
@@ -49,7 +50,7 @@ export default function Hero() {
         
         {/* Section title */}
         <div className="flex justify-center">
-          <div className="font-detail text-base flex items-center" style={{ color: 'var(--accentgrey)' }}>
+          <div className="font-detail text-base flex items-center" style={{ color: 'var(--accentgray)' }}>
             <span>what i •&nbsp;</span>
             <span 
               key={animationKey}
@@ -94,18 +95,16 @@ export default function Hero() {
       <div 
         className="w-full"
         style={{
-          background: 'linear-gradient(rgba(154, 156, 184, 0) 0%,  #9A9CB8 41%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
+          background: 'linear-gradient(rgba(154, 156, 184, 0) 0%,  #9A9CB8 55%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
         }}
       >
         <div className="max-w-6xl mx-auto">
           {/* Card stack */}
-          <CardStack className="mb-16" onCardClick={handleCardClick} />
+          <CardStack onCardClick={handleCardClick} />
           
-          {/* Empty section for envelope container */}
-          <div className="mt-16">
-            <div className="h-96 flex items-center justify-center">
-              {/* Envelope container will go here */}
-            </div>
+          {/* Envelope container */}
+          <div className="pb-32">
+            <Envelope />
           </div>
         </div>
       </div>
