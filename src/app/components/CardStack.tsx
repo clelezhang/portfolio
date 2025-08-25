@@ -162,7 +162,7 @@ export default function CardStack({ className = '', onCardClick, onDragStart, on
                 setTappedCard(card.id);
                 onDragStart?.(card.id);
               }}
-              onDragEnd={(event, info) => {
+              onDragEnd={(_event, info) => {
                 setTappedCard(null);
                 // Simple drop zone detection - check if dragged near envelope area
                 const dropZoneY = window.innerHeight * 0.6; // Approximate envelope position

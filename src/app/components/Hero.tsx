@@ -136,18 +136,7 @@ export default function Hero() {
           </div>
         </div>
         
-        <style jsx>{`
-          @keyframes fadeInLetter {
-            0% {
-              opacity: 0;
-              filter: blur(1px);
-            }
-            100% {
-              opacity: 1;
-              filter: blur(0px);
-            }
-          }
-        `}</style>
+
       </div>
       
       {/* Full-width card stack and envelope container with gradient background */}
@@ -184,25 +173,28 @@ export default function Hero() {
           )}
           
           {/* Envelope container */}
-          <div className="pb-32 relative z-10">
+          <div className="pb-28 relative z-10">
             {/* Drop zone overlay */}
             {dragState.isDragging && (
               <div className="absolute flex justify-center items-center inset-0 pointer-events-auto z-20">
                 <div 
-                  className="relative w-full max-w-[580px] h-[350px] mx-auto"
+                  className="relative w-full max-w-[585px] h-[360px] mx-auto"
                   onMouseEnter={handleDropZoneEnter}
                   onMouseLeave={handleDropZoneLeave}
                   style={{
                     borderRadius: '24px',
-                    background: dragState.isOverDropZone 
-                      ? 'radial-gradient(circle at center, rgba(255, 182, 193, 0.15) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 70%)'
-                      : 'transparent',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)',
+                    animation: 'fadeIn 0.3s ease-out'
                   }}
                 >
                   {/* Animated SVG Border */}
                   <svg
                     className="absolute inset-0 w-full h-full pointer-events-none"
-                    style={{ borderRadius: '24px' }}
+                    style={{ 
+                      borderRadius: '24px',
+                      filter: 'blur(1px)'
+                    }}
                   >
                     <rect
                       x="2"
@@ -211,36 +203,22 @@ export default function Hero() {
                       height="calc(100% - 4px)"
                       rx="22"
                       ry="22"
-                      fill="none"
-                      stroke="#FFB6C1"
-                      strokeWidth="4"
-                      strokeDasharray="12 12"
+                      fill="rgba(255, 255, 255, 0.3)"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                      strokeDasharray="3 9"
                       strokeLinecap="round"
+                      className="animated-dash"
                       style={{
-                        animation: 'dashMove 2s linear infinite'
+                        animation: 'dashMove 2s linear infinite',
                       }}
                     />
                   </svg>
-                  
-                  {/* Pulsating radial gradient inside container */}
-                  <div 
-                    className="absolute inset-0"
-                    style={{
-                      borderRadius: '20px',
-                      background: 'radial-gradient(circle at center, rgba(255, 182, 193, 0.2) 0%, rgba(255, 255, 255, 0.1) 40%, transparent 70%)',
-                      animation: 'pulseGradient 1.5s ease-in-out infinite'
-                    }}
-                  />
                 </div>
               </div>
             )}
             
-            <Envelope 
-              onDropZoneEnter={handleDropZoneEnter}
-              onDropZoneLeave={handleDropZoneLeave}
-              isDragTarget={dragState.isDragging}
-              isDropZoneActive={dragState.isOverDropZone}
-            />
+            <Envelope />
           </div>
         </div>
       </div>
