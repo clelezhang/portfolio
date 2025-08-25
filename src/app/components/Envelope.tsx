@@ -13,7 +13,19 @@ interface Message {
   timestamp: Date;
 }
 
-export default function Envelope() {
+interface EnvelopeProps {
+  onDropZoneEnter?: () => void;
+  onDropZoneLeave?: () => void;
+  isDragTarget?: boolean;
+  isDropZoneActive?: boolean;
+}
+
+export default function Envelope({ 
+  onDropZoneEnter, 
+  onDropZoneLeave, 
+  isDragTarget = false, 
+  isDropZoneActive = false 
+}: EnvelopeProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',

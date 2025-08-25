@@ -61,9 +61,11 @@ const cardData: CardData[] = [
 interface CardStackProps {
   className?: string;
   onCardClick?: (cardId: string) => void;
+  onDragStart?: (cardId: string) => void;
+  onDragEnd?: (cardId: string, droppedOnEnvelope: boolean) => void;
 }
 
-export default function CardStack({ className = '', onCardClick }: CardStackProps) {
+export default function CardStack({ className = '', onCardClick, onDragStart, onDragEnd }: CardStackProps) {
   const [tappedCard, setTappedCard] = useState<string | null>(null);
   const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -156,13 +158,17 @@ export default function CardStack({ className = '', onCardClick }: CardStackProp
                  // Handle pure clicks (no drag)
                  setTappedCard(null);
                }}
-               onDragStart={() => {
-                 // Already handled in onTapStart, just maintain tapped state
-                 setTappedCard(card.id);
-               }}
-               onDragEnd={() => {
-                 setTappedCard(null);
-               }}
+                             onDragStart={() => {
+                setTappedCard(card.id);
+                onDragStart?.(card.id);
+              }}
+              onDragEnd={(event, info) => {
+                setTappedCard(null);
+                // Simple drop zone detection - check if dragged near envelope area
+                const dropZoneY = window.innerHeight * 0.6; // Approximate envelope position
+                const droppedOnEnvelope = info.point.y > dropZoneY;
+                onDragEnd?.(card.id, droppedOnEnvelope);
+              }}
                animate={{
                  x: position.x,
                  y: position.y,
