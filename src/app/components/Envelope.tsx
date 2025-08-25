@@ -112,7 +112,8 @@ export default function Envelope() {
                inset 0 -4px 4px rgba(255, 255, 255, 0.25),
                inset 0 -12px 24px rgba(255, 255, 255, 0.30),
                0 4px 24px rgba(47, 53, 87, 0.12)
-             `
+             `,
+             backdropFilter: 'blur(2px)'
            }}
          >
         {/* Header */}
@@ -173,8 +174,9 @@ export default function Envelope() {
           />
 
 
-                {/* Chat Messages */}
-        <div className="space-y-1 flex-1 relative z-10 overflow-y-auto px-6 py-4 pb-20 envelope-scrollbar">
+                {/* Chat Messages Container */}
+        <div className="flex-1 relative z-10 overflow-hidden rounded-b-[32px]">
+          <div className="space-y-1 h-full overflow-y-auto p-4 pb-20 envelope-scrollbar" >
           {messages.map((message, index) => {
             const prevMessage = messages[index - 1];
             const isFirstInGroup = !prevMessage || prevMessage.sender !== message.sender;
@@ -185,12 +187,12 @@ export default function Envelope() {
               <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'}`}>
                 {/* Avatar for incoming messages - only show on last message in group */}
                 {message.sender === 'other' && (
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
+                  <div className={`w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
                     <Image
-                      src="/card-images/charcuterie.jpg"
+                      src="/profile.jpg"
                       alt="Profile"
-                      width={32}
-                      height={32}
+                      width={42}
+                      height={42}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -249,11 +251,12 @@ export default function Envelope() {
           )}
           
           <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* Input Area */}
         <div 
-          className="absolute bottom-0 left-0 right-0 flex items-end space-x-2 z-20 pb-6 px-6"
+          className="absolute bottom-0 left-0 right-0 flex items-end space-x-2 z-20 pb-4 px-4"
         >
             {/* Twitter button */}
            <button 
