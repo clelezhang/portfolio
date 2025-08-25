@@ -100,10 +100,12 @@ export default function Hero() {
       >
         <div className="max-w-6xl mx-auto">
           {/* Card stack */}
-          <CardStack onCardClick={handleCardClick} />
+          <div className="relative z-50">
+            <CardStack onCardClick={handleCardClick} />
+          </div>
           
           {/* Envelope container */}
-          <div className="pb-32">
+          <div className="pb-32 relative z-10">
             <Envelope />
           </div>
         </div>
