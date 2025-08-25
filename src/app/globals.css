@@ -185,19 +185,24 @@ body {
   }
 }
 
-@keyframes pulseGradient {
+@keyframes fadeInLetter {
   0% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.02);
+    opacity: 0;
+    filter: blur(1px);
   }
   100% {
-    opacity: 0.3;
-    transform: scale(1);
+    opacity: 1;
+    filter: blur(0px);
   }
 }
+
+/* Optimize for smoother animation */
+.animated-dash {
+  will-change: stroke-dashoffset;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+
+
 
 

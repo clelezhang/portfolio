@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import TwitterIcon from './icons/TwitterIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
@@ -13,19 +13,7 @@ interface Message {
   timestamp: Date;
 }
 
-interface EnvelopeProps {
-  onDropZoneEnter?: () => void;
-  onDropZoneLeave?: () => void;
-  isDragTarget?: boolean;
-  isDropZoneActive?: boolean;
-}
-
-export default function Envelope({ 
-  onDropZoneEnter, 
-  onDropZoneLeave, 
-  isDragTarget = false, 
-  isDropZoneActive = false 
-}: EnvelopeProps) {
+export default function Envelope() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -45,6 +33,11 @@ export default function Envelope({
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Memoize icons to prevent rerendering
+  const twitterIcon = useMemo(() => <TwitterIcon className="text-white" size={20} />, []);
+  const envelopeIcon = useMemo(() => <EnvelopeIcon className="w-5 h-5 text-white" />, []);
+  const arrowIcon = useMemo(() => <ArrowUpIcon className="w-3.5 h-3.5 text-white" strokeWidth={3} />, []);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -118,12 +111,12 @@ export default function Envelope({
         <div 
            className="left-0 right-0 h-[112px] rounded-t-[128px] flex items-center justify-center"
            style={{
-             background: 'rgba(255, 255, 255, 0.25)',
+             background: 'rgba(255, 255, 255, 0.2)',
              boxShadow: `
                inset 1px 1px 2px rgba(255, 255, 255, 0.15),
                inset 0 -4px 4px rgba(255, 255, 255, 0.25),
                inset 0 -12px 24px rgba(255, 255, 255, 0.30),
-               0 4px 24px rgba(47, 53, 87, 0.12)
+               0 4px 24px rgba(47, 53, 87, 0.06)
              `,
              backdropFilter: 'blur(2px)'
            }}
@@ -138,7 +131,7 @@ export default function Envelope({
         <div 
           className="relative rounded-b-[32px] h-[375px] flex flex-col"
           style={{
-            background: 'rgba(255, 255, 255, 0.24)',
+            background: 'rgba(255, 255, 255, 0.36)',
             boxShadow: `
               0 4px 24px rgba(47, 53, 87, 0.08),
               0 4px 4px rgba(47, 53, 87, 0.04)
@@ -150,11 +143,11 @@ export default function Envelope({
                className="absolute top-0 left-0 w-[112px] bottom-0 z-0"
                style={{
                  borderRadius: '0px 64px 64px 32px',
-                 background: 'rgba(255, 255, 255, 0.1)',
+                 background: 'rgba(255, 255, 255, 0.04)',
                  boxShadow: `
                    inset 1px 48px 24px rgba(255, 255, 255, 0.05),
                    inset 0 4px 4px rgba(255, 255, 255, 0.1),
-                   0 4px 25px rgba(47, 53, 87, 0.12)
+                   0 4px 25px rgba(47, 53, 87, 0.06)
                  `
                }}
            />
@@ -164,11 +157,11 @@ export default function Envelope({
             className="absolute top-0 right-0 w-[112px] bottom-0 z-0"
             style={{
               borderRadius: '64px 0px 32px 64px',
-              background: 'rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.04)',
               boxShadow: `
                 inset 1px 48px 24px rgba(255, 255, 255, 0.05),
                 inset 0 4px 4px rgba(255, 255, 255, 0.1),
-                0 4px 25px rgba(47, 53, 87, 0.12)
+                0 4px 25px rgba(47, 53, 87, 0.06)
               `
             }}
           />
@@ -177,9 +170,9 @@ export default function Envelope({
           <div 
             className="absolute bottom-0 left-0 right-0 h-[312px] rounded-t-[128px] rounded-b-[32px] z-0"
             style={{
-              background: 'rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.15)',
               boxShadow: `
-                inset 1px 48px 24px 8px rgba(255, 255, 255, 0.05),
+                inset 1px 48px 24px 8px rgba(255, 255, 255, 0.15),
                 inset 0 4px 4px rgba(255, 255, 255, 0.1),
               `
             }}
@@ -190,8 +183,6 @@ export default function Envelope({
         <div className="flex-1 relative z-10 overflow-hidden rounded-b-[32px]">
           <div className="space-y-1 h-full overflow-y-auto p-4 pb-20 envelope-scrollbar" >
           {messages.map((message, index) => {
-            const prevMessage = messages[index - 1];
-            const isFirstInGroup = !prevMessage || prevMessage.sender !== message.sender;
             const nextMessage = messages[index + 1];
             const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
             
@@ -277,7 +268,7 @@ export default function Envelope({
                backdropFilter: 'blur(10px)'
              }}
            >
-             <TwitterIcon className="text-white" size={20} />
+             {twitterIcon}
            </button>
 
             {/* Email button */}
@@ -287,7 +278,7 @@ export default function Envelope({
                backdropFilter: 'blur(10px)'
              }}
            >
-             <EnvelopeIcon className="w-5 h-5 text-white" />
+             {envelopeIcon}
            </button>
 
           {/* Input field container */}
@@ -328,15 +319,15 @@ export default function Envelope({
               
               {/* Send button container */}
               <div className="h-5 overflow-visible flex items-center">
-                {newMessage.trim() && (
-                                      <button
-                      onClick={handleSendMessage}
-                      className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center transition-all hover:bg-white/30"
-
-                    >
-                    <ArrowUpIcon className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                  </button>
-                )}
+                <button
+                  onClick={handleSendMessage}
+                  className={`w-8 h-8 bg-white/20 rounded-full flex items-center justify-center transition-all hover:bg-white/30 ${
+                    newMessage.trim() ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
+                  }`}
+                  disabled={!newMessage.trim()}
+                >
+                  {arrowIcon}
+                </button>
               </div>
             </div>
           </div>
