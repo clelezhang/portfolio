@@ -11,7 +11,13 @@ interface MusicPlayerProps {
 
 export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('musicPlayer_isMuted');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const [progress, setProgress] = useState(0);
   const lastProgressUpdate = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,6 +29,13 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const widgetRef = useRef<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const cachedDuration = useRef<number | null>(null);
+
+  // Save mute state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('musicPlayer_isMuted', JSON.stringify(isMuted));
+    }
+  }, [isMuted]);
 
   // Initialize SoundCloud widget with random starting position
   useEffect(() => {
@@ -69,6 +82,10 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
           widget.bind((window as any).SC.Widget.Events.PLAY, () => {
             setIsPlaying(true);
             startProgressTracking();
+            // Apply saved mute state when playback starts
+            if (isMuted) {
+              widget.setVolume(0);
+            }
           });
 
           widget.bind((window as any).SC.Widget.Events.PAUSE, () => {
@@ -168,9 +185,9 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     if (!isPlaying) {
       // Start playing the current track (already skipped to random position)
       widgetRef.current.play();
-      widgetRef.current.setVolume(25);
+      // Set volume based on saved mute state
+      widgetRef.current.setVolume(isMuted ? 0 : 25);
       setIsPlaying(true);
-      setIsMuted(false);
       startProgressTracking();
     } else if (!isMuted) {
       // Playing and audible -> mute (but keep playing)
