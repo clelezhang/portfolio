@@ -74,6 +74,10 @@ interface DragState {
   isPastSnapPoint: boolean;
   isOverDropZone: boolean; // In envelope body area
   tapRotation: number; // Stores the rotation applied on tap
+  isPullingToDropZone?: boolean; // When card is being pulled into drop zone
+  pullTargetX?: number; // Target X position for pull animation
+  pullTargetY?: number; // Target Y position for pull animation
+  isFadingOut?: boolean; // When card is fading out after reaching drop zone
 }
 
 interface InteractivePortfolioProps {
@@ -87,6 +91,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const [tappedCard, setTappedCard] = useState<string | null>(null);
   const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
   const [cardRotations, setCardRotations] = useState<{ [cardId: string]: number }>({});
+  const [cardTransformOrigins, setCardTransformOrigins] = useState<{ [cardId: string]: string }>({});
+  const [hiddenCards, setHiddenCards] = useState<Set<string>>(new Set());
+  const [reappearingCards, setReappearingCards] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Window size state for consistent SSR/client rendering
@@ -167,6 +174,84 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     return true;
   };
 
+  // Start the fade out and reappear sequence for a card
+  const startCardFadeOutSequence = (cardId: string) => {
+    // Start fade out immediately
+    setDragState(prev => ({
+      ...prev,
+      isFadingOut: true,
+      draggedCardId: cardId
+    }));
+    
+    // After fade out completes, trigger message and reset state
+    setTimeout(() => {
+      const contextualMessage = getPreviewMessage(cardId);
+      handleSendMessage(contextualMessage);
+      
+      // Hide the card permanently
+      setHiddenCards(prev => new Set(prev).add(cardId));
+      
+      setDragState({
+        isDragging: false,
+        draggedCardId: null,
+        isPastSnapPoint: false,
+        isOverDropZone: false,
+        tapRotation: 0,
+        isPullingToDropZone: false,
+        pullTargetX: undefined,
+        pullTargetY: undefined,
+        isFadingOut: false
+      });
+      
+      // After a delay, make the card reappear with animation
+      setTimeout(() => {
+        setHiddenCards(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(cardId);
+          return newSet;
+        });
+        setReappearingCards(prev => new Set(prev).add(cardId));
+        
+        // After the initial bounce, scale back to normal
+        setTimeout(() => {
+          // This will trigger the scale to go back to 1 from 1.05
+          setReappearingCards(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(cardId);
+            return newSet;
+          });
+        }, 200); // Duration for fade-in + bounce animation
+      }, 100); // Wait before reappearing
+    }, 600); // Fade out duration
+  };
+
+  // Pull card into drop zone with smooth animation
+  const pullCardIntoDropZone = (cardId: string, currentX: number, currentY: number) => {
+    // Calculate target position relative to card container center
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    const targetX = 0; // Center horizontally relative to card container
+    const targetY = 450; // Fixed distance down from card container (relative to envelope position)
+    
+    // Set state to indicate we're pulling the card
+    setDragState(prev => ({
+      ...prev,
+      isPullingToDropZone: true,
+      pullTargetX: targetX,
+      pullTargetY: targetY
+    }));
+    
+    // After pull animation, start the fade out sequence
+    setTimeout(() => {
+      setDragState(prev => ({
+        ...prev,
+        isPullingToDropZone: false
+      }));
+      startCardFadeOutSequence(cardId);
+    }, 600); // Match pull animation duration
+  };
+
   // Memoize icons to prevent rerendering
   const twitterIcon = useMemo(() => <TwitterIcon className="text-white" size={20} />, []);
   const envelopeIcon = useMemo(() => <EnvelopeIcon className="w-5 h-5 text-white" />, []);
@@ -224,11 +309,15 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     });
   };
 
-  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean) => {
+  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean, dragInfo: any) => {
     if (droppedOnEnvelope) {
-      // Get a contextual message based on the card
-      const contextualMessage = getPreviewMessage(cardId);
-      handleSendMessage(contextualMessage);
+      // Card dropped directly in envelope - start fade out animation immediately
+      startCardFadeOutSequence(cardId);
+      return; // Don't reset drag state yet, let the animation handle it
+    } else if (dragState.isPastSnapPoint && !droppedOnEnvelope) {
+      // Card is in snap zone but not drop zone - pull it into the drop zone
+      pullCardIntoDropZone(cardId, dragInfo.point.x, dragInfo.point.y);
+      return; // Don't reset drag state yet, let the animation handle it
     }
     
     setDragState({
@@ -383,8 +472,17 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
           const position = getCardPosition(index, card.id);
           const isTapped = tappedCard === card.id;
           const isDraggingThis = dragState.isDragging && dragState.draggedCardId === card.id;
+          const isPullingThis = dragState.isPullingToDropZone && dragState.draggedCardId === card.id;
+          const isFadingOutThis = dragState.isFadingOut && dragState.draggedCardId === card.id;
+          const isHidden = hiddenCards.has(card.id);
+          const isReappearing = reappearingCards.has(card.id);
           // Use stored rotation if it exists, otherwise use base rotation
           const currentRotation = cardRotations[card.id] ?? position.rotate;
+          
+          // Don't render hidden cards
+          if (isHidden) {
+            return null;
+          }
           
           return (
             <motion.div
@@ -393,27 +491,69 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               className="absolute cursor-grab active:cursor-grabbing focus:outline-none rounded-2xl"
               style={{
                 zIndex: position.zIndex,
+                transformOrigin: cardTransformOrigins[card.id] || 'center center',
               } as React.CSSProperties}
-              initial={{
+              initial={isReappearing ? {
+                x: position.x,
+                y: position.y,
+                rotate: position.rotate,
+                scale: 0.8,
+                opacity: 0
+              } : {
                 x: position.x,
                 y: position.y,
                 rotate: position.rotate,
                 scale: 1,
               }}
-              animate={{
+              animate={isReappearing ? {
+                x: position.x,
+                y: position.y,
                 rotate: currentRotation,
-                scale: isTapped ? 1.08 : 1,
+                scale: 1.05,
+                opacity: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  duration: 0.6
+                }
+              } : isFadingOutThis ? {
+                x: dragState.pullTargetX,
+                y: dragState.pullTargetY,
+                rotate: currentRotation,
+                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                opacity: 0
+              } : isPullingThis ? {
+                x: dragState.pullTargetX,
+                y: dragState.pullTargetY,
+                rotate: currentRotation,
+                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                opacity: 1
+              } : {
+                rotate: currentRotation,
+                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                opacity: 1
               }}
-              drag
+              drag={!isPullingThis}
               dragMomentum={false}
               dragElastic={0.1}
-              onTapStart={() => {
+              onTapStart={(event, info) => {
                 const tapRotation = position.rotate + (Math.random() - 0.5) * 8;
                 setTappedCard(card.id);
                 handleCardInteraction(card.id);
                 // Store the rotation immediately for this card
                 setCardRotations(prev => ({ ...prev, [card.id]: tapRotation }));
                 setDragState(prev => ({ ...prev, tapRotation }));
+                
+                // Calculate transform origin based on cursor position relative to card
+                const cardElement = event.target as HTMLElement;
+                const cardRect = cardElement.getBoundingClientRect();
+                const originX = ((info.point.x - cardRect.left) / cardRect.width) * 100;
+                const originY = ((info.point.y - cardRect.top) / cardRect.height) * 100;
+                setCardTransformOrigins(prev => ({ 
+                  ...prev, 
+                  [card.id]: `${Math.max(0, Math.min(100, originX))}% ${Math.max(0, Math.min(100, originY))}%` 
+                }));
               }}
               onTap={() => {
                 // Handle pure clicks (no drag)
@@ -430,7 +570,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 setTappedCard(null);
                 // Check if dropped in actual envelope body geometry
                 const droppedInEnvelope = isInEnvelopeBody(info.point.x, info.point.y);
-                handleDragEnd(card.id, droppedInEnvelope);
+                handleDragEnd(card.id, droppedInEnvelope, info);
               }}
               // No automatic animation back to position - cards stay where placed
               transition={{
