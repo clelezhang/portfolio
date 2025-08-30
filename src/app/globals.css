@@ -196,6 +196,15 @@ body {
   }
 }
 
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* Optimize for smoother animation */
 .animated-dash {
   will-change: stroke-dashoffset;
