@@ -496,49 +496,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         const bounds = getEnvelopeBounds(); // Source of truth
         return (
           <div className="relative pointer-events-none z-[50]">
-            {/* Snap point line - positioned relative to card container */}
-            <div 
-              className="absolute left-0 right-0 border-t-4 border-red-500 opacity-70"
-              style={{ top: `${bounds.snapPointTop}px` }}
-            >
-              <div className="absolute left-4 -top-8 text-red-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
-                SNAP POINT: {bounds.snapPointTop}px
-              </div>
-            </div>
-            
-            {/* Envelope top line */}
-            <div 
-              className="absolute left-0 right-0 border-t-4 border-blue-500 opacity-70"
-              style={{ top: `${bounds.envelopeTop}px` }}
-            >
-              <div className="absolute left-4 -top-8 text-blue-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
-                ENVELOPE: {bounds.envelopeTop}px
-              </div>
-            </div>
-            
-            {/* Envelope body bounds visualization */}
-            {(() => {
-              const envelopeMaxWidth = 600;
-              const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
-              const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
-              const envelopeBodyHeight = 375;
-              
-              return (
-                <div 
-                  className="absolute border-2 border-green-500 opacity-50 pointer-events-none"
-                  style={{
-                    left: `${envelopeLeft}px`,
-                    top: `${bounds.envelopeTop}px`,
-                    width: `${envelopeWidth}px`,
-                    height: `${envelopeBodyHeight}px`,
-                  }}
-                >
-                  <div className="absolute -top-8 left-0 text-green-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
-                    ENVELOPE BODY
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* Source of truth values */}
             <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-3 rounded font-mono text-xs">
