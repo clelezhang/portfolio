@@ -551,7 +551,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 borderRadius: '24px',
                 backdropFilter: 'blur(2px)',
                 WebkitBackdropFilter: 'blur(2px)',
-                animation: 'fadeIn 0.3s ease-out'
+                animation: 'fadeIn 0.5s ease-out'
               }}
             >
               {/* Animated SVG Border */}
