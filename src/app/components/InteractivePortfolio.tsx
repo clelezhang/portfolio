@@ -88,6 +88,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
   const [cardRotations, setCardRotations] = useState<{ [cardId: string]: number }>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Window size state for consistent SSR/client rendering
+  const [viewportWidth, setViewportWidth] = useState(1200);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([
@@ -148,7 +151,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     if (y <= envelopeTop) return false;
     
     // Get envelope container bounds (600px max-width, centered)
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const envelopeMaxWidth = 600;
     const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
     const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
@@ -182,6 +184,23 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Update viewport width after hydration to prevent SSR mismatch
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    updateViewportWidth();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateViewportWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateViewportWidth);
+    };
+  }, []);
 
   // Handle card interaction to bring to front
   const handleCardInteraction = (cardId: string) => {
@@ -499,7 +518,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             
             {/* Envelope body bounds visualization */}
             {(() => {
-              const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
               const envelopeMaxWidth = 600;
               const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
               const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
@@ -529,7 +547,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               <div>snapPointTop: {bounds.snapPointTop}px</div>
               <div>envelopeTop: {bounds.envelopeTop}px</div>
               <div className="text-green-400 mt-1">ENVELOPE GEOMETRY:</div>
-              <div>width: {typeof window !== 'undefined' ? Math.min(600, window.innerWidth) : 600}px</div>
+              <div>width: {Math.min(600, viewportWidth)}px</div>
               <div>height: 375px</div>
             </div>
             
