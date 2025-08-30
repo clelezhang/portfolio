@@ -449,8 +449,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   borderRadius: '24px 24px 24px 24px',
                   borderColor: 'var(--gray-100)',
                   boxShadow: isTapped 
-                    ? '0 4px 48px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
-                    : '0 4px 32px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
+                    ? '0 4px 16px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
+                    : '0 4px 12px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
                   willChange: 'transform', // Hint browser to optimize for animations
                 }}
               >
@@ -596,7 +596,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                    inset 1px 1px 2px rgba(255, 255, 255, 0.15),
                    inset 0 -4px 4px rgba(255, 255, 255, 0.25),
                    inset 0 -12px 24px rgba(255, 255, 255, 0.30),
-                   0 4px 24px rgba(47, 53, 87, 0.06)
+                   0 4px 16px rgba(47, 53, 87, 0.12)
                  `,
                  backdropFilter: 'blur(2px)'
                }}
@@ -613,7 +613,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               style={{
                 background: 'rgba(255, 255, 255, 0.36)',
                 boxShadow: `
-                  0 4px 24px rgba(47, 53, 87, 0.08),
+                  0 4px 16px rgba(47, 53, 87, 0.08),
                   0 4px 4px rgba(47, 53, 87, 0.04)
                 `
               }}
