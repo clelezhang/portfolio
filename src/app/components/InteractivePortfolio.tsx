@@ -130,7 +130,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   });
 
   // Snap point configuration
-  const SNAP_POINT_PADDING = 64; // Vertical padding around envelope
+  const SNAP_POINT_PADDING = 128; // Vertical padding around envelope
 
   // Get envelope bounds for snap point calculation
   const getEnvelopeBounds = () => {
@@ -350,15 +350,15 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Get preview message for dragged card
   const getPreviewMessage = (cardId: string) => {
     const messages: { [key: string]: string } = {
-      apps: "Tell me about the software you've built!",
-      house: "I'd love to hear about designing for someone special",
-      apple: "What's the story behind this visual pun?",
-      cyanotype: "How did you get into cyanotype photography?",
-      journal: "This reflective journal sounds fascinating!",
-      charcuterie: "Making food for friends is so thoughtful",
-      family: "Family is everything! Tell me about yours",
-      lilypad: "What's special about your mother's hometown?",
-      friend: "Your friendships look so meaningful"
+      apps: "what problems excite you?",
+      house: "what does designing for someone you love mean to you?",
+      apple: "what ‘everyday art’ gets you excited?",
+      cyanotype: "how does art inform your work?",
+      journal: "how can we design for present-ness?",
+      charcuterie: "is love inherent to creation?",
+      family: "what do you care about?",
+      lilypad: "how does love shape you?",
+      friend: "who is someone you love?"
     };
     return messages[cardId] || "Tell me more about this!";
   };
@@ -663,22 +663,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
 
 
-      {/* Preview message - shows when past snap point */}
-      {dragState.isDragging && dragState.isPastSnapPoint && dragState.draggedCardId && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[5] pointer-events-none">
-          <div 
-            className="px-4 py-2 rounded-full text-sm font-detail text-white/90 backdrop-blur-sm"
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              animation: 'fadeInScale 0.3s ease-out'
-            }}
-          >
-            "{getPreviewMessage(dragState.draggedCardId)}"
-          </div>
-        </div>
-      )}
-
       {/* Envelope section */}
       <div className="pb-28 relative z-[1]">
 
@@ -686,7 +670,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         {dragState.isDragging && dragState.isPastSnapPoint && (
           <div className="absolute flex justify-center items-center inset-0 pointer-events-auto z-[4]">
             <div 
-              className="relative w-full max-w-[585px] h-[360px] mx-auto"
+              className="relative w-full max-w-[585px] h-[360px] mx-auto flex items-center justify-center"
               style={{
                 borderRadius: '24px',
                 backdropFilter: 'blur(2px)',
@@ -709,7 +693,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   height="calc(100% - 4px)"
                   rx="22"
                   ry="22"
-                  fill="rgba(255, 255, 255, 0.3)"
+                  fill="rgba(255, 255, 255, 0.5)"
                   stroke="#ffffff"
                   strokeWidth="2"
                   strokeDasharray="3 9"
@@ -720,6 +704,20 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   }}
                 />
               </svg>
+              
+              {/* Preview message */}
+              {dragState.draggedCardId && (
+                <div 
+                  className="text-base font-detail z-10"
+                  style={{
+                    color: 'var(--gray-900)',
+                    animation: 'fadeInScale 0.3s ease-out',
+                    textShadow: '0 0px 8px white, 0 0px 24px white'
+                  }}
+                >
+                  {getPreviewMessage(dragState.draggedCardId)}
+                </div>
+              )}
             </div>
           </div>
         )}
