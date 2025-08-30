@@ -71,7 +71,9 @@ interface Message {
 interface DragState {
   isDragging: boolean;
   draggedCardId: string | null;
-  isOverDropZone: boolean;
+  isPastSnapPoint: boolean;
+  isOverDropZone: boolean; // In envelope body area
+  tapRotation: number; // Stores the rotation applied on tap
 }
 
 interface InteractivePortfolioProps {
@@ -84,6 +86,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Card state
   const [tappedCard, setTappedCard] = useState<string | null>(null);
   const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
+  const [cardRotations, setCardRotations] = useState<{ [cardId: string]: number }>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Chat state
@@ -111,8 +114,56 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     draggedCardId: null,
+    isPastSnapPoint: false,
     isOverDropZone: false,
+    tapRotation: 0,
   });
+
+  // Snap point configuration
+  const SNAP_POINT_PADDING = 64; // Vertical padding around envelope
+
+  // Get envelope bounds for snap point calculation
+  const getEnvelopeBounds = () => {
+    const cardContainerHeight = 850; // Height of card section
+    const envelopeTop = cardContainerHeight; // Envelope starts right after cards
+    const snapPointTop = envelopeTop - SNAP_POINT_PADDING;
+    
+    return {
+      snapPointTop,
+      envelopeTop,
+    };
+  };
+
+  // Check if a point is past the snap point
+  const isPastSnapPoint = (y: number) => {
+    const { snapPointTop } = getEnvelopeBounds();
+    return y > snapPointTop;
+  };
+
+  // Check if a point is within the actual envelope body geometry
+  const isInEnvelopeBody = (x: number, y: number) => {
+    const { envelopeTop } = getEnvelopeBounds();
+    
+    // Must be below envelope top
+    if (y <= envelopeTop) return false;
+    
+    // Get envelope container bounds (600px max-width, centered)
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const envelopeMaxWidth = 600;
+    const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
+    const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
+    const envelopeRight = envelopeLeft + envelopeWidth;
+    
+    // Check if within envelope horizontal bounds
+    if (x < envelopeLeft || x > envelopeRight) return false;
+    
+    // Check if within envelope body height (375px)
+    const envelopeBodyHeight = 375;
+    const envelopeBottom = envelopeTop + envelopeBodyHeight;
+    if (y > envelopeBottom) return false;
+    
+    return true;
+  };
 
   // Memoize icons to prevent rerendering
   const twitterIcon = useMemo(() => <TwitterIcon className="text-white" size={20} />, []);
@@ -144,11 +195,13 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   };
 
   // Drag handlers
-  const handleDragStart = (cardId: string) => {
+  const handleDragStart = (cardId: string, tapRotation: number) => {
     setDragState({
       isDragging: true,
       draggedCardId: cardId,
+      isPastSnapPoint: false,
       isOverDropZone: false,
+      tapRotation: tapRotation,
     });
   };
 
@@ -162,16 +215,28 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     setDragState({
       isDragging: false,
       draggedCardId: null,
+      isPastSnapPoint: false,
       isOverDropZone: false,
+      tapRotation: 0,
     });
   };
 
-  const handleDropZoneEnter = () => {
-    setDragState(prev => ({ ...prev, isOverDropZone: true }));
-  };
 
-  const handleDropZoneLeave = () => {
-    setDragState(prev => ({ ...prev, isOverDropZone: false }));
+
+  // Handle drag movement to track snap point status
+  const handleDrag = (cardId: string, info: any) => {
+    // Use the motion info.point which gives us the drag position
+    const cardCenterX = info.point.x;
+    const cardCenterY = info.point.y;
+    
+    const pastSnapPoint = isPastSnapPoint(cardCenterY);
+    const inEnvelopeBody = isInEnvelopeBody(cardCenterX, cardCenterY);
+    
+    setDragState(prev => ({
+      ...prev,
+      isPastSnapPoint: pastSnapPoint,
+      isOverDropZone: inEnvelopeBody
+    }));
   };
 
   // Get preview message for dragged card
@@ -298,10 +363,14 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         {cardData.map((card, index) => {
           const position = getCardPosition(index, card.id);
           const isTapped = tappedCard === card.id;
+          const isDraggingThis = dragState.isDragging && dragState.draggedCardId === card.id;
+          // Use stored rotation if it exists, otherwise use base rotation
+          const currentRotation = cardRotations[card.id] ?? position.rotate;
           
           return (
             <motion.div
               key={card.id}
+              data-card-id={card.id}
               className="absolute cursor-grab active:cursor-grabbing focus:outline-none rounded-2xl"
               style={{
                 zIndex: position.zIndex,
@@ -312,12 +381,20 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 rotate: position.rotate,
                 scale: 1,
               }}
+              animate={{
+                rotate: currentRotation,
+                scale: isTapped ? 1.08 : 1,
+              }}
               drag
               dragMomentum={false}
               dragElastic={0.1}
               onTapStart={() => {
+                const tapRotation = position.rotate + (Math.random() - 0.5) * 8;
                 setTappedCard(card.id);
                 handleCardInteraction(card.id);
+                // Store the rotation immediately for this card
+                setCardRotations(prev => ({ ...prev, [card.id]: tapRotation }));
+                setDragState(prev => ({ ...prev, tapRotation }));
               }}
               onTap={() => {
                 // Handle pure clicks (no drag)
@@ -325,31 +402,24 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               }}
               onDragStart={() => {
                 setTappedCard(card.id);
-                handleDragStart(card.id);
+                handleDragStart(card.id, dragState.tapRotation);
+              }}
+              onDrag={(event, info) => {
+                handleDrag(card.id, info);
               }}
               onDragEnd={(_event, info) => {
                 setTappedCard(null);
-                // Simple drop zone detection - check if dragged near envelope area
-                const dropZoneY = window.innerHeight * 0.6; // Approximate envelope position
-                const droppedOnEnvelope = info.point.y > dropZoneY;
-                handleDragEnd(card.id, droppedOnEnvelope);
+                // Check if dropped in actual envelope body geometry
+                const droppedInEnvelope = isInEnvelopeBody(info.point.x, info.point.y);
+                handleDragEnd(card.id, droppedInEnvelope);
               }}
-              animate={{
-                x: position.x,
-                y: position.y,
-                rotate: position.rotate,
-                scale: 1,
-              }}
+              // No automatic animation back to position - cards stay where placed
               transition={{
                 type: 'spring',
                 stiffness: 500,
                 damping: 25,
               }}
-              whileTap={{ 
-                scale: 1.08,
-                rotate: position.rotate + (Math.random() - 0.5) * 8,
-                transition: { duration: 0.1 }
-              }}
+
               tabIndex={0}
               role="button"
               aria-label={`Click or drag ${card.title}`}
@@ -402,8 +472,84 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         })}
       </div>
 
-      {/* Preview message */}
-      {dragState.isDragging && dragState.isOverDropZone && dragState.draggedCardId && (
+      {/* DEBUG: Visual indicators showing SOURCE OF TRUTH */}
+      {process.env.NODE_ENV === 'development' && (() => {
+        const bounds = getEnvelopeBounds(); // Source of truth
+        return (
+          <div className="relative pointer-events-none z-[50]">
+            {/* Snap point line - positioned relative to card container */}
+            <div 
+              className="absolute left-0 right-0 border-t-4 border-red-500 opacity-70"
+              style={{ top: `${bounds.snapPointTop}px` }}
+            >
+              <div className="absolute left-4 -top-8 text-red-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
+                SNAP POINT: {bounds.snapPointTop}px
+              </div>
+            </div>
+            
+            {/* Envelope top line */}
+            <div 
+              className="absolute left-0 right-0 border-t-4 border-blue-500 opacity-70"
+              style={{ top: `${bounds.envelopeTop}px` }}
+            >
+              <div className="absolute left-4 -top-8 text-blue-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
+                ENVELOPE: {bounds.envelopeTop}px
+              </div>
+            </div>
+            
+            {/* Envelope body bounds visualization */}
+            {(() => {
+              const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+              const envelopeMaxWidth = 600;
+              const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
+              const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
+              const envelopeBodyHeight = 375;
+              
+              return (
+                <div 
+                  className="absolute border-2 border-green-500 opacity-50 pointer-events-none"
+                  style={{
+                    left: `${envelopeLeft}px`,
+                    top: `${bounds.envelopeTop}px`,
+                    width: `${envelopeWidth}px`,
+                    height: `${envelopeBodyHeight}px`,
+                  }}
+                >
+                  <div className="absolute -top-8 left-0 text-green-500 text-sm font-mono bg-white px-2 py-1 rounded shadow">
+                    ENVELOPE BODY
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Source of truth values */}
+            <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-3 rounded font-mono text-xs">
+              <div className="text-yellow-400 font-bold">SOURCE OF TRUTH:</div>
+              <div>SNAP_POINT_PADDING: {SNAP_POINT_PADDING}px</div>
+              <div>snapPointTop: {bounds.snapPointTop}px</div>
+              <div>envelopeTop: {bounds.envelopeTop}px</div>
+              <div className="text-green-400 mt-1">ENVELOPE GEOMETRY:</div>
+              <div>width: {typeof window !== 'undefined' ? Math.min(600, window.innerWidth) : 600}px</div>
+              <div>height: 375px</div>
+            </div>
+            
+            {/* Current drag state */}
+            {dragState.isDragging && (
+              <div className="absolute top-4 right-4 bg-red-900 bg-opacity-90 text-white p-3 rounded font-mono text-xs">
+                <div className="text-red-300 font-bold">DRAG STATE:</div>
+                <div>Card: {dragState.draggedCardId}</div>
+                <div>Past Snap Point: {dragState.isPastSnapPoint ? 'YES' : 'NO'}</div>
+                <div>In Drop: {dragState.isOverDropZone ? 'YES' : 'NO'}</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+
+
+      {/* Preview message - shows when past snap point */}
+      {dragState.isDragging && dragState.isPastSnapPoint && dragState.draggedCardId && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[5] pointer-events-none">
           <div 
             className="px-4 py-2 rounded-full text-sm font-detail text-white/90 backdrop-blur-sm"
@@ -420,13 +566,12 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
       {/* Envelope section */}
       <div className="pb-28 relative z-[1]">
-        {/* Drop zone overlay */}
-        {dragState.isDragging && (
+
+        {/* Drop zone overlay - shows when card is past snap point */}
+        {dragState.isDragging && dragState.isPastSnapPoint && (
           <div className="absolute flex justify-center items-center inset-0 pointer-events-auto z-[4]">
             <div 
               className="relative w-full max-w-[585px] h-[360px] mx-auto"
-              onMouseEnter={handleDropZoneEnter}
-              onMouseLeave={handleDropZoneLeave}
               style={{
                 borderRadius: '24px',
                 backdropFilter: 'blur(2px)',
