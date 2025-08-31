@@ -66,6 +66,7 @@ interface Message {
   text: string;
   sender: 'user' | 'other';
   timestamp: Date;
+  cardImage?: string; // Optional card image for messages sent from card drops
 }
 
 interface DragState {
@@ -186,7 +187,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     // After fade out completes, trigger message and reset state
     setTimeout(() => {
       const contextualMessage = getPreviewMessage(cardId);
-      handleSendMessage(contextualMessage);
+      const cardData_item = cardData.find(card => card.id === cardId);
+      const cardImage = cardData_item?.image;
+      handleSendMessage(contextualMessage, cardImage);
       
       // Hide the card permanently
       setHiddenCards(prev => new Set(prev).add(cardId));
@@ -363,7 +366,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     return messages[cardId] || "Tell me more about this!";
   };
 
-  const handleSendMessage = (messageText?: string) => {
+  const handleSendMessage = (messageText?: string, cardImage?: string) => {
     const text = messageText || newMessage.trim();
     if (text === '') return;
 
@@ -371,7 +374,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       id: Date.now().toString(),
       text: text,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
+      cardImage: cardImage
     };
 
     setMessages(prev => [...prev, message]);
@@ -805,7 +809,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
                 
                 return (
-                  <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'}`}>
+                  <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'} ${message.cardImage ? 'mt-9' : ''}`}>
                     {/* Avatar for incoming messages - only show on last message in group */}
                     {message.sender === 'other' && (
                       <div className={`w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
@@ -819,22 +823,45 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                       </div>
                     )}
                     
-                    {/* Message bubble */}
-                    <div 
-                      className="px-4 py-3 max-w-xs break-words"
-                      style={{
-                        background: message.sender === 'user' 
-                          ? 'rgba(47, 53, 87, 0.9)' 
-                          : 'rgba(255, 255, 255, 0.95)',
-                        color: message.sender === 'user' 
-                          ? 'rgba(255, 255, 255, 0.95)' 
-                          : 'var(--gray-900)',
-                        borderRadius: '24px'
-                      }}
-                    >
-                    <p className="font-detail text-sm leading-tight">
-                         {message.text}
-                       </p>
+                    {/* Message bubble with thumbnail */}
+                    <div className="relative">
+                      {/* Card image thumbnail - positioned outside bubble */}
+                      {message.cardImage && (
+                        <div 
+                          className="absolute -top-10 -right-0 z-10"
+                          style={{
+                            transform: `rotate(${((parseInt(message.id) % 1000) / 1000 - 0.5) * 20}deg)`
+                          }}
+                        >
+                          <div className="w-12 h-12 rounded-md overflow-hidden border-3 border-white shadow-sm bg-white mr-2">
+                            <Image
+                              src={message.cardImage}
+                              alt="Card image"
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Message bubble */}
+                      <div 
+                        className="px-4 py-3 max-w-xs break-words"
+                        style={{
+                          background: message.sender === 'user' 
+                            ? 'rgba(47, 53, 87, 0.9)' 
+                            : 'rgba(255, 255, 255, 0.95)',
+                          color: message.sender === 'user' 
+                            ? 'rgba(255, 255, 255, 0.95)' 
+                            : 'var(--gray-900)',
+                          borderRadius: '24px'
+                        }}
+                      >
+                        <p className="font-detail text-sm leading-tight">
+                           {message.text}
+                         </p>
+                      </div>
                     </div>
                     
 
