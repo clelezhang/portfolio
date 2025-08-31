@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import TwitterIcon from './icons/TwitterIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
 import { ArrowUpIcon } from '@heroicons/react/24/outline';
+import { useChat } from '../hooks/useChat';
 
 interface CardData {
   id: string;
@@ -64,7 +65,7 @@ const cardData: CardData[] = [
 interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'other';
+  sender: 'user' | 'assistant';
   timestamp: Date;
   cardImage?: string; // Optional card image for messages sent from card drops
 }
@@ -85,6 +86,71 @@ interface InteractivePortfolioProps {
   onCardClick?: (cardId: string) => void;
 }
 
+// Memoized message component to prevent unnecessary re-renders
+const ChatMessage = memo(({ message, isLastInGroup, index }: { 
+  message: Message; 
+  isLastInGroup: boolean;
+  index: number;
+}) => (
+  <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'} ${message.cardImage ? 'mt-9' : ''}`}>
+    {/* Avatar for incoming messages - only show on last message in group */}
+    {message.sender === 'assistant' && (
+      <div className={`w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
+        <Image
+          src="/profile.jpg"
+          alt="Profile"
+          width={42}
+          height={42}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    )}
+    
+    {/* Message bubble with thumbnail */}
+    <div className="relative">
+      {/* Card image thumbnail - positioned outside bubble */}
+      {message.cardImage && (
+        <div 
+          className="absolute -top-10 -right-0 z-10"
+          style={{
+            transform: `rotate(${((parseInt(message.id) % 1000) / 1000 - 0.5) * 20}deg)`
+          }}
+        >
+          <div className="w-12 h-12 rounded-md overflow-hidden border-3 border-white shadow-sm bg-white mr-2">
+            <Image
+              src={message.cardImage}
+              alt="Card image"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Message bubble */}
+      <div 
+        className="px-4 py-3 max-w-xs break-words"
+        style={{
+          background: message.sender === 'user' 
+            ? 'rgba(47, 53, 87, 0.9)' 
+            : 'rgba(255, 255, 255, 0.95)',
+          color: message.sender === 'user' 
+            ? 'rgba(255, 255, 255, 0.95)' 
+            : 'var(--gray-900)',
+          borderRadius: '24px'
+        }}
+      >
+        <p className="font-detail text-sm leading-tight">
+           {message.text}
+         </p>
+      </div>
+    </div>
+  </div>
+));
+
+ChatMessage.displayName = 'ChatMessage';
+
 
 
 export default function InteractivePortfolio({ onCardClick }: InteractivePortfolioProps) {
@@ -100,12 +166,12 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Window size state for consistent SSR/client rendering
   const [viewportWidth, setViewportWidth] = useState(1200);
 
-  // Chat state
-  const [messages, setMessages] = useState<Message[]>([
+  // Initialize chat with sample messages
+  const initialMessages: Message[] = [
     {
       id: '1',
       text: "Hey! I love your portfolio. The card animations are really smooth. What made you choose this design approach?",
-      sender: 'other',
+      sender: 'assistant',
       timestamp: new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
     },
     {
@@ -114,10 +180,12 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       sender: 'user',
       timestamp: new Date(Date.now() - 3 * 60 * 1000) // 3 minutes ago
     }
-  ]);
+  ];
+
+  // Use the chat hook
+  const { messages, isLoading, error, sendMessage, clearError } = useChat(initialMessages);
   
   const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -189,7 +257,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       const contextualMessage = getPreviewMessage(cardId);
       const cardData_item = cardData.find(card => card.id === cardId);
       const cardImage = cardData_item?.image;
-      handleSendMessage(contextualMessage, cardImage);
+      handleSendMessage(contextualMessage, cardImage, cardId);
       
       // Hide the card permanently
       setHiddenCards(prev => new Set(prev).add(cardId));
@@ -229,7 +297,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   };
 
   // Pull card into drop zone with smooth animation
-  const pullCardIntoDropZone = (cardId: string, currentX: number, currentY: number) => {
+  const pullCardIntoDropZone = (cardId: string) => {
     // Calculate target position relative to card container center
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
@@ -260,18 +328,23 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const envelopeIcon = useMemo(() => <EnvelopeIcon className="w-5 h-5 text-white" />, []);
   const arrowIcon = useMemo(() => <ArrowUpIcon className="w-3.5 h-3.5 text-white" strokeWidth={3} />, []);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       const messagesContainer = messagesEndRef.current.parentElement;
       if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Use requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Debounce scroll updates to reduce frequency
+    const timeoutId = setTimeout(scrollToBottom, 10);
+    return () => clearTimeout(timeoutId);
+  }, [messages, scrollToBottom]);
 
   // Update viewport width after hydration to prevent SSR mismatch
   useEffect(() => {
@@ -312,14 +385,14 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     });
   };
 
-  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean, dragInfo: any) => {
+  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean, _dragInfo: { point: { x: number; y: number } }) => {
     if (droppedOnEnvelope) {
       // Card dropped directly in envelope - start fade out animation immediately
       startCardFadeOutSequence(cardId);
       return; // Don't reset drag state yet, let the animation handle it
     } else if (dragState.isPastSnapPoint && !droppedOnEnvelope) {
       // Card is in snap zone but not drop zone - pull it into the drop zone
-      pullCardIntoDropZone(cardId, dragInfo.point.x, dragInfo.point.y);
+      pullCardIntoDropZone(cardId);
       return; // Don't reset drag state yet, let the animation handle it
     }
     
@@ -335,7 +408,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
 
   // Handle drag movement to track snap point status
-  const handleDrag = (cardId: string, info: any) => {
+  const handleDrag = (cardId: string, info: { point: { x: number; y: number } }) => {
     // Use the motion info.point which gives us the drag position
     const cardCenterX = info.point.x;
     const cardCenterY = info.point.y;
@@ -366,19 +439,19 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     return messages[cardId] || "Tell me more about this!";
   };
 
-  const handleSendMessage = (messageText?: string, cardImage?: string) => {
+  const handleSendMessage = useCallback(async (messageText?: string, cardImage?: string, cardId?: string) => {
     const text = messageText || newMessage.trim();
     if (text === '') return;
 
-    const message: Message = {
-      id: Date.now().toString(),
-      text: text,
-      sender: 'user',
-      timestamp: new Date(),
-      cardImage: cardImage
-    };
+    // Clear error if any
+    if (error) {
+      clearError();
+    }
 
-    setMessages(prev => [...prev, message]);
+    // Send message using the chat hook
+    await sendMessage(text, cardImage, cardId);
+    
+    // Clear input if not from card interaction
     if (!messageText) {
       setNewMessage('');
       
@@ -387,32 +460,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         inputRef.current.style.height = '20px';
       }
     }
-
-    // Simulate typing response after a delay
-    setTimeout(() => {
-      setIsTyping(true);
-      setTimeout(() => {
-        const responses = [
-          "That's really interesting! Tell me more.",
-          "I'd love to hear about your design process.",
-          "What tools do you use for your projects?",
-          "Your work has such a unique aesthetic!",
-          "Thanks for sharing that with me!"
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
-        const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: randomResponse,
-          sender: 'other',
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-        setIsTyping(false);
-      }, 1000 + Math.random() * 2000); // 1-3 seconds typing delay
-    }, 500);
-  };
+  }, [newMessage, error, clearError, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -809,92 +857,62 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
                 
                 return (
-                  <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'} ${message.cardImage ? 'mt-9' : ''}`}>
-                    {/* Avatar for incoming messages - only show on last message in group */}
-                    {message.sender === 'other' && (
-                      <div className={`w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
-                        <Image
-                          src="/profile.jpg"
-                          alt="Profile"
-                          width={42}
-                          height={42}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Message bubble with thumbnail */}
-                    <div className="relative">
-                      {/* Card image thumbnail - positioned outside bubble */}
-                      {message.cardImage && (
-                        <div 
-                          className="absolute -top-10 -right-0 z-10"
-                          style={{
-                            transform: `rotate(${((parseInt(message.id) % 1000) / 1000 - 0.5) * 20}deg)`
-                          }}
-                        >
-                          <div className="w-12 h-12 rounded-md overflow-hidden border-3 border-white shadow-sm bg-white mr-2">
-                            <Image
-                              src={message.cardImage}
-                              alt="Card image"
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Message bubble */}
-                      <div 
-                        className="px-4 py-3 max-w-xs break-words"
-                        style={{
-                          background: message.sender === 'user' 
-                            ? 'rgba(47, 53, 87, 0.9)' 
-                            : 'rgba(255, 255, 255, 0.95)',
-                          color: message.sender === 'user' 
-                            ? 'rgba(255, 255, 255, 0.95)' 
-                            : 'var(--gray-900)',
-                          borderRadius: '24px'
-                        }}
-                      >
-                        <p className="font-detail text-sm leading-tight">
-                           {message.text}
-                         </p>
-                      </div>
-                    </div>
-                    
-
-                  </div>
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isLastInGroup={isLastInGroup}
+                    index={index}
+                  />
                 );
               })}
               
-              {isTyping && (
-                <div className="flex items-end justify-start mb-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2">
-                    <Image
-                      src="/card-images/charcuterie.jpg"
-                      alt="Profile"
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div 
-                    className="px-5 py-4"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                      borderRadius: '24px'
-                    }}
-                  >
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+{(() => {
+                // Check if there's an assistant message being typed (empty text but still loading)
+                const lastMessage = messages[messages.length - 1];
+                const isTypingAssistant = isLoading && 
+                  lastMessage && 
+                  lastMessage.sender === 'assistant' && 
+                  lastMessage.text === '';
+                
+                return isTypingAssistant && (
+                  <div className="flex items-end justify-start mb-3">
+                    <div className="w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2">
+                      <Image
+                        src="/profile.jpg"
+                        alt="Profile"
+                        width={42}
+                        height={42}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
+                    <div 
+                      className="px-5 py-4"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                        borderRadius: '24px'
+                      }}
+                    >
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      </div>
+                    </div>
+                    <div className="w-10"></div>
                   </div>
-                  <div className="w-10"></div>
+                );
+              })()}
+
+              {error && (
+                <div className="flex items-center justify-center mb-3">
+                  <div 
+                    className="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-red-100 transition-colors"
+                    onClick={clearError}
+                  >
+                    <span>⚠️ {error}</span>
+                    <span className="text-xs opacity-70">tap to dismiss</span>
+                  </div>
                 </div>
               )}
               
@@ -967,9 +985,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     <button
                       onClick={() => handleSendMessage()}
                       className={`w-8 h-8 bg-white/20 rounded-full flex items-center justify-center transition-all hover:bg-white/30 ${
-                        newMessage.trim() ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
+                        newMessage.trim() && !isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
                       }`}
-                      disabled={!newMessage.trim()}
+                      disabled={!newMessage.trim() || isLoading}
                     >
                       {arrowIcon}
                     </button>
