@@ -942,11 +942,16 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               {/* Input field container */}
               <div className="flex-1 relative">
                 <div 
-                  className="flex items-end pl-4 pr-[6px] py-3"
+                  className="flex items-end pl-4 pr-[6px] py-3 cursor-text"
                   style={{
                     background: 'var(--gray-400)',
                     borderRadius: '24px',
                     backdropFilter: 'blur(10px)'
+                  }}
+                  onClick={() => {
+                    if (inputRef.current) {
+                      inputRef.current.focus();
+                    }
                   }}
                 >
                   <textarea
