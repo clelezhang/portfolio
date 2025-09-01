@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { getCardPrompt } from '../lib/prompts';
 
 interface Message {
   id: string;
@@ -46,7 +47,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
 
       // Add card context if this message came from a card
       if (cardId) {
-        requestBody.cardContext = `User interacted with the "${cardId}" card`;
+        requestBody.cardContext = getCardPrompt(cardId);
       }
 
       // Send to API
@@ -71,9 +72,9 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       }
 
       // Create initial assistant message that will be updated as we stream
-      let currentMessageId = (Date.now() + 1).toString();
+      const messageId = (Date.now() + 1).toString();
       const initialMessage: Message = {
-        id: currentMessageId,
+        id: messageId,
         text: '',
         sender: 'assistant',
         timestamp: new Date(),
@@ -84,41 +85,26 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       let accumulatedText = '';
       let updateBuffer = '';
       let lastUpdate = 0;
-      let isFirstChunk = true;
-      const UPDATE_THROTTLE = 50; // Update UI every 50ms maximum
+      const UPDATE_THROTTLE = 30; // Update UI every 30ms for smoother streaming
+      const BUFFER_SIZE = 15; // Smaller buffer for more frequent updates
 
-      const updateCurrentMessage = (text: string) => {
+      const updateMessage = (text: string) => {
         setMessages(prev => 
           prev.map(msg => 
-            msg.id === currentMessageId 
+            msg.id === messageId 
               ? { ...msg, text }
               : msg
           )
         );
       };
 
-      const createNewMessage = () => {
-        // Create a new message for the next sentence
-        const newMessageId = (Date.now() + Math.random()).toString();
-        const newMessage: Message = {
-          id: newMessageId,
-          text: '',
-          sender: 'assistant',
-          timestamp: new Date(),
-        };
-        
-        setMessages(prev => [...prev, newMessage]);
-        currentMessageId = newMessageId;
-        return newMessageId;
-      };
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          // Final update with any remaining text
+          // Final update with any remaining text in buffer
           if (updateBuffer) {
             accumulatedText += updateBuffer;
-            updateCurrentMessage(accumulatedText);
+            updateMessage(accumulatedText);
           }
           break;
         }
@@ -126,59 +112,13 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
         const chunk = decoder.decode(value, { stream: true });
         updateBuffer += chunk;
         
-        // Show first chunk immediately for instant feedback
-        if (isFirstChunk) {
+        // Throttled updates for smooth streaming with smaller chunks
+        const now = Date.now();
+        if (now - lastUpdate >= UPDATE_THROTTLE || updateBuffer.length > BUFFER_SIZE) {
           accumulatedText += updateBuffer;
-          updateCurrentMessage(accumulatedText);
           updateBuffer = '';
-          lastUpdate = Date.now();
-          isFirstChunk = false;
-          continue;
-        }
-        
-        // Check for sentence endings (periods followed by space or end)
-        const periodMatches = updateBuffer.match(/\.\s+/g);
-        
-        if (periodMatches && periodMatches.length > 0) {
-          // Find the last complete sentence
-          const lastPeriodIndex = updateBuffer.lastIndexOf('. ');
-          if (lastPeriodIndex !== -1) {
-            // Complete the current message with the sentence(s)
-            const completedText = updateBuffer.substring(0, lastPeriodIndex + 1);
-            accumulatedText += completedText;
-            updateCurrentMessage(accumulatedText);
-            
-            // Start a new message with the remaining text
-            const remainingText = updateBuffer.substring(lastPeriodIndex + 2);
-            if (remainingText.trim()) {
-              createNewMessage();
-              accumulatedText = remainingText;
-              updateCurrentMessage(accumulatedText);
-            } else {
-              createNewMessage();
-              accumulatedText = '';
-            }
-            updateBuffer = '';
-            lastUpdate = Date.now();
-          } else {
-            // No complete sentence yet, continue accumulating
-            const now = Date.now();
-            if (now - lastUpdate >= UPDATE_THROTTLE || updateBuffer.length > 20) {
-              accumulatedText += updateBuffer;
-              updateBuffer = '';
-              updateCurrentMessage(accumulatedText);
-              lastUpdate = now;
-            }
-          }
-        } else {
-          // No periods found, use throttled updates for better performance
-          const now = Date.now();
-          if (now - lastUpdate >= UPDATE_THROTTLE || updateBuffer.length > 20) {
-            accumulatedText += updateBuffer;
-            updateBuffer = '';
-            updateCurrentMessage(accumulatedText);
-            lastUpdate = now;
-          }
+          updateMessage(accumulatedText);
+          lastUpdate = now;
         }
       }
 
