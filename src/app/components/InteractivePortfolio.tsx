@@ -214,11 +214,12 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   ];
 
   // Use the chat hook
-  const { messages, isLoading, error, sendMessage, clearError } = useChat(initialMessages);
+  const { messages, isLoading, error, sendMessage, addAssistantMessage, clearError } = useChat(initialMessages);
   
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isInputHovered, setIsInputHovered] = useState(false);
 
   // Drag state management
   const [dragState, setDragState] = useState<DragState>({
@@ -714,37 +715,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         })}
       </div>
 
-      {/* DEBUG: Visual indicators showing SOURCE OF TRUTH */}
-      {process.env.NODE_ENV === 'development' && (() => {
-        const bounds = getEnvelopeBounds(); // Source of truth
-        return (
-          <div className="relative pointer-events-none z-[50]">
-
-            {/* Source of truth values */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-3 rounded font-mono text-xs">
-              <div className="text-yellow-400 font-bold">SOURCE OF TRUTH:</div>
-              <div>SNAP_POINT_PADDING: {SNAP_POINT_PADDING}px</div>
-              <div>snapPointTop: {bounds.snapPointTop}px</div>
-              <div>envelopeTop: {bounds.envelopeTop}px</div>
-              <div className="text-green-400 mt-1">ENVELOPE GEOMETRY:</div>
-              <div>width: {Math.min(600, viewportWidth)}px</div>
-              <div>height: 375px</div>
-            </div>
-            
-            {/* Current drag state */}
-            {dragState.isDragging && (
-              <div className="absolute top-4 right-4 bg-red-900 bg-opacity-90 text-white p-3 rounded font-mono text-xs">
-                <div className="text-red-300 font-bold">DRAG STATE:</div>
-                <div>Card: {dragState.draggedCardId}</div>
-                <div>Past Snap Point: {dragState.isPastSnapPoint ? 'YES' : 'NO'}</div>
-                <div>In Drop: {dragState.isOverDropZone ? 'YES' : 'NO'}</div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-
 
       {/* Envelope section */}
       <div className="pb-28 relative z-[1]">
@@ -920,29 +890,37 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               className="absolute bottom-0 left-0 right-0 flex items-end space-x-2 z-[3] pb-4 px-4"
             >
                 {/* Twitter button */}
-               <button 
+               <a
+                 href="https://x.com/CherrilynnZ"
+                 target="_blank"
+                 rel="noopener noreferrer" 
                  className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all hover:bg-gray-500"
                  style={{
                    backdropFilter: 'blur(10px)'
                  }}
                >
                  {twitterIcon}
-               </button>
+               </a>
 
-                {/* Email button */}
-               <button 
-                 className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all  hover:bg-gray-500"
-                 style={{
-                   backdropFilter: 'blur(10px)'
-                 }}
-               >
+                  {/* Email button */}
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText('clzhang@berkeley.edu');
+                    addAssistantMessage('my email (clzhang@berkeley.edu) is copied to ur clipboard now!');
+                  }}
+                  className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all hover:bg-gray-500"
+                  style={{
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  title="Copy email address"
+                >
                  {envelopeIcon}
                </button>
 
               {/* Input field container */}
               <div className="flex-1 relative">
                 <div 
-                  className="flex items-end pl-4 pr-[6px] py-3 cursor-text"
+                  className="flex items-end pl-4 pr-[6px] py-3 cursor-text relative"
                   style={{
                     background: 'var(--gray-400)',
                     borderRadius: '24px',
@@ -953,7 +931,58 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                       inputRef.current.focus();
                     }
                   }}
+                  onMouseEnter={() => setIsInputHovered(true)}
+                  onMouseLeave={() => setIsInputHovered(false)}
                 >
+                  {/* Animated placeholder */}
+                  {!newMessage && (
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none font-detail text-sm leading-tight">
+                      <div 
+                        className="relative"
+                        style={{
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        }}
+                      >
+                        {/* Original text with wave fade-out */}
+                        <div className="whitespace-nowrap">
+                          {"Chat with me!".split("").map((char, index) => (
+                            <span
+                              key={index}
+                              className="transition-all ease-out"
+                              style={{
+                                opacity: isInputHovered ? 0 : 1,
+                                filter: isInputHovered ? 'blur(2px)' : 'blur(0px)',
+                                transitionDelay: isInputHovered ? `${index * 10}ms` : '0ms',
+                                transitionDuration: '75ms'
+                              }}
+                            >
+                              {char === " " ? "\u00A0" : char}
+                            </span>
+                          ))}
+                        </div>
+                        
+                        {/* Hover text with wave animation */}
+                        <div 
+                          className="absolute top-0 left-0 whitespace-nowrap"
+                        >
+                          {"lele will see ur messages!".split("").map((char, index) => (
+                            <span
+                              key={index}
+                              className="transition-all ease-out"
+                              style={{
+                                opacity: isInputHovered ? 1 : 0,
+                                filter: isInputHovered ? 'blur(0px)' : 'blur(2px)',
+                                transitionDelay: isInputHovered ? `${100 + (index * 10)}ms` : '0ms',
+                                transitionDuration: '75ms'
+                              }}
+                            >
+                              {char === " " ? "\u00A0" : char}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <textarea
                     ref={inputRef}
                     value={newMessage}
@@ -970,7 +999,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                       }
                     }}
                     onKeyDown={handleKeyPress}
-                    placeholder="Chat with me!"
+                    placeholder=""
                     className="flex-1 font-detail text-sm leading-tight resize-none focus:outline-none bg-transparent"
                     style={{
                       color: 'rgba(255, 255, 255)',

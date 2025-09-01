@@ -14,6 +14,7 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   sendMessage: (text: string, cardImage?: string, cardId?: string) => Promise<void>;
+  addAssistantMessage: (text: string) => void;
   clearError: () => void;
 }
 
@@ -133,6 +134,16 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
     }
   }, [messages]);
 
+  const addAssistantMessage = useCallback((text: string) => {
+    const assistantMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      sender: 'assistant',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -142,6 +153,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
     isLoading,
     error,
     sendMessage,
+    addAssistantMessage,
     clearError,
   };
 }

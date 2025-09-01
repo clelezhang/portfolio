@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { validateOrigin, createCORSHeaders, generateVisitorId } from '../../lib/security';
 import { checkChatRateLimit, createRateLimitHeaders } from '../../lib/rate-limit';
 import { createSystemPrompt } from '../../lib/prompts';
+import { kv } from '@vercel/kv';
 
 // Configure for edge runtime for better performance
 export const runtime = 'edge';
@@ -82,6 +83,34 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Save incoming user message to KV
+    const visitorId = await generateVisitorId(req);
+    const timestamp = new Date().toISOString();
+    const lastUserMessage = messages[messages.length - 1];
+    
+    if (lastUserMessage && lastUserMessage.sender === 'user') {
+      try {
+        // Store message with visitor ID and timestamp
+        const messageKey = `chat:${visitorId}:${timestamp}:user`;
+        await kv.set(messageKey, {
+          visitorId,
+          timestamp,
+          message: lastUserMessage.text,
+          cardImage: lastUserMessage.cardImage,
+          cardContext: cardContext,
+        });
+        
+        // Also maintain a list of all message keys for easy retrieval
+        await kv.lpush(`chat:${visitorId}:messages`, messageKey);
+        
+        // Keep track of all unique visitors
+        await kv.sadd('chat:visitors', visitorId);
+      } catch (kvError) {
+        console.error('Error saving message to KV:', kvError);
+        // Continue even if KV save fails
+      }
+    }
+
     // 4. Build conversation with personality
     const systemPrompt = createSystemPrompt(cardContext);
     
@@ -105,14 +134,31 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
+        let fullAssistantResponse = '';
         
         try {
           for await (const chunk of response) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               const text = chunk.delta.text;
+              fullAssistantResponse += text;
               // Send text immediately for faster response
               controller.enqueue(encoder.encode(text));
             }
+          }
+          
+          // Save assistant's response to KV after streaming completes
+          try {
+            const assistantTimestamp = new Date().toISOString();
+            const assistantKey = `chat:${visitorId}:${assistantTimestamp}:assistant`;
+            await kv.set(assistantKey, {
+              visitorId,
+              timestamp: assistantTimestamp,
+              message: fullAssistantResponse,
+              inResponseTo: lastUserMessage?.text,
+            });
+            await kv.lpush(`chat:${visitorId}:messages`, assistantKey);
+          } catch (kvError) {
+            console.error('Error saving assistant response to KV:', kvError);
           }
         } catch (error) {
           console.error('Streaming error:', error);

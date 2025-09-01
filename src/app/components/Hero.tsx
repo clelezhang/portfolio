@@ -45,7 +45,7 @@ export default function Hero() {
         <div className="max-w-[600px] mx-auto text-start mb-16">
           <div className="text-base leading-relaxed font-detail" style={{ color: 'var(--gray-900)' }}>
             <p>hello there! I&apos;m lele.</p>
-            <p className="mt-3">I&apos;m a designer in meandering pursuit of aesthetics and function. I hope to create a 
+            <p className="mt-3">I&apos;m a designer in pursuit of aesthetics and function. I hope to create a 
             world of seeing, learning, thinking, building, and loving.</p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function Hero() {
       <div 
         className="w-full"
         style={{
-          background: 'linear-gradient(rgba(154, 156, 184, 0) 0%,  #9A9CB8 55%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
+          background: 'linear-gradient(rgba(154, 156, 184, 0) 20%,  #9A9CB8 60%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
         }}
       >
         <div className="max-w-6xl mx-auto relative">
