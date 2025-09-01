@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import TwitterIcon from './icons/TwitterIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
@@ -52,7 +52,7 @@ const cardData: CardData[] = [
   },
   {
     id: 'lilypad',
-    title: "my mother's home town",
+    title: "my mother's hometown",
     image: '/card-images/lilypad.jpg',
   },
   {
@@ -91,8 +91,33 @@ const ChatMessage = memo(({ message, isLastInGroup, index }: {
   message: Message; 
   isLastInGroup: boolean;
   index: number;
-}) => (
-  <div key={message.id} className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'} ${message.cardImage ? 'mt-9' : ''}`}>
+}) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number>(0);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (contentRef.current) {
+        const newHeight = contentRef.current.scrollHeight;
+        setHeight(newHeight);
+      }
+    });
+
+    observer.observe(contentRef.current);
+    
+    // Set initial height
+    setHeight(contentRef.current.scrollHeight);
+
+    return () => observer.disconnect();
+  }, [message.text]); // Re-observe when message text changes
+
+  return (
+  <div 
+    key={message.id} 
+    className={`flex items-end ${message.sender === 'user' ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : 'mb-1'} ${message.cardImage ? 'mt-9' : ''}`}
+  >
     {/* Avatar for incoming messages - only show on last message in group */}
     {message.sender === 'assistant' && (
       <div className={`w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2 ${!isLastInGroup ? 'opacity-0' : ''}`}>
@@ -128,26 +153,38 @@ const ChatMessage = memo(({ message, isLastInGroup, index }: {
         </div>
       )}
       
-      {/* Message bubble */}
+      {/* Message bubble with animated height */}
       <div 
-        className="px-4 py-3 max-w-xs break-words"
+        className="max-w-xs overflow-hidden transition-all duration-75 ease-linear"
         style={{
-          background: message.sender === 'user' 
-            ? 'rgba(47, 53, 87, 0.9)' 
-            : 'rgba(255, 255, 255, 0.95)',
-          color: message.sender === 'user' 
-            ? 'rgba(255, 255, 255, 0.95)' 
-            : 'var(--gray-900)',
+          height: height || 'auto',
           borderRadius: '24px'
         }}
       >
-        <p className="font-detail text-sm leading-tight">
-           {message.text}
-         </p>
+        <div 
+          ref={contentRef}
+          className="px-4 py-3 break-words"
+          style={{
+            background: message.sender === 'user' 
+              ? 'rgba(47, 53, 87, 0.9)' 
+              : 'rgba(255, 255, 255, 0.95)',
+            color: message.sender === 'user' 
+              ? 'rgba(255, 255, 255, 0.95)' 
+              : 'var(--gray-900)',
+            borderRadius: '24px'
+          }}
+        >
+          <p 
+            className="font-detail text-sm leading-tight whitespace-pre-wrap"
+          >
+             {message.text}
+           </p>
+        </div>
       </div>
     </div>
   </div>
-));
+  );
+});
 
 ChatMessage.displayName = 'ChatMessage';
 
@@ -170,15 +207,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const initialMessages: Message[] = [
     {
       id: '1',
-      text: "Hey! I love your portfolio. The card animations are really smooth. What made you choose this design approach?",
+      text: "hi!! nice to e-meet you :) ",
       sender: 'assistant',
       timestamp: new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
-    },
-    {
-      id: '2', 
-      text: "Thanks! I wanted to create something that felt tactile and playful, like browsing through actual photo cards.",
-      sender: 'user',
-      timestamp: new Date(Date.now() - 3 * 60 * 1000) // 3 minutes ago
     }
   ];
 
@@ -428,7 +459,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     const messages: { [key: string]: string } = {
       apps: "what problems excite you?",
       house: "what does designing for someone you love mean to you?",
-      apple: "what ‘everyday art’ gets you excited?",
+      apple: "why does ‘everyday art’ get you excited?",
       cyanotype: "how does art inform your work?",
       journal: "how can we design for present-ness?",
       charcuterie: "is love inherent to creation?",
@@ -866,43 +897,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 );
               })}
               
-{(() => {
-                // Check if there's an assistant message being typed (empty text but still loading)
-                const lastMessage = messages[messages.length - 1];
-                const isTypingAssistant = isLoading && 
-                  lastMessage && 
-                  lastMessage.sender === 'assistant' && 
-                  lastMessage.text === '';
-                
-                return isTypingAssistant && (
-                  <div className="flex items-end justify-start mb-3">
-                    <div className="w-[42px] h-[42px] rounded-full overflow-hidden flex-shrink-0 mr-2">
-                      <Image
-                        src="/profile.jpg"
-                        alt="Profile"
-                        width={42}
-                        height={42}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div 
-                      className="px-5 py-4"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                        borderRadius: '24px'
-                      }}
-                    >
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                      </div>
-                    </div>
-                    <div className="w-10"></div>
-                  </div>
-                );
-              })()}
+
 
               {error && (
                 <div className="flex items-center justify-center mb-3">
