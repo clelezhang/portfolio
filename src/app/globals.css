@@ -94,7 +94,7 @@
 }
 
 body {
-  background: var(--cream);
+  background: var(--lightgray);
   color: var(--gray-900);
   font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
