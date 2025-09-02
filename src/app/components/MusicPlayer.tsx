@@ -206,7 +206,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       <iframe
         id="soundcloud-iframe"
         src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=false&shuffle=true"
-        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+        style={{ position: 'absolute', left: '-9999px', width: '300px', height: '166px', visibility: 'hidden' }}
         allow="autoplay; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />

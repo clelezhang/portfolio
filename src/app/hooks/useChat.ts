@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { getCardPrompt } from '../lib/prompts';
 
 interface Message {
@@ -22,6 +22,12 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const messagesRef = useRef<Message[]>(initialMessages);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const sendMessage = useCallback(async (text: string, cardImage?: string, cardId?: string) => {
     if (!text.trim()) return;
@@ -43,7 +49,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
     try {
       // Prepare request with card context if from card interaction
       const requestBody: { messages: Message[]; cardContext?: string } = {
-        messages: [...messages, userMessage],
+        messages: [...messagesRef.current, userMessage],
       };
 
       // Add card context if this message came from a card
@@ -132,7 +138,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [messages]);
+  }, []);
 
   const addAssistantMessage = useCallback((text: string) => {
     const assistantMessage: Message = {

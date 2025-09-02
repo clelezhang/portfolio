@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo, useReducer } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import TwitterIcon from './icons/TwitterIcon';
@@ -86,6 +86,114 @@ interface InteractivePortfolioProps {
   onCardClick?: (cardId: string) => void;
 }
 
+// Consolidated state interface
+interface PortfolioState {
+  // Card state
+  tappedCard: string | null;
+  pickedCardsOrder: string[];
+  cardRotations: Record<string, number>;
+  cardTransformOrigins: Record<string, string>;
+  hiddenCards: Set<string>;
+  reappearingCards: Set<string>;
+  
+  // UI state
+  viewportWidth: number;
+  newMessage: string;
+  isInputHovered: boolean;
+  
+  // Drag state
+  dragState: DragState;
+}
+
+// Action types
+type PortfolioAction =
+  | { type: 'SET_TAPPED_CARD'; cardId: string | null }
+  | { type: 'UPDATE_PICKED_ORDER'; cardId: string }
+  | { type: 'SET_CARD_ROTATION'; cardId: string; rotation: number }
+  | { type: 'SET_CARD_TRANSFORM_ORIGIN'; cardId: string; origin: string }
+  | { type: 'HIDE_CARD'; cardId: string }
+  | { type: 'SHOW_CARD'; cardId: string }
+  | { type: 'SET_REAPPEARING_CARD'; cardId: string; isReappearing: boolean }
+  | { type: 'SET_VIEWPORT_WIDTH'; width: number }
+  | { type: 'SET_NEW_MESSAGE'; message: string }
+  | { type: 'SET_INPUT_HOVERED'; isHovered: boolean }
+  | { type: 'UPDATE_DRAG_STATE'; updates: Partial<DragState> }
+  | { type: 'RESET_DRAG_STATE' };
+
+// Reducer function
+function portfolioReducer(state: PortfolioState, action: PortfolioAction): PortfolioState {
+  switch (action.type) {
+    case 'SET_TAPPED_CARD':
+      return { ...state, tappedCard: action.cardId };
+    
+    case 'UPDATE_PICKED_ORDER': {
+      const filtered = state.pickedCardsOrder.filter(id => id !== action.cardId);
+      return { ...state, pickedCardsOrder: [...filtered, action.cardId] };
+    }
+    
+    case 'SET_CARD_ROTATION':
+      return {
+        ...state,
+        cardRotations: { ...state.cardRotations, [action.cardId]: action.rotation }
+      };
+    
+    case 'SET_CARD_TRANSFORM_ORIGIN':
+      return {
+        ...state,
+        cardTransformOrigins: { ...state.cardTransformOrigins, [action.cardId]: action.origin }
+      };
+    
+    case 'HIDE_CARD': {
+      const newHiddenCards = new Set(state.hiddenCards);
+      newHiddenCards.add(action.cardId);
+      return { ...state, hiddenCards: newHiddenCards };
+    }
+    
+    case 'SHOW_CARD': {
+      const newHiddenCards = new Set(state.hiddenCards);
+      newHiddenCards.delete(action.cardId);
+      return { ...state, hiddenCards: newHiddenCards };
+    }
+    
+    case 'SET_REAPPEARING_CARD': {
+      const newReappearingCards = new Set(state.reappearingCards);
+      if (action.isReappearing) {
+        newReappearingCards.add(action.cardId);
+      } else {
+        newReappearingCards.delete(action.cardId);
+      }
+      return { ...state, reappearingCards: newReappearingCards };
+    }
+    
+    case 'SET_VIEWPORT_WIDTH':
+      return { ...state, viewportWidth: action.width };
+    
+    case 'SET_NEW_MESSAGE':
+      return { ...state, newMessage: action.message };
+    
+    case 'SET_INPUT_HOVERED':
+      return { ...state, isInputHovered: action.isHovered };
+    
+    case 'UPDATE_DRAG_STATE':
+      return { ...state, dragState: { ...state.dragState, ...action.updates } };
+    
+    case 'RESET_DRAG_STATE':
+      return {
+        ...state,
+        dragState: {
+          isDragging: false,
+          draggedCardId: null,
+          isPastSnapPoint: false,
+          isOverDropZone: false,
+          tapRotation: 0,
+        }
+      };
+    
+    default:
+      return state;
+  }
+}
+
 // Memoized message component to prevent unnecessary re-renders
 const ChatMessage = memo(({ message, isLastInGroup }: { 
   message: Message; 
@@ -135,12 +243,12 @@ const ChatMessage = memo(({ message, isLastInGroup }: {
       {/* Card image thumbnail - positioned outside bubble */}
       {message.cardImage && (
         <div 
-          className="absolute -top-10 -right-0 z-10"
+          className="card-image-decoration"
           style={{
             transform: `rotate(${((parseInt(message.id) % 1000) / 1000 - 0.5) * 20}deg)`
           }}
         >
-          <div className="w-12 h-12 rounded-md overflow-hidden border-3 border-white shadow-sm bg-white mr-2">
+          <div className="card-image-thumbnail">
             <Image
               src={message.cardImage}
               alt="Card image"
@@ -154,24 +262,18 @@ const ChatMessage = memo(({ message, isLastInGroup }: {
       
       {/* Message bubble with animated height */}
       <div 
-        className="max-w-xs overflow-hidden transition-all duration-75 ease-linear"
+        className="message-bubble"
         style={{
-          height: height || 'auto',
-          borderRadius: '24px'
+          height: height || 'auto'
         }}
       >
         <div 
           ref={contentRef}
-          className="px-4 py-3 break-words"
-          style={{
-            background: message.sender === 'user' 
-              ? 'rgba(47, 53, 87, 0.9)' 
-              : 'rgba(255, 255, 255, 0.95)',
-            color: message.sender === 'user' 
-              ? 'rgba(255, 255, 255, 0.95)' 
-              : 'var(--gray-900)',
-            borderRadius: '24px'
-          }}
+          className={`message-content ${
+            message.sender === 'user' 
+              ? 'message-content--user' 
+              : 'message-content--assistant'
+          }`}
         >
           <p 
             className="font-detail text-sm leading-tight whitespace-pre-wrap"
@@ -190,17 +292,32 @@ ChatMessage.displayName = 'ChatMessage';
 
 
 export default function InteractivePortfolio({ onCardClick }: InteractivePortfolioProps) {
-  // Card state
-  const [tappedCard, setTappedCard] = useState<string | null>(null);
-  const [pickedCardsOrder, setPickedCardsOrder] = useState<string[]>([]);
-  const [cardRotations, setCardRotations] = useState<{ [cardId: string]: number }>({});
-  const [cardTransformOrigins, setCardTransformOrigins] = useState<{ [cardId: string]: string }>({});
-  const [hiddenCards, setHiddenCards] = useState<Set<string>>(new Set());
-  const [reappearingCards, setReappearingCards] = useState<Set<string>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Consolidated state with useReducer
+  const [state, dispatch] = useReducer(portfolioReducer, {
+    // Card state
+    tappedCard: null,
+    pickedCardsOrder: [],
+    cardRotations: {},
+    cardTransformOrigins: {},
+    hiddenCards: new Set<string>(),
+    reappearingCards: new Set<string>(),
+    
+    // UI state
+    viewportWidth: 1200,
+    newMessage: '',
+    isInputHovered: false,
+    
+    // Drag state
+    dragState: {
+      isDragging: false,
+      draggedCardId: null,
+      isPastSnapPoint: false,
+      isOverDropZone: false,
+      tapRotation: 0,
+    },
+  });
   
-  // Window size state for consistent SSR/client rendering
-  const [viewportWidth, setViewportWidth] = useState(1200);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize chat with sample messages
   const initialMessages: Message[] = [
@@ -215,19 +332,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Use the chat hook
   const { messages, isLoading, error, sendMessage, addAssistantMessage, clearError } = useChat(initialMessages);
   
-  const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [isInputHovered, setIsInputHovered] = useState(false);
-
-  // Drag state management
-  const [dragState, setDragState] = useState<DragState>({
-    isDragging: false,
-    draggedCardId: null,
-    isPastSnapPoint: false,
-    isOverDropZone: false,
-    tapRotation: 0,
-  });
 
   // Snap point configuration
   const SNAP_POINT_PADDING = 128; // Vertical padding around envelope
@@ -245,13 +351,13 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   };
 
   // Check if a point is past the snap point
-  const isPastSnapPoint = (y: number) => {
+  const isPastSnapPoint = useCallback((y: number) => {
     const { snapPointTop } = getEnvelopeBounds();
     return y > snapPointTop;
-  };
+  }, []);
 
   // Check if a point is within the actual envelope body geometry
-  const isInEnvelopeBody = (x: number, y: number) => {
+  const isInEnvelopeBody = useCallback((x: number, y: number) => {
     const { envelopeTop } = getEnvelopeBounds();
     
     // Must be below envelope top
@@ -259,8 +365,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     
     // Get envelope container bounds (600px max-width, centered)
     const envelopeMaxWidth = 600;
-    const envelopeWidth = Math.min(envelopeMaxWidth, viewportWidth);
-    const envelopeLeft = (viewportWidth - envelopeWidth) / 2;
+    const envelopeWidth = Math.min(envelopeMaxWidth, state.viewportWidth);
+    const envelopeLeft = (state.viewportWidth - envelopeWidth) / 2;
     const envelopeRight = envelopeLeft + envelopeWidth;
     
     // Check if within envelope horizontal bounds
@@ -272,16 +378,18 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     if (y > envelopeBottom) return false;
     
     return true;
-  };
+  }, [state.viewportWidth]);
 
   // Start the fade out and reappear sequence for a card
   const startCardFadeOutSequence = (cardId: string) => {
     // Start fade out immediately
-    setDragState(prev => ({
-      ...prev,
-      isFadingOut: true,
-      draggedCardId: cardId
-    }));
+    dispatch({
+      type: 'UPDATE_DRAG_STATE',
+      updates: {
+        isFadingOut: true,
+        draggedCardId: cardId
+      }
+    });
     
     // After fade out completes, trigger message and reset state
     setTimeout(() => {
@@ -291,37 +399,19 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       handleSendMessage(contextualMessage, cardImage, cardId);
       
       // Hide the card permanently
-      setHiddenCards(prev => new Set(prev).add(cardId));
+      dispatch({ type: 'HIDE_CARD', cardId });
       
-      setDragState({
-        isDragging: false,
-        draggedCardId: null,
-        isPastSnapPoint: false,
-        isOverDropZone: false,
-        tapRotation: 0,
-        isPullingToDropZone: false,
-        pullTargetX: undefined,
-        pullTargetY: undefined,
-        isFadingOut: false
-      });
+      dispatch({ type: 'RESET_DRAG_STATE' });
       
       // After a delay, make the card reappear with animation
       setTimeout(() => {
-        setHiddenCards(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(cardId);
-          return newSet;
-        });
-        setReappearingCards(prev => new Set(prev).add(cardId));
+        dispatch({ type: 'SHOW_CARD', cardId });
+        dispatch({ type: 'SET_REAPPEARING_CARD', cardId, isReappearing: true });
         
         // After the initial bounce, scale back to normal
         setTimeout(() => {
           // This will trigger the scale to go back to 1 from 1.05
-          setReappearingCards(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(cardId);
-            return newSet;
-          });
+          dispatch({ type: 'SET_REAPPEARING_CARD', cardId, isReappearing: false });
         }, 200); // Duration for fade-in + bounce animation
       }, 100); // Wait before reappearing
     }, 600); // Fade out duration
@@ -337,19 +427,21 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     const targetY = 450; // Fixed distance down from card container (relative to envelope position)
     
     // Set state to indicate we're pulling the card
-    setDragState(prev => ({
-      ...prev,
-      isPullingToDropZone: true,
-      pullTargetX: targetX,
-      pullTargetY: targetY
-    }));
+    dispatch({
+      type: 'UPDATE_DRAG_STATE',
+      updates: {
+        isPullingToDropZone: true,
+        pullTargetX: targetX,
+        pullTargetY: targetY
+      }
+    });
     
     // After pull animation, start the fade out sequence
     setTimeout(() => {
-      setDragState(prev => ({
-        ...prev,
-        isPullingToDropZone: false
-      }));
+      dispatch({
+        type: 'UPDATE_DRAG_STATE',
+        updates: { isPullingToDropZone: false }
+      });
       startCardFadeOutSequence(cardId);
     }, 600); // Match pull animation duration
   };
@@ -380,7 +472,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Update viewport width after hydration to prevent SSR mismatch
   useEffect(() => {
     const updateViewportWidth = () => {
-      setViewportWidth(window.innerWidth);
+      dispatch({ type: 'SET_VIEWPORT_WIDTH', width: window.innerWidth });
     };
     
     // Set initial width
@@ -396,10 +488,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
   // Handle card interaction to bring to front
   const handleCardInteraction = (cardId: string) => {
-    setPickedCardsOrder(prev => {
-      const filtered = prev.filter(id => id !== cardId);
-      return [...filtered, cardId];
-    });
+    dispatch({ type: 'UPDATE_PICKED_ORDER', cardId });
     
     // Call the parent's onCardClick handler
     onCardClick?.(cardId);
@@ -407,12 +496,15 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
   // Drag handlers
   const handleDragStart = (cardId: string, tapRotation: number) => {
-    setDragState({
-      isDragging: true,
-      draggedCardId: cardId,
-      isPastSnapPoint: false,
-      isOverDropZone: false,
-      tapRotation: tapRotation,
+    dispatch({
+      type: 'UPDATE_DRAG_STATE',
+      updates: {
+        isDragging: true,
+        draggedCardId: cardId,
+        isPastSnapPoint: false,
+        isOverDropZone: false,
+        tapRotation: tapRotation,
+      }
     });
   };
 
@@ -421,19 +513,13 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       // Card dropped directly in envelope - start fade out animation immediately
       startCardFadeOutSequence(cardId);
       return; // Don't reset drag state yet, let the animation handle it
-    } else if (dragState.isPastSnapPoint && !droppedOnEnvelope) {
+    } else if (state.dragState.isPastSnapPoint && !droppedOnEnvelope) {
       // Card is in snap zone but not drop zone - pull it into the drop zone
       pullCardIntoDropZone(cardId);
       return; // Don't reset drag state yet, let the animation handle it
     }
     
-    setDragState({
-      isDragging: false,
-      draggedCardId: null,
-      isPastSnapPoint: false,
-      isOverDropZone: false,
-      tapRotation: 0,
-    });
+    dispatch({ type: 'RESET_DRAG_STATE' });
   };
 
 
@@ -455,18 +541,17 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       const inEnvelopeBody = isInEnvelopeBody(cardCenterX, cardCenterY);
       
       // Only update state if values actually changed to prevent unnecessary re-renders
-      setDragState(prev => {
-        if (prev.isPastSnapPoint === pastSnapPoint && prev.isOverDropZone === inEnvelopeBody) {
-          return prev;
-        }
-        return {
-          ...prev,
-          isPastSnapPoint: pastSnapPoint,
-          isOverDropZone: inEnvelopeBody
-        };
-      });
+      if (state.dragState.isPastSnapPoint !== pastSnapPoint || state.dragState.isOverDropZone !== inEnvelopeBody) {
+        dispatch({
+          type: 'UPDATE_DRAG_STATE',
+          updates: {
+            isPastSnapPoint: pastSnapPoint,
+            isOverDropZone: inEnvelopeBody
+          }
+        });
+      }
     }, 16); // ~60fps throttling
-  }, [viewportWidth]);
+  }, [isInEnvelopeBody, isPastSnapPoint, state.dragState.isOverDropZone, state.dragState.isPastSnapPoint]);
 
   // Get preview message for dragged card
   const getPreviewMessage = (cardId: string) => {
@@ -485,7 +570,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   };
 
   const handleSendMessage = useCallback(async (messageText?: string, cardImage?: string, cardId?: string) => {
-    const text = messageText || newMessage.trim();
+    const text = messageText || state.newMessage.trim();
     if (text === '') return;
 
     // Clear error if any
@@ -498,14 +583,14 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     
     // Clear input if not from card interaction
     if (!messageText) {
-      setNewMessage('');
+      dispatch({ type: 'SET_NEW_MESSAGE', message: '' });
       
       // Reset textarea height
       if (inputRef.current) {
         inputRef.current.style.height = '20px';
       }
     }
-  }, [newMessage, error, clearError, sendMessage]);
+  }, [state.newMessage, error, clearError, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -537,7 +622,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     const position = positions[index];
     
     // Determine z-index based on picked order
-    const pickedIndex = pickedCardsOrder.indexOf(cardId);
+    const pickedIndex = state.pickedCardsOrder.indexOf(cardId);
     
     // Base z-index preserves original card ordering from the scattered positions
     let zIndex = position.z; 
@@ -560,21 +645,20 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       {/* Card stack section */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[332px] flex items-center justify-center z-[10]"
-        style={{ perspective: '1000px' }}
+        className="portfolio-cards-container"
         role="region"
         aria-label="Interactive portfolio cards"
       >
         {cardData.map((card, index) => {
           const position = getCardPosition(index, card.id);
-          const isTapped = tappedCard === card.id;
-          const isDraggingThis = dragState.isDragging && dragState.draggedCardId === card.id;
-          const isPullingThis = dragState.isPullingToDropZone && dragState.draggedCardId === card.id;
-          const isFadingOutThis = dragState.isFadingOut && dragState.draggedCardId === card.id;
-          const isHidden = hiddenCards.has(card.id);
-          const isReappearing = reappearingCards.has(card.id);
+          const isTapped = state.tappedCard === card.id;
+          const isDraggingThis = state.dragState.isDragging && state.dragState.draggedCardId === card.id;
+          const isPullingThis = state.dragState.isPullingToDropZone && state.dragState.draggedCardId === card.id;
+          const isFadingOutThis = state.dragState.isFadingOut && state.dragState.draggedCardId === card.id;
+          const isHidden = state.hiddenCards.has(card.id);
+          const isReappearing = state.reappearingCards.has(card.id);
           // Use stored rotation if it exists, otherwise use base rotation
-          const currentRotation = cardRotations[card.id] ?? position.rotate;
+          const currentRotation = state.cardRotations[card.id] ?? position.rotate;
           
           // Don't render hidden cards
           if (isHidden) {
@@ -585,10 +669,10 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             <motion.div
               key={card.id}
               data-card-id={card.id}
-              className="absolute cursor-grab active:cursor-grabbing focus:outline-none rounded-2xl"
+              className="draggable-card"
               style={{
                 zIndex: position.zIndex,
-                transformOrigin: cardTransformOrigins[card.id] || 'center center',
+                transformOrigin: state.cardTransformOrigins[card.id] || 'center center',
               } as React.CSSProperties}
               initial={isReappearing ? {
                 x: position.x,
@@ -615,20 +699,20 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   duration: 0.6
                 }
               } : isFadingOutThis ? {
-                x: dragState.pullTargetX,
-                y: dragState.pullTargetY,
+                x: state.dragState.pullTargetX,
+                y: state.dragState.pullTargetY,
                 rotate: currentRotation,
-                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
                 opacity: 0
               } : isPullingThis ? {
-                x: dragState.pullTargetX,
-                y: dragState.pullTargetY,
+                x: state.dragState.pullTargetX,
+                y: state.dragState.pullTargetY,
                 rotate: currentRotation,
-                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
                 opacity: 1
               } : {
                 rotate: currentRotation,
-                scale: isDraggingThis && dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
+                scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
                 opacity: 1
               }}
               drag={!isPullingThis}
@@ -636,35 +720,36 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               dragElastic={0.1}
               onTapStart={(event, info) => {
                 const tapRotation = position.rotate + (Math.random() - 0.5) * 8;
-                setTappedCard(card.id);
+                dispatch({ type: 'SET_TAPPED_CARD', cardId: card.id });
                 handleCardInteraction(card.id);
                 // Store the rotation immediately for this card
-                setCardRotations(prev => ({ ...prev, [card.id]: tapRotation }));
-                setDragState(prev => ({ ...prev, tapRotation }));
+                dispatch({ type: 'SET_CARD_ROTATION', cardId: card.id, rotation: tapRotation });
+                dispatch({ type: 'UPDATE_DRAG_STATE', updates: { tapRotation } });
                 
                 // Calculate transform origin based on cursor position relative to card
                 const cardElement = event.target as HTMLElement;
                 const cardRect = cardElement.getBoundingClientRect();
                 const originX = ((info.point.x - cardRect.left) / cardRect.width) * 100;
                 const originY = ((info.point.y - cardRect.top) / cardRect.height) * 100;
-                setCardTransformOrigins(prev => ({ 
-                  ...prev, 
-                  [card.id]: `${Math.max(0, Math.min(100, originX))}% ${Math.max(0, Math.min(100, originY))}%` 
-                }));
+                dispatch({ 
+                  type: 'SET_CARD_TRANSFORM_ORIGIN', 
+                  cardId: card.id, 
+                  origin: `${Math.max(0, Math.min(100, originX))}% ${Math.max(0, Math.min(100, originY))}%` 
+                });
               }}
               onTap={() => {
                 // Handle pure clicks (no drag)
-                setTappedCard(null);
+                dispatch({ type: 'SET_TAPPED_CARD', cardId: null });
               }}
               onDragStart={() => {
-                setTappedCard(card.id);
-                handleDragStart(card.id, dragState.tapRotation);
+                dispatch({ type: 'SET_TAPPED_CARD', cardId: card.id });
+                handleDragStart(card.id, state.dragState.tapRotation);
               }}
               onDrag={(event, info) => {
                 handleDrag(card.id, info);
               }}
               onDragEnd={(_event, info) => {
-                setTappedCard(null);
+                dispatch({ type: 'SET_TAPPED_CARD', cardId: null });
                 // Check if dropped in actual envelope body geometry
                 const droppedInEnvelope = isInEnvelopeBody(info.point.x, info.point.y);
                 handleDragEnd(card.id, droppedInEnvelope);
@@ -683,29 +768,16 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               aria-label={`Click or drag ${card.title}`}
             >
               <div 
-                className="bg-white border overflow-hidden p-2 w-60 flex flex-col items-center"
-                style={{ 
-                  borderRadius: '24px 24px 24px 24px',
-                  borderColor: 'var(--gray-100)',
-                  boxShadow: isTapped 
-                    ? '0 4px 16px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
-                    : '0 4px 12px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
-                }}
+                className={`card-container ${
+                  isTapped ? 'card-container--tapped' : ''
+                }`}
               >
                 {/* Image area - fills available space */}
-                <div 
-                  className="flex-shrink-0 relative overflow-hidden w-full aspect-square items-center"
-                  style={{
-                    borderRadius: '16px 16px 2px 2px',
-                  }}
+                <div className="card-image-area"
                 >
                   {/* Inner border overlay */}
                   <div 
-                    className="absolute inset-0 border pointer-events-none z-10"
-                    style={{
-                        borderRadius: '16px 16px 2px 2px',
-                        borderColor: 'var(--gray-50)',
-                    }}
+                    className="card-image-border"
                   />
                 <Image
                       src={card.image}
@@ -719,7 +791,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 
                 {/* Text area - flexible height */}
                 <div className="flex-1 flex flex-col pt-2 pb-3 w-full">
-                  <h3 className="font-detail text-sm font-medium leading-tight text-start" style={{ color: 'var(--gray-900)' }}>
+                  <h3 className="font-detail text-sm font-medium leading-tight text-start card-title-text">
                       {card.title}
                     </h3>
                   </div>
@@ -734,24 +806,17 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       <div className="pb-28 relative z-[1]">
 
         {/* Drop zone overlay - shows when card is past snap point */}
-        {dragState.isDragging && dragState.isPastSnapPoint && (
+        {state.dragState.isDragging && state.dragState.isPastSnapPoint && (
           <div className="absolute flex justify-center items-center inset-0 pointer-events-auto z-[4]">
             <div 
-              className="relative w-full max-w-[585px] h-[360px] mx-auto flex items-center justify-center"
+              className="envelope-outer-container"
               style={{
-                borderRadius: '24px',
-                backdropFilter: 'blur(2px)',
-                WebkitBackdropFilter: 'blur(2px)',
                 animation: 'fadeIn 0.5s ease-out'
               }}
             >
               {/* Animated SVG Border */}
               <svg
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{ 
-                  borderRadius: '24px',
-                  filter: 'blur(1px)'
-                }}
+                className="envelope-svg-background"
               >
                 <rect
                   x="2"
@@ -765,24 +830,19 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   strokeWidth="2"
                   strokeDasharray="3 9"
                   strokeLinecap="round"
-                  className="animated-dash"
-                  style={{
-                    animation: 'dashMove 2s linear infinite',
-                  }}
+                  className="envelope-dash-animation"
                 />
               </svg>
               
               {/* Preview message */}
-              {dragState.draggedCardId && (
+              {state.dragState.draggedCardId && (
                 <div 
-                  className="text-base font-detail z-10"
+                  className="envelope-preview-text"
                   style={{
-                    color: 'var(--gray-900)',
-                    animation: 'fadeInScale 0.3s ease-out',
                     textShadow: '0 0px 8px white, 0 0px 24px white'
                   }}
                 >
-                  {getPreviewMessage(dragState.draggedCardId)}
+                  {getPreviewMessage(state.dragState.draggedCardId)}
                 </div>
               )}
             </div>
@@ -793,75 +853,26 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         <div className="flex justify-center items-center">
           <div className="relative w-full max-w-[600px] mx-auto">
             {/* Top Flap */}
-            <div 
-               className="left-0 right-0 h-[112px] rounded-t-[128px] flex items-center justify-center"
-               style={{
-                 background: 'rgba(255, 255, 255, 0.2)',
-                 boxShadow: `
-                   inset 1px 1px 2px rgba(255, 255, 255, 0.15),
-                   inset 0 -4px 4px rgba(255, 255, 255, 0.25),
-                   inset 0 -12px 24px rgba(255, 255, 255, 0.30),
-                   0 4px 16px rgba(47, 53, 87, 0.12)
-                 `,
-                 backdropFilter: 'blur(2px)'
-               }}
+            <div className="envelope-top-flap"
              >
             {/* Header */}
-              <h2 className="font-mono text-lg tracking-wider mt-10" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+              <h2 className="font-mono text-lg tracking-wider mt-10 envelope-header-text">
                 TALK <span className="italic">2</span> ME
               </h2>
              </div>
             
             {/* Main Envelope Body */}
             <div 
-              className="relative rounded-b-[32px] h-[375px] flex flex-col"
-              style={{
-                background: 'rgba(255, 255, 255, 0.36)',
-                boxShadow: `
-                  0 4px 16px rgba(47, 53, 87, 0.08),
-                  0 4px 4px rgba(47, 53, 87, 0.04)
-                `
-              }}
+              className="envelope-main-body"
             >
             {/* Left Panel */}
-                 <div 
-                   className="absolute top-0 left-0 w-[112px] bottom-0 z-0"
-                   style={{
-                     borderRadius: '0px 64px 64px 32px',
-                     background: 'rgba(255, 255, 255, 0.04)',
-                     boxShadow: `
-                       inset 1px 48px 24px rgba(255, 255, 255, 0.05),
-                       inset 0 4px 4px rgba(255, 255, 255, 0.1),
-                       0 4px 25px rgba(47, 53, 87, 0.06)
-                     `
-                   }}
-               />
+                 <div className="envelope-left-panel" />
               
               {/* Right Panel */}
-              <div 
-                className="absolute top-0 right-0 w-[112px] bottom-0 z-0"
-                style={{
-                  borderRadius: '64px 0px 32px 64px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  boxShadow: `
-                    inset 1px 48px 24px rgba(255, 255, 255, 0.05),
-                    inset 0 4px 4px rgba(255, 255, 255, 0.1),
-                    0 4px 25px rgba(47, 53, 87, 0.06)
-                  `
-                }}
-              />
+              <div className="envelope-right-panel" />
               
               {/* Bottom Panel */}
-              <div 
-                className="absolute bottom-0 left-0 right-0 h-[312px] rounded-t-[128px] rounded-b-[32px] z-0"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  boxShadow: `
-                    inset 1px 48px 24px 8px rgba(255, 255, 255, 0.15),
-                    inset 0 4px 4px rgba(255, 255, 255, 0.1),
-                  `
-                }}
-              />
+              <div className="envelope-bottom-panel" />
 
 
                     {/* Chat Messages Container */}
@@ -876,7 +887,6 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     key={message.id}
                     message={message}
                     isLastInGroup={isLastInGroup}
-                    index={index}
                   />
                 );
               })}
@@ -908,7 +918,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                  href="https://x.com/CherrilynnZ"
                  target="_blank"
                  rel="noopener noreferrer" 
-                 className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all hover:bg-gray-500"
+                 className="action-button"
                  style={{
                    backdropFilter: 'blur(10px)'
                  }}
@@ -922,7 +932,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     navigator.clipboard.writeText('clzhang@berkeley.edu');
                     addAssistantMessage('my email (clzhang@berkeley.edu) is copied to ur clipboard now!');
                   }}
-                  className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all hover:bg-gray-500"
+                  className="action-button"
                   style={{
                     backdropFilter: 'blur(10px)'
                   }}
@@ -933,41 +943,29 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
               {/* Input field container */}
               <div className="flex-1 relative">
-                <div 
-                  className="flex items-end pl-4 pr-[6px] py-3 cursor-text relative"
-                  style={{
-                    background: 'var(--gray-400)',
-                    borderRadius: '24px',
-                    backdropFilter: 'blur(10px)'
-                  }}
+                <div className="envelope-input-area"
                   onClick={() => {
                     if (inputRef.current) {
                       inputRef.current.focus();
                     }
                   }}
-                  onMouseEnter={() => setIsInputHovered(true)}
-                  onMouseLeave={() => setIsInputHovered(false)}
+                  onMouseEnter={() => dispatch({ type: 'SET_INPUT_HOVERED', isHovered: true })}
+                  onMouseLeave={() => dispatch({ type: 'SET_INPUT_HOVERED', isHovered: false })}
                 >
                   {/* Animated placeholder */}
-                  {!newMessage && (
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none font-detail text-sm leading-tight">
-                      <div 
-                        className="relative"
-                        style={{
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        }}
-                      >
+                  {!state.newMessage && (
+                    <div className="input-placeholder">
+                      <div className="relative">
                         {/* Original text with wave fade-out */}
                         <div className="whitespace-nowrap">
                           {"Chat with me!".split("").map((char, index) => (
                             <span
                               key={index}
-                              className="transition-all ease-out"
+                              className={`placeholder-char-out ${
+                                state.isInputHovered ? 'placeholder-char-out--hidden' : ''
+                              }`}
                               style={{
-                                opacity: isInputHovered ? 0 : 1,
-                                filter: isInputHovered ? 'blur(2px)' : 'blur(0px)',
-                                transitionDelay: isInputHovered ? `${index * 10}ms` : '0ms',
-                                transitionDuration: '75ms'
+                                transitionDelay: state.isInputHovered ? `${index * 10}ms` : '0ms'
                               }}
                             >
                               {char === " " ? "\u00A0" : char}
@@ -982,12 +980,11 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                           {"lele will see ur messages!".split("").map((char, index) => (
                             <span
                               key={index}
-                              className="transition-all ease-out"
+                              className={`placeholder-char-in ${
+                                state.isInputHovered ? 'placeholder-char-in--visible' : ''
+                              }`}
                               style={{
-                                opacity: isInputHovered ? 1 : 0,
-                                filter: isInputHovered ? 'blur(0px)' : 'blur(2px)',
-                                transitionDelay: isInputHovered ? `${100 + (index * 10)}ms` : '0ms',
-                                transitionDuration: '75ms'
+                                transitionDelay: state.isInputHovered ? `${100 + (index * 10)}ms` : '0ms'
                               }}
                             >
                               {char === " " ? "\u00A0" : char}
@@ -999,9 +996,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   )}
                   <textarea
                     ref={inputRef}
-                    value={newMessage}
+                    value={state.newMessage}
                     onChange={(e) => {
-                      setNewMessage(e.target.value);
+                      dispatch({ type: 'SET_NEW_MESSAGE', message: e.target.value });
                       // Auto-resize textarea only when content requires multiple lines
                       const target = e.target;
                       target.style.height = '20px'; // Reset to min height
@@ -1014,12 +1011,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     }}
                     onKeyDown={handleKeyPress}
                     placeholder=""
-                    className="flex-1 font-detail text-sm leading-tight resize-none focus:outline-none bg-transparent"
-                    style={{
-                      color: 'rgba(255, 255, 255)',
-                      minHeight: '20px',
-                      maxHeight: '80px'
-                    }}
+                    className="chat-textarea"
                     rows={1}
                   />
                   
@@ -1028,9 +1020,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     <button
                       onClick={() => handleSendMessage()}
                       className={`w-8 h-8 bg-white/20 rounded-full flex items-center justify-center transition-all hover:bg-white/30 ${
-                        newMessage.trim() && !isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
+                        state.newMessage.trim() && !isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
                       }`}
-                      disabled={!newMessage.trim() || isLoading}
+                      disabled={!state.newMessage.trim() || isLoading}
                     >
                       {arrowIcon}
                     </button>
