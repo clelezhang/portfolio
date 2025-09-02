@@ -5,16 +5,38 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
-  title: "Lele Zhang - Designer",
-  description: "Designer in meandering pursuit of aesthetics and function",
+  title: "lele's website",
+  description: "product designer",
+  themeColor: "#F3F4F7",
+  keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
+  openGraph: {
+    title: "lele's portfolio",
+    description: "a little glimpse into my work and thoughts",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "lele's portfolio",
+    description: "a little glimpse into my work and thoughts",
+    creator: "@CherrilynnZ",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -26,6 +48,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         {children}
       </body>
