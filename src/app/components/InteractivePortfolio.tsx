@@ -373,9 +373,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   }, []);
 
   useEffect(() => {
-    // Debounce scroll updates to reduce frequency
-    const timeoutId = setTimeout(scrollToBottom, 10);
-    return () => clearTimeout(timeoutId);
+    // Use RAF for better performance than setTimeout
+    const rafId = requestAnimationFrame(scrollToBottom);
+    return () => cancelAnimationFrame(rafId);
   }, [messages, scrollToBottom]);
 
   // Update viewport width after hydration to prevent SSR mismatch
@@ -384,14 +384,22 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       setViewportWidth(window.innerWidth);
     };
     
+    // Throttle resize events for better performance
+    let resizeTimeoutId: NodeJS.Timeout;
+    const throttledResize = () => {
+      clearTimeout(resizeTimeoutId);
+      resizeTimeoutId = setTimeout(updateViewportWidth, 100);
+    };
+    
     // Set initial width
     updateViewportWidth();
     
-    // Add resize listener
-    window.addEventListener('resize', updateViewportWidth);
+    // Add throttled resize listener
+    window.addEventListener('resize', throttledResize);
     
     return () => {
-      window.removeEventListener('resize', updateViewportWidth);
+      window.removeEventListener('resize', throttledResize);
+      clearTimeout(resizeTimeoutId);
     };
   }, []);
 
@@ -440,7 +448,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
 
 
   // Handle drag movement to track snap point status
-  const handleDrag = (cardId: string, info: { point: { x: number; y: number } }) => {
+  const handleDrag = useCallback((_cardId: string, info: { point: { x: number; y: number } }) => {
     // Use the motion info.point which gives us the drag position
     const cardCenterX = info.point.x;
     const cardCenterY = info.point.y;
@@ -448,12 +456,18 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     const pastSnapPoint = isPastSnapPoint(cardCenterY);
     const inEnvelopeBody = isInEnvelopeBody(cardCenterX, cardCenterY);
     
-    setDragState(prev => ({
-      ...prev,
-      isPastSnapPoint: pastSnapPoint,
-      isOverDropZone: inEnvelopeBody
-    }));
-  };
+    // Only update state if values actually changed to prevent unnecessary re-renders
+    setDragState(prev => {
+      if (prev.isPastSnapPoint === pastSnapPoint && prev.isOverDropZone === inEnvelopeBody) {
+        return prev;
+      }
+      return {
+        ...prev,
+        isPastSnapPoint: pastSnapPoint,
+        isOverDropZone: inEnvelopeBody
+      };
+    });
+  }, [viewportWidth]); // Dependency on viewportWidth since envelope bounds depend on it
 
   // Get preview message for dragged card
   const getPreviewMessage = (cardId: string) => {
@@ -576,6 +590,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               style={{
                 zIndex: position.zIndex,
                 transformOrigin: cardTransformOrigins[card.id] || 'center center',
+                willChange: 'transform',
+                backfaceVisibility: 'hidden',
+                transform: 'translate3d(0,0,0)',
               } as React.CSSProperties}
               initial={isReappearing ? {
                 x: position.x,
@@ -661,6 +678,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 type: 'spring',
                 stiffness: 500,
                 damping: 25,
+                mass: 0.8,
+                restDelta: 0.001,
               }}
 
               tabIndex={0}
@@ -675,7 +694,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                   boxShadow: isTapped 
                     ? '0 4px 16px 0 rgba(47, 53, 87, 0.15), 0 4px 8px 0 rgba(47, 53, 87, 0.05)'
                     : '0 4px 12px 0 rgba(47, 53, 87, 0.10), 0 1px 2px 0 rgba(47, 53, 87, 0.05)',
-                  willChange: 'transform', // Hint browser to optimize for animations
+                  willChange: 'transform',
+                  contain: 'layout style paint',
+                  backfaceVisibility: 'hidden',
                 }}
               >
                 {/* Image area - fills available space */}
