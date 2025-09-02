@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -19,7 +19,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "lele's website",
   description: "product designer",
-  themeColor: "#F3F4F7",
   keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
   openGraph: {
     title: "lele's portfolio",
@@ -37,6 +36,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#F3F4F7",
 };
 
 export default function RootLayout({
