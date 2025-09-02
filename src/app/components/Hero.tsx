@@ -6,7 +6,6 @@ import { useState } from 'react';
 
 export default function Hero() {
   const [activeWord, setActiveWord] = useState('make');
-  const [isAnimating, setIsAnimating] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   
 
@@ -28,11 +27,9 @@ export default function Hero() {
     }
 
     if (newWord !== activeWord) {
-      setIsAnimating(true);
       setTimeout(() => {
         setActiveWord(newWord);
         setAnimationKey(prev => prev + 1);
-        setTimeout(() => setIsAnimating(false), newWord.length * 30 + 200);
       }, 150);
     }
   };

@@ -87,10 +87,9 @@ interface InteractivePortfolioProps {
 }
 
 // Memoized message component to prevent unnecessary re-renders
-const ChatMessage = memo(({ message, isLastInGroup, index }: { 
+const ChatMessage = memo(({ message, isLastInGroup }: { 
   message: Message; 
   isLastInGroup: boolean;
-  index: number;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number>(0);
@@ -417,7 +416,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     });
   };
 
-  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean, _dragInfo: { point: { x: number; y: number } }) => {
+  const handleDragEnd = (cardId: string, droppedOnEnvelope: boolean) => {
     if (droppedOnEnvelope) {
       // Card dropped directly in envelope - start fade out animation immediately
       startCardFadeOutSequence(cardId);
@@ -668,7 +667,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 setTappedCard(null);
                 // Check if dropped in actual envelope body geometry
                 const droppedInEnvelope = isInEnvelopeBody(info.point.x, info.point.y);
-                handleDragEnd(card.id, droppedInEnvelope, info);
+                handleDragEnd(card.id, droppedInEnvelope);
               }}
               // No automatic animation back to position - cards stay where placed
               transition={{
