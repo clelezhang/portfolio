@@ -44,54 +44,63 @@ export const LELE_COMMUNICATION_STYLE = `COMMUNICATION STYLE:
 /**
  * Context about specific portfolio pieces
  * Used when users interact with cards or ask about specific projects
+ * This is the single source of truth for all card data
  */
 export const PORTFOLIO_CONTEXT = {
   apps: {
     title: "software made with care",
     context: "time is limited in life. there is a lot of time wasted and time spent toiling. i get excited about tools that save people time, and i really get excited about tools that make our experiences more meaningful.",
-    questions: ["what problems excite you?"]
+    question: "what problems excite you?"
   },
   house: {
     title: "designing for someone you love",
     context: "this is my favorite thing the eames' emphasized. they thought about how people would use their chairs, clean their chairs, and designed around that. they loved their customers, and their work reflected that.",
-    questions: ["what does designing for someone you love mean to you?"]
+    question: "what does designing for someone you love mean to you?"
   },
   apple: {
     title: "puns made visual",
     context: "as designers, and as people, we get to decorate the world! there are many opportunities for meaning, even through humor and delight. i think the best way to learn is through play, and through fidgeting. visual menaning making has many opportunities for this.",
-    questions: ["why does ‘everyday art’ get you excited?"]
+    question: "why does 'everyday art' get you excited?"
   },
   cyanotype: {
     title: "cyanotypes", 
     context: "i've been drawing since kindergarten; i don't draw as much anymore (because i'd rather be designing), but i think i will always see like an artist. i am always looking for beauty, for textures, colors, and compositions. i think how i see inspires the things i make.",
-    questions: ["how does art inform your work?"]
+    question: "how does art inform your work?"
   },
   journal: {
     title: "the journal that reflects with you",
     context: "there are so many ways to be more present, but i think ultimately designing for present-ness revolves around understanding what your user (or you!) want(s) less/more of.",
-    questions: ["how can we design for present-ness?"]
+    question: "how can we design for present-ness?"
   },
   charcuterie: {
     title: "charcuterie for my friends",
     context: "love definitely is not inherent to creation, but i think love makes creation more impactful to the recipient, and more effective for the creator. it is also a lot more fun to create something with love than without!",
-    questions: ["is love inherent to creation?"]
+    question: "is love inherent to creation?"
   },
   family: {
     title: "my family :)",
     context: "ever since i was little, my mom emphasized to me the value of time. this has really shaped my perspective on life, and i will always believe that time with loved ones is always worth spending.",
-    questions: ["what do you care about?"]
+    question: "what do you care about?"
   },
   lilypad: {
     title: "my mother's hometown",
     context: "my father has given me humor and logic, and my grandma has gifted me a love for creation. my mother has given me practicality and strength.",
-    questions: ["how does love shape you?"]
+    question: "how does love shape you?"
   },
   friend: {
     title: "my friends",
     context: "in sophomore year i moved into my student housing and met my friend jenessa. she has been an unendlingly patient and kind presence in my life, who is also amazing at cooking.",
-    questions: ["who is someone you love?"]
+    question: "who is someone you love?"
   }
-};
+} as const;
+
+/**
+ * Get preview message for a card (used in UI)
+ */
+export function getCardPreviewMessage(cardId: string): string {
+  const card = PORTFOLIO_CONTEXT[cardId as keyof typeof PORTFOLIO_CONTEXT];
+  return card?.question || "Tell me more about this!";
+}
 
 /**
  * Generate contextual prompt based on card interaction
@@ -100,9 +109,8 @@ export function getCardPrompt(cardId: string): string {
   const card = PORTFOLIO_CONTEXT[cardId as keyof typeof PORTFOLIO_CONTEXT];
   if (!card) return "";
   
-  const question = card.questions[0]; // Use the first (and only) question
   return `the user just shared "${card.title}" from my portfolio. you must answer with this ${card.context}
-keep your answer short. now ask them a DIFFERENT short question SIMILAR TO THIS :${question}`;
+keep your answer short. now ask them a DIFFERENT short question SIMILAR TO THIS :${card.question}`;
 }
 
 /**
