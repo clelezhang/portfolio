@@ -1,13 +1,13 @@
 import Header from './components/Header';
 import Hero from './components/Hero';
-import PortfolioGrid from './components/PortfolioGrid';
+import WorkSection from './components/WorkSection';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-cream font-sans">
       <Header />
       <Hero />
-      <PortfolioGrid />
+      <WorkSection />
       
       <footer className="py-16 text-center">
         <div className="text-red text-6xl md:text-8xl font-mono font-bold mb-4">

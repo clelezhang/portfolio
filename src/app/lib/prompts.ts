@@ -95,6 +95,52 @@ export const PORTFOLIO_CONTEXT = {
 } as const;
 
 /**
+ * Work experience and projects data
+ * Ordered chronologically/by preference as specified
+ */
+export const WORK_EXPERIENCE = {
+  pearl: {
+    title: "Journaling with Pearl",
+    description: "Creating a gentle, AI-assisted journal with Emily [1]. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
+    order: 1
+  },
+  terrakaffe: {
+    title: "TK Flex", 
+    description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, creating marketing collaterol, and ...",
+    order: 2
+  },
+  fragile: {
+    title: "Fragile",
+    description: "Refining our customer experience to increase conversions and decrease early cancellations. I also got to bring our brand to life and show our partners our passion for hardware.",
+    order: 3
+  },
+  auracam: {
+    title: "Auracam & Mosaic",
+    description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. Take a picture of yourself and get a visualization of your aura via Hume's sentiment analysis API!",
+    order: 4
+  },
+  whim: {
+    title: "Whim",
+    description: "Exploring landing page, product, brand, and marketing collateral.",
+    order: 5
+  },
+  latch: {
+    title: "Latch",
+    description: "This is the internship that brought me to SF and introduced me to startups! I will always be thankful to Nathan [2] for teaching me terminal instructions and how to do my first PR, even if I keep forgetting things...",
+    order: 6
+  }
+} as const;
+
+/**
+ * Get work experience data sorted by order
+ */
+export function getWorkExperience() {
+  return Object.entries(WORK_EXPERIENCE)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .map(([key, value]) => ({ id: key, ...value }));
+}
+
+/**
  * Get preview message for a card (used in UI)
  */
 export function getCardPreviewMessage(cardId: string): string {
