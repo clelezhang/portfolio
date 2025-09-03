@@ -263,7 +263,7 @@ body {
 .message-bubble {
   max-width: 18rem;
   overflow: hidden;
-  transition: all 0.075s ease-linear;
+  transition: height 0.1s ease-out;
   border-radius: var(--radius-card);
 }
 
@@ -359,8 +359,6 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-card);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 
 .envelope-svg-background {

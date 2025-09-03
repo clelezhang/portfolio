@@ -564,10 +564,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       clearError();
     }
 
-    // Send message using the chat hook
-    await sendMessage(text, cardImage, cardId);
-    
-    // Clear input if not from card interaction
+    // Clear input immediately if not from card interaction
     if (!messageText) {
       dispatch({ type: 'SET_NEW_MESSAGE', message: '' });
       
@@ -576,6 +573,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         inputRef.current.style.height = '20px';
       }
     }
+
+    // Send message using the chat hook
+    await sendMessage(text, cardImage, cardId);
   }, [state.newMessage, error, clearError, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -761,7 +761,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 
                 {/* Text area - flexible height */}
                 <div className="flex-1 flex flex-col pt-2 pb-3 w-full">
-                  <h3 className="font-detail text-sm font-medium leading-tight text-start card-title-text">
+                  <h3 className="font-detail text-xs font-medium leading-tight text-start card-title-text">
                       {card.title}
                     </h3>
                   </div>
@@ -781,7 +781,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             <div 
               className="envelope-outer-container"
               style={{
-                animation: 'fadeIn 0.5s ease-out'
+                animation: 'fadeIn 0.5s ease-out',
+                backdropFilter: 'blur(2px)',
+                WebkitBackdropFilter: 'blur(2px)'
               }}
             >
               {/* Animated SVG Border */}

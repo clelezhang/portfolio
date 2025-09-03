@@ -36,7 +36,7 @@ export default function Hero() {
 
 
   return (
-    <section className="pt-64 pb-16">
+    <section className="pt-64">
       <div className="max-w-6xl mx-auto">
         {/* Intro text */}
         <div className="max-w-[600px] mx-auto text-start mb-16">
