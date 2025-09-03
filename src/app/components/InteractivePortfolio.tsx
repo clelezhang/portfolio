@@ -7,6 +7,11 @@ import TwitterIcon from './icons/TwitterIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
 import { ArrowUpIcon } from '@heroicons/react/24/outline';
 import { useChat } from '../hooks/useChat';
+import { 
+  ANIMATION_CONSTANTS, 
+  CARD_SCATTERED_POSITIONS 
+} from '../lib/cardMessages';
+import { getCardPreviewMessage } from '../lib/prompts';
 
 interface CardData {
   id: string;
@@ -335,14 +340,10 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Snap point configuration
-  const SNAP_POINT_PADDING = 128; // Vertical padding around envelope
-
   // Get envelope bounds for snap point calculation
   const getEnvelopeBounds = () => {
-    const cardContainerHeight = 850; // Height of card section
-    const envelopeTop = cardContainerHeight; // Envelope starts right after cards
-    const snapPointTop = envelopeTop - SNAP_POINT_PADDING;
+    const envelopeTop = ANIMATION_CONSTANTS.CARD_CONTAINER_HEIGHT; // Envelope starts right after cards
+    const snapPointTop = envelopeTop - ANIMATION_CONSTANTS.SNAP_POINT_PADDING;
     
     return {
       snapPointTop,
@@ -364,16 +365,15 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     if (y <= envelopeTop) return false;
     
     // Get envelope container bounds (600px max-width, centered)
-    const envelopeMaxWidth = 600;
-    const envelopeWidth = Math.min(envelopeMaxWidth, state.viewportWidth);
+    const envelopeWidth = Math.min(ANIMATION_CONSTANTS.ENVELOPE_MAX_WIDTH, state.viewportWidth);
     const envelopeLeft = (state.viewportWidth - envelopeWidth) / 2;
     const envelopeRight = envelopeLeft + envelopeWidth;
     
     // Check if within envelope horizontal bounds
     if (x < envelopeLeft || x > envelopeRight) return false;
     
-    // Check if within envelope body height (375px)
-    const envelopeBodyHeight = 375;
+    // Check if within envelope body height
+    const envelopeBodyHeight = ANIMATION_CONSTANTS.ENVELOPE_BODY_HEIGHT;
     const envelopeBottom = envelopeTop + envelopeBodyHeight;
     if (y > envelopeBottom) return false;
     
@@ -393,7 +393,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     
     // After fade out completes, trigger message and reset state
     setTimeout(() => {
-      const contextualMessage = getPreviewMessage(cardId);
+      const contextualMessage = getCardPreviewMessage(cardId);
       const cardData_item = cardData.find(card => card.id === cardId);
       const cardImage = cardData_item?.image;
       handleSendMessage(contextualMessage, cardImage, cardId);
@@ -412,9 +412,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         setTimeout(() => {
           // This will trigger the scale to go back to 1 from 1.05
           dispatch({ type: 'SET_REAPPEARING_CARD', cardId, isReappearing: false });
-        }, 200); // Duration for fade-in + bounce animation
-      }, 100); // Wait before reappearing
-    }, 600); // Fade out duration
+        }, ANIMATION_CONSTANTS.BOUNCE_DURATION); // Duration for fade-in + bounce animation
+      }, ANIMATION_CONSTANTS.REAPPEAR_DELAY); // Wait before reappearing
+    }, ANIMATION_CONSTANTS.FADE_OUT_DURATION); // Fade out duration
   };
 
   // Pull card into drop zone with smooth animation
@@ -443,7 +443,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         updates: { isPullingToDropZone: false }
       });
       startCardFadeOutSequence(cardId);
-    }, 600); // Match pull animation duration
+    }, ANIMATION_CONSTANTS.PULL_ANIMATION_DURATION); // Match pull animation duration
   };
 
   // Memoize icons to prevent rerendering
@@ -532,7 +532,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
       clearTimeout(dragThrottleRef.current);
     }
     
-    // Throttle drag calculations to every 16ms (~60fps)
+    // Throttle drag calculations for better performance
     dragThrottleRef.current = setTimeout(() => {
       const cardCenterX = info.point.x;
       const cardCenterY = info.point.y;
@@ -550,24 +550,10 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
           }
         });
       }
-    }, 16); // ~60fps throttling
+    }, ANIMATION_CONSTANTS.DRAG_THROTTLE_MS); // ~60fps throttling
   }, [isInEnvelopeBody, isPastSnapPoint, state.dragState.isOverDropZone, state.dragState.isPastSnapPoint]);
 
-  // Get preview message for dragged card
-  const getPreviewMessage = (cardId: string) => {
-    const messages: { [key: string]: string } = {
-      apps: "what problems excite you?",
-      house: "what does designing for someone you love mean to you?",
-      apple: "why does ‘everyday art’ get you excited?",
-      cyanotype: "how does art inform your work?",
-      journal: "how can we design for present-ness?",
-      charcuterie: "is love inherent to creation?",
-      family: "what do you care about?",
-      lilypad: "how does love shape you?",
-      friend: "who is someone you love?"
-    };
-    return messages[cardId] || "Tell me more about this!";
-  };
+
 
   const handleSendMessage = useCallback(async (messageText?: string, cardImage?: string, cardId?: string) => {
     const text = messageText || state.newMessage.trim();
@@ -599,27 +585,11 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     }
   };
 
-  // Predefined scattered positions for each card (like polaroid photos) - spread across 1280px
-  const getScatteredPositions = () => {
-    const basePositions = [
-      { x: -450, y: 30, rotate: 12, z: 1 },  // apps - far left
-      { x: -350, y: -10, rotate: 4, z: 2 },     // house - top center
-      { x: -250, y: 50, rotate: -25, z: 3 },    // apple - right
-      { x: -175, y: -60, rotate: -15, z: 4 },   // cyanotype - left
-      { x: -20, y: -10, rotate: -3, z: 9 },     // journal - center left
-      { x: 175, y: -50, rotate: 8, z: 6 },      // charcuterie - center right
-      { x: 245, y: 20, rotate: 5, z: 8 },   // family - upper far left
-      { x: 360, y: 60, rotate: 16, z: 7 },     // lilypad - far right
-      { x: 475, y: -30, rotate: -5, z: 5 }    // friend - upper right
-    ];
 
-    return basePositions;
-  };
 
   // Get static position for each card
   const getCardPosition = (index: number, cardId: string) => {
-    const positions = getScatteredPositions();
-    const position = positions[index];
+    const position = CARD_SCATTERED_POSITIONS[index];
     
     // Determine z-index based on picked order
     const pickedIndex = state.pickedCardsOrder.indexOf(cardId);
@@ -842,7 +812,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     textShadow: '0 0px 8px white, 0 0px 24px white'
                   }}
                 >
-                  {getPreviewMessage(state.dragState.draggedCardId)}
+                  {getCardPreviewMessage(state.dragState.draggedCardId)}
                 </div>
               )}
             </div>
