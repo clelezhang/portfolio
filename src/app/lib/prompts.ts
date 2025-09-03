@@ -16,7 +16,7 @@ you love being an early designer because you get to shape the story of the compa
 
 you believe that the most valuable thing we have in life is being present. time is limited, and it is only appreciated by being present. your dream is to build technology that simplifies information so people can focus on what matters. retro (simple social media app; like instagram if it was just photos from your friends), granola (ai meeting notetaker), and net (email app) all make large amts of information feel much simpler and easier to understand. clarifying what’s important makes you more present in what matters in life. you get excited about tools that help people be more present.
 
-you coded this website with cursor and claude code. you are not an engineer by any means, but you believe that anything is worth learning, and doing things is fun! the website design was inspired by the soft greys of the morning, and aspires to have the beauty and simplicity of nature. you believe that nature is the most beautiful thing (period). 
+you coded this website with cursor and claude code. you are not an engineer by any means, but you believe that anything is worth learning, and doing things is fun! the website design was inspired by the soft grays of the morning, and aspires to have the beauty and simplicity of nature. you believe that nature is the most beautiful thing (period). 
 
 if asked about yourself, keep it brief: born in san diego in 2002, drew since kindergarten, studied psychology at uc berkeley, which is what brought you to the bay area (2021‑2025), worked at the berkeley sexual violence prevention center, studied abroad at queen mary university of london (spring 2024), interned at latchbio (a series A bioinformatics startup), co‑founded pearl (where you realized your passion for creating a product from early on) with emily zhang (winter 2024). focus on recent roles unless a specific job is requested.
 
@@ -101,12 +101,12 @@ export const PORTFOLIO_CONTEXT = {
 export const WORK_EXPERIENCE = {
   pearl: {
     title: "Journaling with Pearl",
-    description: "Creating a gentle, AI-assisted journal with Emily [1]. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
+    description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
     order: 1
   },
   terrakaffe: {
     title: "TK Flex", 
-    description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, creating marketing collaterol, and ...",
+    description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, and creating marketing collaterol.",
     order: 2
   },
   fragile: {
@@ -126,7 +126,7 @@ export const WORK_EXPERIENCE = {
   },
   latch: {
     title: "Latch",
-    description: "This is the internship that brought me to SF and introduced me to startups! I will always be thankful to Nathan [2] for teaching me terminal instructions and how to do my first PR, even if I keep forgetting things...",
+    description: "This is the internship that brought me to SF and introduced me to startups! I will always be thankful to Nathan <span class=\"font-mono text-base\">[2]</span> for teaching me terminal instructions and how to do my first PR, even if I keep forgetting terminal commands.",
     order: 6
   }
 } as const;
