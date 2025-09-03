@@ -13,7 +13,7 @@ export default function Home() {
         <div className="text-red text-6xl md:text-8xl font-mono font-bold mb-4">
           Lele Zhang
         </div>
-        <div className="text-grey-600 text-sm font-mono">
+        <div className="text-gray-600 text-sm font-mono">
           DESIGNER & CREATIVE
         </div>
       </footer>

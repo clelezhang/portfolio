@@ -14,32 +14,31 @@ export default function WorkSection() {
   const getWorkImages = (workId: string) => {
     const imageMap: { [key: string]: string[] } = {
       pearl: [
-        '/work-images/pearl-journal-1.jpg',
-        '/work-images/pearl-journal-2.jpg',
-        '/work-images/pearl-journal-3.jpg'
+        '/work-images/pearl-1.webp',
+        '/work-images/pearl-2.webp',
+        '/work-images/pearl-3.webp'
       ],
       terrakaffe: [
-        '/work-images/terrakaffe-1.jpg',
-        '/work-images/terrakaffe-2.jpg',
-        '/work-images/terrakaffe-3.jpg'
+        '/work-images/tk-1.webp',
+        '/work-images/tk-2.webp',
+        '/work-images/tk-3.webp'
       ], 
       fragile: [
-        '/work-images/fragile-1.jpg',
-        '/work-images/fragile-2.jpg',
-        '/work-images/fragile-3.jpg'
+        '/work-images/fragile-1.webp',
+        '/work-images/fragile-2.webp',
+        '/work-images/fragile-3.webp'
       ],
       auracam: [
-        '/work-images/auracam-1.jpg',
-        '/work-images/auracam-2.jpg'
+        '/work-images/auracam-1.webp',
+        '/work-images/auracam-2.webp'
       ],
       whim: [
-        '/work-images/whim-1.jpg',
-        '/work-images/whim-2.jpg',
-        '/work-images/whim-3.jpg'
+        '/work-images/whim-1.webp',
+        '/work-images/whim-2.webp',
       ],
       latch: [
-        '/work-images/latch-1.jpg',
-        '/work-images/latch-2.jpg'
+        '/work-images/latch-1.webp',
+        '/work-images/latch-2.webp'
       ]
     };
     return imageMap[workId] || ['/card-images/apps.jpg'];
@@ -49,57 +48,58 @@ export default function WorkSection() {
     <section className="py-4 px-6" style={{ backgroundColor: 'var(--cream)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Navigation Header */}
-        <div className="mb-16">
+        <div className="mb-20">
           <div className="flex flex-wrap items-center text-sm font-detail">
             {categories.map((category, index) => (
               <span key={category}>
                 <button
                   onClick={() => setActiveCategory(category)}
-                  className={`hover:text-grey-800 transition-colors lowercase ${
-                    activeCategory === category ? 'text-grey-800' : 'text-grey-600'
+                  className={`hover:text-gray-800 transition-colors lowercase ${
+                    activeCategory === category ? 'text-gray-800' : 'text-gray-500'
                   }`}
                 >
                   {category}
                 </button>
-                {index < categories.length - 1 && <span className="mx-1 text-grey-400">•</span>}
+                {index < categories.length - 1 && <span className="mx-1 text-gray-400">•</span>}
               </span>
             ))}
           </div>
         </div>
 
         {/* Work Projects */}
-        <div className="space-y-24">
+        <div className="space-y-20">
           {workExperience.map((work) => (
             <div key={work.id} className="group">
               {/* Project Title */}
-              <h3 className="text-2xl md:text-3xl font-medium mb-6 font-sans text-grey-800 lowercase">
+              <h3 className="text-base mb-2 font-sans text-gray-500">
                 {work.title}
               </h3>
               
               {/* Project Description */}
-              <p className="text-base md:text-lg leading-relaxed mb-12 max-w-4xl font-detail text-grey-700">
-                {work.description}
-              </p>
+                <p 
+                  className="text-base leading-normal mb-4 font-detail text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: work.description }}
+                />
 
               {/* Project Images - Custom Layout per Project */}
               {work.id === 'pearl' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-[600px]">
                   <div className="md:col-span-2">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                    <div className="bg-gray-50 rounded-lg overflow-hidden h-full">
                       <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Main`} fill className="object-cover" />
+                        <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Main`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
+                  <div className="flex flex-col gap-2">
+                    <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
                       <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Stats`} fill className="object-cover" />
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Stats`} fill className="object-cover" draggable={false} />
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
+                    <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
                       <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Reflection`} fill className="object-cover" />
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Reflection`} fill className="object-cover" draggable={false} />
                       </div>
                     </div>
                   </div>
@@ -107,21 +107,21 @@ export default function WorkSection() {
               )}
 
               {work.id === 'terrakaffe' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[600px]">
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[600px]">
+                  <div className="bg-gray-50 rounded-lg overflow-hidden h-full">
                     <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Product`} fill className="object-cover" />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Product`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
-                      <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Marketing`} fill className="object-cover" />
+                  <div className="flex flex-row gap-2">
+                    <div className="rounded-lg overflow-hidden flex-1">
+                      <div className="h-full relative" style={{ aspectRatio: '9/16' }}>
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Marketing`} fill className="object-cover" draggable={false} />
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
-                      <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Coffee`} fill className="object-cover" />
+                    <div className="rounded-lg overflow-hidden flex-1">
+                      <div className="h-full relative" style={{ aspectRatio: '9/16' }}>
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Coffee`} fill className="object-cover" draggable={false} />
                       </div>
                     </div>
                   </div>
@@ -129,21 +129,21 @@ export default function WorkSection() {
               )}
 
               {work.id === 'fragile' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[600px]">
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[600px]">
+                  <div className="bg-gray-50 rounded-lg overflow-hidden h-full">
                     <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Checkout`} fill className="object-cover" />
+                                              <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Checkout`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
+                  <div className="flex flex-col gap-2">
+                    <div className="bg-black rounded-lg overflow-hidden flex-1">
                       <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Presentation`} fill className="object-cover" />
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Presentation`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.9)' }} />
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
+                    <div className="bg-black rounded-lg overflow-hidden flex-1">
                       <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Branding`} fill className="object-cover" />
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Branding`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.8)' }} />
                       </div>
                     </div>
                   </div>
@@ -151,54 +151,45 @@ export default function WorkSection() {
               )}
 
               {work.id === 'auracam' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[600px]">
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[600px]">
+                  <div className="rounded-lg overflow-hidden h-full">
                     <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Auracam`} fill className="object-cover" />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Auracam`} fill className="object-cover" draggable={false} />
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                  <div className="rounded-lg overflow-hidden border border-gray-50 h-full">
                     <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-cover" />
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
                 </div>
               )}
 
               {work.id === 'whim' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
-                  <div className="md:col-span-2">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
-                      <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Landing`} fill className="object-cover" />
-                      </div>
+                <div className="flex flex-row gap-2 h-[600px]">
+                  <div className="bg-black rounded-lg overflow-hidden h-full flex-1">
+                    <div className="w-full h-full relative">
+                                              <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Landing`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
-                      <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Sleep`} fill className="object-cover" />
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm flex-1">
-                      <div className="w-full h-full relative">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Catalog`} fill className="object-cover" />
-                      </div>
+                  <div className="rounded-lg overflow-hidden">
+                    <div className="bg-white h-full relative" style={{ aspectRatio: '9/16' }}>
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Sleep`} fill className="object-cover" draggable={false} />
                     </div>
                   </div>
                 </div>
               )}
 
               {work.id === 'latch' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[600px]">
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[600px]">
+                  <div className="bg-gray-50 rounded-lg overflow-hidden h-full">
                     <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Data Sync`} fill className="object-cover" />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Data Sync`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm h-full">
-                    <div className="w-full h-full relative">
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Case Study`} fill className="object-cover" />
+                  <div className="rounded-lg overflow-hidden h-full">
+                    <div className="bg-gray-50 w-full h-full relative">
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Case Study`} fill className="object-cover" draggable={false} />
                     </div>
                   </div>
                 </div>
