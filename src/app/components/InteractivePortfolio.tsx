@@ -323,7 +323,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   const initialMessages: Message[] = [
     {
       id: '1',
-      text: "hi!! nice to e-meet you :) ",
+      text: "hi! what's up?",
       sender: 'assistant',
       timestamp: new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
     }
