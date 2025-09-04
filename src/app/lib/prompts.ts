@@ -104,14 +104,14 @@ export const WORK_EXPERIENCE = {
     description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
     order: 1
   },
-  terrakaffe: {
-    title: "TK Flex", 
-    description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, and creating marketing collaterol.",
-    order: 2
-  },
   fragile: {
     title: "Fragile",
     description: "Refining our customer experience to increase conversions and decrease early cancellations. I also got to bring our brand to life and show our partners our passion for hardware.",
+    order: 2
+  },
+  terrakaffe: {
+    title: "TK Flex", 
+    description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, and creating marketing collaterol.",
     order: 3
   },
   auracam: {
