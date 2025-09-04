@@ -1,6 +1,7 @@
 import Header from './components/Header';
 import Hero from './components/Hero';
 import WorkSection from './components/WorkSection';
+import Footer from './components/Footer';
 
 export default function Home() {
   return (
@@ -8,15 +9,7 @@ export default function Home() {
       <Header />
       <Hero />
       <WorkSection />
-      
-      <footer className="py-16 text-center">
-        <div className="text-red text-6xl md:text-8xl font-mono font-bold mb-4">
-          Lele Zhang
-        </div>
-        <div className="text-gray-600 text-sm font-mono">
-          DESIGNER & CREATIVE
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
