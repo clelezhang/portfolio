@@ -158,7 +158,7 @@ export default function WorkSection() {
                     </div>
                   </div>
                   <div className="rounded-lg overflow-hidden border border-gray-50 h-full">
-                    <div className="w-full h-full relative">
+                    <div className="bg-white w-full h-full relative">
                       <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
                     </div>
                   </div>
