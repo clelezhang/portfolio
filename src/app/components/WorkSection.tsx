@@ -39,10 +39,10 @@ export default function WorkSection() {
         '/work-images/auracam-1.webp',
         '/work-images/auracam-3.webp'
       ],
-      whim: [
-        '/work-images/whim-1.webp',
-        '/work-images/whim-2.webp',
-      ],
+      // whim: [
+      //   '/work-images/whim-1.webp',
+      //   '/work-images/whim-2.webp',
+      // ],
       latch: [
         '/work-images/latch-1.webp',
         '/work-images/latch-3.webp'
