@@ -125,12 +125,12 @@ export const WORK_EXPERIENCE = {
     order: 4,
     categories: ['product', 'frontend'] as CategoryType[]
   },
-  whim: {
-    title: "Whim",
-    description: "Exploring landing page & product design, brand development, and creating advertisements.",
-    order: 5,
-    categories: ['product', 'brand', 'visuals'] as CategoryType[]
-  },
+  // whim: {
+  //   title: "Whim",
+  //   description: "Exploring landing page & product design, brand development, and creating advertisements.",
+  //   order: 5,
+  //   categories: ['product', 'brand', 'visuals'] as CategoryType[]
+  // },
   latch: {
     title: "Latch",
     description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to Nathan <span class=\"font-mono text-base\">[2]</span> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
