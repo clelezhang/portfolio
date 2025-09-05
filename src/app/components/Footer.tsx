@@ -34,12 +34,12 @@ export default function Footer() {
   };
 
   return (
-    <footer className="pt-0 sm:pt-48 lg:pt-80 pb-6 px-4 sm:px-6 bg-lightgray relative">
+    <footer className="pt-0 sm:pt-48 lg:pt-80 pb-6 px-4 sm:px-4 bg-lightgray relative">
       <div className="max-w-7xl mx-auto">
         {/* Main signature area */}
         <div className="relative mb-6 ">
           {/* Contact links - responsive positioning */}
-          <div className="sm:absolute sm:right-0 lg:top-0 xl:top-37 mb-16 text-right text-xs sm:text-sm font-mono uppercase space-y-1">
+          <div className="sm:absolute sm:right-0 lg:top-0 xl:top-36 mb-16 text-right text-xs sm:text-sm font-mono uppercase space-y-1">
             <div>
               <a 
                 href="https://x.com/CherrilynnZ"
@@ -73,7 +73,7 @@ export default function Footer() {
 
           {/* Large cursive signature */}
           <div 
-            className="text-[100px] sm:text-[120px] md:text-[200px] lg:text-[280px] text-[#898DA0] font-light leading-none md:text-left"
+            className="text-[100px] sm:text-[120px] md:text-[212px] lg:text-[280px] text-[#898DA0] font-light leading-none md:text-left"
             style={{ 
               fontFamily: 'Miss Fajardose, cursive',
               fontStyle: 'normal'

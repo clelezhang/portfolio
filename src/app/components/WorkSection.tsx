@@ -10,6 +10,13 @@ export default function WorkSection() {
 
   const categories = ['my work', 'product', 'frontend', 'brand', 'visuals'];
 
+  // Filter work experience based on active category
+  const filteredWork = activeCategory === 'my work' 
+    ? workExperience 
+    : workExperience.filter(work => 
+        work.categories.includes(activeCategory as 'product' | 'frontend' | 'brand' | 'visuals')
+      );
+
   // Map work projects to their multiple images
   const getWorkImages = (workId: string) => {
     const imageMap: { [key: string]: string[] } = {
@@ -45,7 +52,7 @@ export default function WorkSection() {
   };
 
   return (
-    <section className="py-4 px-6" style={{ backgroundColor: 'var(--cream)' }}>
+    <section className="py-4 px-4" style={{ backgroundColor: 'var(--cream)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Navigation Header */}
         <div className="mb-20">
@@ -68,7 +75,7 @@ export default function WorkSection() {
 
         {/* Work Projects */}
         <div className="space-y-20">
-          {workExperience.map((work) => (
+          {filteredWork.map((work) => (
             <div key={work.id} className="group">
               {/* Project Title */}
               <h3 className="text-base mb-2 font-sans text-gray-500">

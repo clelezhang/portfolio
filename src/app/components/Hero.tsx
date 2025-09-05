@@ -36,8 +36,8 @@ export default function Hero() {
 
 
   return (
-    <section className="pt-64">
-      <div className="max-w-6xl mx-auto">
+    <section className="pt-54 sm:pt-64">
+      <div className="max-w-6xl px-4  mx-auto">
         {/* Intro text */}
         <div className="max-w-[600px] mx-auto text-start mb-16">
           <div className="text-base leading-relaxed font-detail" style={{ color: 'var(--gray-900)' }}>
@@ -81,7 +81,7 @@ export default function Hero() {
       
       {/* Full-width card stack and envelope container with gradient background */}
       <div 
-        className="w-full"
+        className="w-full px-4"
         style={{
           background: 'linear-gradient(rgba(154, 156, 184, 0) 20%,  #9A9CB8 60%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
         }}
