@@ -98,36 +98,44 @@ export const PORTFOLIO_CONTEXT = {
  * Work experience and projects data
  * Ordered chronologically/by preference as specified
  */
+type CategoryType = 'product' | 'frontend' | 'brand' | 'visuals';
+
 export const WORK_EXPERIENCE = {
   pearl: {
     title: "Journaling with Pearl",
     description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
-    order: 1
+    order: 1,
+    categories: ['product', 'frontend', 'brand'] as CategoryType[]
   },
   fragile: {
     title: "Fragile",
-    description: "Refining our customer experience to increase conversions and decrease early cancellations. I also got to bring our brand to life and show our partners our passion for hardware.",
-    order: 2
+    description: "Refining our customer experience to increase conversions and decrease early cancellations. I also developed our brand and created assets for partnerships and recruitment.",
+    order: 2,
+    categories: ['product', 'frontend', 'brand', 'visuals'] as CategoryType[]
   },
   terrakaffe: {
     title: "TK Flex", 
     description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, and creating marketing collaterol.",
-    order: 3
+    order: 3,
+    categories: ['product', 'visuals'] as CategoryType[]
   },
   auracam: {
     title: "Auracam & Mosaic",
     description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. Take a picture of yourself and get a visualization of your aura via Hume's sentiment analysis API!",
-    order: 4
+    order: 4,
+    categories: ['product', 'frontend'] as CategoryType[]
   },
   whim: {
     title: "Whim",
-    description: "Exploring landing page, product, brand, and marketing collateral.",
-    order: 5
+    description: "Exploring landing page & product design, brand development, and creating advertisements.",
+    order: 5,
+    categories: ['product', 'brand', 'visuals'] as CategoryType[]
   },
   latch: {
     title: "Latch",
-    description: "This is the internship that brought me to SF and introduced me to startups! I will always be thankful to Nathan <span class=\"font-mono text-base\">[2]</span> for teaching me terminal instructions and how to do my first PR, even if I keep forgetting terminal commands.",
-    order: 6
+    description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to Nathan <span class=\"font-mono text-base\">[2]</span> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
+    order: 6,
+    categories: ['product', 'frontend'] as CategoryType[]
   }
 } as const;
 

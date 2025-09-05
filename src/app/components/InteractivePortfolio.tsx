@@ -7,6 +7,7 @@ import TwitterIcon from './icons/TwitterIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
 import { ArrowUpIcon } from '@heroicons/react/24/outline';
 import { useChat } from '../hooks/useChat';
+import { useMobileDetection } from '../hooks/useMobileDetection';
 import { 
   ANIMATION_CONSTANTS, 
   CARD_SCATTERED_POSITIONS 
@@ -297,6 +298,9 @@ ChatMessage.displayName = 'ChatMessage';
 
 
 export default function InteractivePortfolio({ onCardClick }: InteractivePortfolioProps) {
+  // Detect if user is on mobile device
+  const isMobile = useMobileDetection();
+  
   // Consolidated state with useReducer
   const [state, dispatch] = useReducer(portfolioReducer, {
     // Card state
@@ -685,7 +689,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
                 opacity: 1
               }}
-              drag={!isPullingThis}
+              drag={!isPullingThis && !isMobile}
               dragMomentum={false}
               dragElastic={0.1}
               onTapStart={(event, info) => {
