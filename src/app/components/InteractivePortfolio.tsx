@@ -889,33 +889,37 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             <div 
               className="absolute bottom-0 left-0 right-0 flex items-end space-x-2 z-[3] pb-4 px-4"
             >
-                {/* Twitter button */}
-               <a
-                 href="https://x.com/CherrilynnZ"
-                 target="_blank"
-                 rel="noopener noreferrer" 
-                 className="action-button"
-                 style={{
-                   backdropFilter: 'blur(10px)'
-                 }}
-               >
-                 {twitterIcon}
-               </a>
+                {/* Twitter button - hidden on mobile */}
+               {!isMobile && (
+                 <a
+                   href="https://x.com/CherrilynnZ"
+                   target="_blank"
+                   rel="noopener noreferrer" 
+                   className="action-button"
+                   style={{
+                     backdropFilter: 'blur(10px)'
+                   }}
+                 >
+                   {twitterIcon}
+                 </a>
+               )}
 
-                  {/* Email button */}
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText('clzhang@berkeley.edu');
-                    addAssistantMessage('my email (clzhang@berkeley.edu) is copied to ur clipboard now!');
-                  }}
-                  className="action-button"
-                  style={{
-                    backdropFilter: 'blur(10px)'
-                  }}
-                  title="Copy email address"
-                >
-                 {envelopeIcon}
-               </button>
+                  {/* Email button - hidden on mobile */}
+                {!isMobile && (
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText('clzhang@berkeley.edu');
+                      addAssistantMessage('my email (clzhang@berkeley.edu) is copied to ur clipboard now!');
+                    }}
+                    className="action-button"
+                    style={{
+                      backdropFilter: 'blur(10px)'
+                    }}
+                    title="Copy email address"
+                  >
+                   {envelopeIcon}
+                 </button>
+               )}
 
               {/* Input field container */}
               <div className="flex-1 relative">
