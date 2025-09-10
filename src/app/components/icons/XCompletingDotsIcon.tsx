@@ -22,7 +22,7 @@ export default function XCompletingDotsIcon({
       {/* Bottom-left dot */}
       <circle
         r="1.5"
-        fill="#2F3557"
+        fill="#787B92"
         cx="15.075"
         cy="15.05"
       />
@@ -30,7 +30,7 @@ export default function XCompletingDotsIcon({
       {/* Center dot */}
       <circle
         r="1.5"
-        fill="#2F3557"
+        fill="#787B92"
         cx="20.025"
         cy="20"
       />
@@ -38,7 +38,7 @@ export default function XCompletingDotsIcon({
       {/* Top-right dot */}
       <circle
         r="1.5"
-        fill="#2F3557"
+        fill="#787B92"
         cx="24.975"
         cy="24.95"
       />

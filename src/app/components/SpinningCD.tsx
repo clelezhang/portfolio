@@ -6,12 +6,10 @@ import ShinesIcon from './icons/ShinesIcon';
 
 interface SpinningCDProps {
   artwork?: string;
-  onClick: () => void;
   className?: string;
 }
 
 const SpinningCD = memo(function SpinningCD({ 
-  onClick,
   artwork = "https://picsum.photos/40/40?random=3", 
   className = "" 
 }: SpinningCDProps) {
@@ -27,9 +25,8 @@ const SpinningCD = memo(function SpinningCD({
         } as React.CSSProperties}
       />
       
-      <motion.button
-        onClick={onClick}
-        className="absolute inset-0 rounded-full overflow-hidden bg-gray-300 cursor-pointer"
+      <motion.div
+        className="absolute inset-0 rounded-full overflow-hidden bg-gray-300"
         animate={{ rotate: 360 }}
         transition={{
           duration: 8,
@@ -37,7 +34,6 @@ const SpinningCD = memo(function SpinningCD({
           ease: "linear"
         }}
         whileHover={{ scale: 1.05 }}
-        aria-label="Toggle music playback"
         style={{
           willChange: 'transform',
           transform: 'translate3d(0, 0, 0)'
@@ -78,7 +74,7 @@ const SpinningCD = memo(function SpinningCD({
         className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full border border-gray-300 transform -translate-x-1/2 -translate-y-1/2"
         style={{ willChange: 'transform' }}
       />
-    </motion.button>
+    </motion.div>
       
       {/* Shines overlay - doesn't spin */}
       <div className="absolute inset-0 pointer-events-none">

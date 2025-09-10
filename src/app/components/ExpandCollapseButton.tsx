@@ -20,7 +20,7 @@ export default function ExpandCollapseButton({
   return (
     <button
       onClick={onClick}
-      className={`relative w-10 h-10 flex items-center justify-center bg-gray-50 backdrop-blur-[20px] hover:bg-gray-100 rounded-full transition-colors ${className}`}
+      className={`expand-button ${className}`}
       aria-label={isExpanded ? "Collapse menu" : "Expand menu"}
     >
       {/* First icon - diagonal dots (always stays in place) */}
@@ -32,17 +32,19 @@ export default function ExpandCollapseButton({
       <motion.div
         className="absolute inset-0 flex items-center justify-center"
         animate={isExpanded ? {
-          rotate: 0,
-          transition: { 
-            duration: 0.4, 
-            ease: "easeInOut",
-            delay: 0.1
-          }
-        } : {
           rotate: -90,
           transition: { 
-            duration: 0.3, 
-            ease: "easeInOut"
+            type: "spring",
+            stiffness: 500,
+            damping: 25,
+          }
+        } : {
+          rotate: 0,
+          transition: { 
+            type: "spring",
+            stiffness: 400,
+            damping: 38,
+            mass: 1.8,
           }
         }}
       >

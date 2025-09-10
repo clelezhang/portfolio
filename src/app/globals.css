@@ -143,12 +143,15 @@ body {
     inset 1px 1px 2px rgba(255, 255, 255, 0.15),
     inset 0 -4px 4px rgba(255, 255, 255, 0.25),
     inset 0 -12px 24px rgba(255, 255, 255, 0.30),
-    0 4px 16px rgba(47, 53, 87, 0.12);
+    0 4px 16px rgba(47, 53, 87, 0.08);
   backdrop-filter: blur(2px);
 }
 
 .envelope-header-text {
   color: rgba(255, 255, 255, 0.9);
+  text-shadow: 
+    0 1px 3px rgba(47, 53, 87, 0.3),
+    0 4px 12px rgba(47, 53, 87, 0.4);
 }
 
 .envelope-main-body {
@@ -159,7 +162,7 @@ body {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.36);
   box-shadow: 
-    0 4px 16px rgba(47, 53, 87, 0.08),
+    0 4px 16px rgba(47, 53, 87, 0.04),
     0 4px 4px rgba(47, 53, 87, 0.04);
 }
 
@@ -175,7 +178,7 @@ body {
   box-shadow: 
     inset 1px 48px 24px rgba(255, 255, 255, 0.05),
     inset 0 4px 4px rgba(255, 255, 255, 0.1),
-    0 4px 25px rgba(47, 53, 87, 0.06);
+    0 4px 25px rgba(47, 53, 87, 0.04);
 }
 
 .envelope-right-panel {
@@ -190,7 +193,7 @@ body {
   box-shadow: 
     inset 1px 48px 24px rgba(255, 255, 255, 0.05),
     inset 0 4px 4px rgba(255, 255, 255, 0.1),
-    0 4px 25px rgba(47, 53, 87, 0.06);
+    0 4px 25px rgba(47, 53, 87, 0.04);
 }
 
 .envelope-bottom-panel {
@@ -343,7 +346,7 @@ body {
 .card-image-border {
   position: absolute;
   inset: 0;
-  border: 1px solid var(--gray-50);
+  border: 1px solid #F2F2F2;
   border-radius: 1rem 1rem 2px 2px;
   pointer-events: none;
   z-index: 10;
@@ -585,7 +588,69 @@ body {
   transform: translateZ(0); /* Force hardware acceleration */
 }
 
+/* Nav Pill Styles */
+.nav-pill {
+  color: var(--brown);
+  padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-family: 'Untitled Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  backdrop-filter: blur(20px);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  background-color: #C6C7D24D;
+  border: none;
+}
 
+.nav-pill:hover {
+  background-color: #A2A5BB4D;
+}
 
+/* Expand/Collapse Button Styles */
+.expand-button {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #C6C7D24D;
+  backdrop-filter: blur(20px);
+  border-radius: 9999px;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  border: none;
+}
 
+.expand-button:hover {
+  background-color: #A2A5BB4D;
+}
+
+/* Music Player Styles */
+.music-player {
+  display: flex;
+  height: 2.5rem;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #C6C7D24D;
+  backdrop-filter: blur(20px);
+  border-radius: 9999px;
+  padding-left: 0.25rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  cursor: pointer;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  will-change: transform;
+}
+
+.music-player:hover {
+  background-color: #A2A5BB4D;
+}
 
