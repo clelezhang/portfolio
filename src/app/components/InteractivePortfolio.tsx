@@ -904,11 +904,11 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               {error && (
                 <div className="flex items-center justify-center mb-3">
                   <div 
-                    className="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-red-100 transition-colors"
+                    className="px-4 py-2 text-xs bg-red-900 text-red-50 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-red-800 transition-colors lowercase"
                     onClick={clearError}
                   >
-                    <span>⚠️ {error}</span>
-                    <span className="text-xs opacity-70">tap to dismiss</span>
+                    <span>{error}</span> 
+                    <span className="text-xs opacity-50">tap to dismiss</span>
                   </div>
                 </div>
               )}
