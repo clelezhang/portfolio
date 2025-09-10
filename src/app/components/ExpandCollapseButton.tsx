@@ -42,7 +42,7 @@ export default function ExpandCollapseButton({
           rotate: 0,
           transition: { 
             type: "spring",
-            stiffness: 400,
+            stiffness: 500,
             damping: 38,
             mass: 1.8,
           }
