@@ -254,7 +254,7 @@ const ChatMessage = memo(({ message, isLastInGroup }: {
             transform: `rotate(${((parseInt(message.id) % 1000) / 1000 - 0.5) * 20}deg)`
           }}
         >
-          <div className="card-image-thumbnail">
+          <div className="w-12 h-12 rounded-md overflow-hidden border-3 border-white shadow-sm bg-white mr-2">
             <Image
               src={message.cardImage}
               alt="Card image"
@@ -895,7 +895,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                    href="https://x.com/CherrilynnZ"
                    target="_blank"
                    rel="noopener noreferrer" 
-                   className="action-button"
+                   className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-[10px] hover:bg-gray-500"
                    style={{
                      backdropFilter: 'blur(10px)'
                    }}
@@ -911,7 +911,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                       navigator.clipboard.writeText('clzhang@berkeley.edu');
                       addAssistantMessage('my email (clzhang@berkeley.edu) is copied to ur clipboard now!');
                     }}
-                    className="action-button"
+                    className="w-[42px] h-[42px] bg-gray-400 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-[10px] hover:bg-gray-500"
                     style={{
                       backdropFilter: 'blur(10px)'
                     }}

@@ -5,7 +5,7 @@ import Footer from './components/Footer';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-cream font-sans">
+    <div className="min-h-screen bg-lightgray font-sans">
       <Header />
       <Hero />
       <WorkSection />

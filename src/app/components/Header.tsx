@@ -35,13 +35,13 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => scrollToSection('talk-to-me')}
-              className="nav-pill"
+              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover"
             >
               contact
             </button>
             <button 
               onClick={() => scrollToSection('portfolio-grid')}
-              className="nav-pill flex items-center gap-2"
+              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover flex items-center gap-2"
             >
               <HeartIcon className="text-accentgray"/>
               working & playing
@@ -55,7 +55,7 @@ export default function Header() {
           
           {/* Right pills */}
           <div className="flex items-center gap-2">
-            <div className="text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]" style={{ backgroundColor: '#C6C7D24D' }}>
+            <div className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] bg-glass">
               san francisco, ca
             </div>
             <MusicPlayer />
@@ -81,13 +81,13 @@ export default function Header() {
             >
               <TwitterIcon className="text-gray-500" size={20} />
             </a>
-            <button 
-              onClick={handleEmailCopy}
+            <a 
+              href="mailto:clzhang@berkeley.edu"
               className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Email"
             >
               <EnvelopeIcon className="text-gray-500" size={20} />
-            </button>
+            </a>
           </div>
         </div>
 
@@ -124,14 +124,12 @@ export default function Header() {
                     scrollToSection('talk-to-me');
                     setIsMenuOpen(false);
                   }}
-                  className="nav-pill whitespace-nowrap"
-                  style={{ backdropFilter: 'blur(20px)' }}
+                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none whitespace-nowrap hover:bg-glass-bg-hover"
                 >
                   contact
                 </button>
                 <div 
-                  className="text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] whitespace-nowrap"
-                  style={{ backgroundColor: '#C6C7D24D', backdropFilter: 'blur(20px)' }}
+                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] whitespace-nowrap bg-glass"
                 >
                   san francisco, ca
                 </div>
@@ -140,8 +138,7 @@ export default function Header() {
                     scrollToSection('portfolio-grid');
                     setIsMenuOpen(false);
                   }}
-                  className="nav-pill flex items-center gap-2 whitespace-nowrap"
-                  style={{ backdropFilter: 'blur(20px)' }}
+                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover flex items-center gap-2 whitespace-nowrap"
                 >
                   <HeartIcon className="text-accentgray" size={12} />
                   working & playing
