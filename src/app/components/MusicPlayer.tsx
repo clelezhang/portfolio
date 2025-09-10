@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useCallback} from 'react';
 import SpinningCD from './SpinningCD';
 import ScrollingTitle from './ScrollingTitle';
@@ -22,8 +23,8 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const lastProgressUpdate = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [trackInfo, setTrackInfo] = useState({
-    title: "Click to play music",
-    artwork: "https://picsum.photos/40/40?random=2"
+    title: "click to listen ⸜(｡˃ ᵕ ˂ )⸝*.ﾟ♫⋆｡♪ ₊˚.",
+    artwork: "/cd.png"
   });
   
   const widgetRef = useRef<any>(null);
@@ -65,14 +66,14 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
               widget.getCurrentSound((sound: any) => {
                 if (sound) {
                   setTrackInfo({
-                    title: sound.title || "Click to play music",
-                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=1"
+                    title: sound.title || "click to listen ⸜(｡˃ ᵕ ˂ )⸝*.ﾟ♫⋆｡♪ ₊˚.",
+                    artwork: sound.artwork_url || "/cd.png"
                   });
                 } else {
                   // If no current sound, set default
                   setTrackInfo({
-                    title: "Click to play music",
-                    artwork: "https://picsum.photos/40/40?random=1"
+                    title: "click to listen ⸜(｡˃ ᵕ ˂ )⸝*.ﾟ♫⋆｡♪ ₊˚.",
+                    artwork: "/cd.png"
                   });
                 }
               });
@@ -108,7 +109,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
                 if (sound && sound.title && sound.title !== trackInfo.title) {
                   setTrackInfo({
                     title: sound.title,
-                    artwork: sound.artwork_url || "https://picsum.photos/40/40?random=2"
+                    artwork: sound.artwork_url || "/cd.png"
                   });
                   cachedDuration.current = null; // Reset cache on track change
                 }
@@ -132,6 +133,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       }
       stopProgressTracking();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startProgressTracking = useCallback(() => {

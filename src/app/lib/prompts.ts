@@ -102,26 +102,26 @@ type CategoryType = 'product' | 'frontend' | 'brand' | 'visuals';
 
 export const WORK_EXPERIENCE = {
   pearl: {
-    title: "Journaling with Pearl",
-    description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned how much fun it was to start something from scratch! This experience was very formative in my thoughts on product and brand.",
+    title: "Journaling with pearl",
+    description: "Creating a gentle, AI-assisted journal & scaled to 2K users with <a href=\"https://www.emilyz.sh/\" class=\"hover:text-gray-500 transition-colors\">Emily <span class=\"font-mono text-base\">[1]</span></a>. Creating pearl from scratch was when I really understood that great products happen when what you make and how it feels are inseparable.",
     order: 1,
     categories: ['product', 'frontend', 'brand'] as CategoryType[]
   },
   fragile: {
-    title: "Fragile",
+    title: "Fragile • hardware subscriptions, series b",
     description: "Refining our customer experience to increase conversions and decrease early cancellations. I also developed our brand and created assets for partnerships and recruitment.",
     order: 2,
     categories: ['product', 'frontend', 'brand', 'visuals'] as CategoryType[]
   },
   terrakaffe: {
-    title: "TK Flex", 
+    title: "TK Flex • coffee rentals", 
     description: "I had the privilege to work with the Terra Kaffe team in bringing their rental program to life, designing surfacing across their website, and creating marketing collaterol.",
     order: 3,
     categories: ['product', 'visuals'] as CategoryType[]
   },
   auracam: {
     title: "Auracam & Mosaic",
-    description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. Take a picture of yourself <span class=\"font-mono text-base\">[2]</span> and get a visualization of your aura via Hume's sentiment analysis API!",
+    description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. <a href=\"https://auracam.onrender.com/\" class=\"hover:text-gray-500 transition-colors\">Take a picture of yourself <span class=\"font-mono text-base\">[2]</span></a> and get a visualization of your aura via Hume's sentiment analysis API!",
     order: 4,
     categories: ['product', 'frontend'] as CategoryType[]
   },
@@ -132,8 +132,8 @@ export const WORK_EXPERIENCE = {
   //   categories: ['product', 'brand', 'visuals'] as CategoryType[]
   // },
   latch: {
-    title: "Latch",
-    description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to Nathan <span class=\"font-mono text-base\">[3]</span> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
+    title: "Latch • bioinformatics, series a",
+    description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to <a href=\"https://manske.design/\" class=\"hover:text-gray-500 transition-colors\">Nathan <span class=\"font-mono text-base\">[3]</span></a> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
     order: 6,
     categories: ['product', 'frontend'] as CategoryType[]
   }
@@ -163,8 +163,8 @@ export function getCardPrompt(cardId: string): string {
   const card = PORTFOLIO_CONTEXT[cardId as keyof typeof PORTFOLIO_CONTEXT];
   if (!card) return "";
   
-  return `the user just shared "${card.title}" from my portfolio. you must answer with this ${card.context}
-keep your answer short. now ask them a DIFFERENT short question SIMILAR TO THIS :${card.question}`;
+  return `the user just asked "${card.question}" from my portfolio. answer based on this context (but dont exactly copy it): ${card.context}
+keep your answer short (1-2 sentences). now ask them a DIFFERENT short question SIMILAR TO THIS: "${card.question}"`;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 export async function GET() {
@@ -11,7 +11,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Get current view count
     const currentViews = await kv.get<number>('page_views') || 0; // Start from 0

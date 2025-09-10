@@ -92,7 +92,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       let accumulatedText = '';
       let updateBuffer = '';
       let lastUpdate = 0;
-      const UPDATE_THROTTLE = 30; // Update UI every 30ms for smoother streaming
+      const UPDATE_THROTTLE = 30; 
       const BUFFER_SIZE = 15; // Smaller buffer for more frequent updates
 
       const updateMessage = (text: string) => {
