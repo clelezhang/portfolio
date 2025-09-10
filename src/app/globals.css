@@ -99,6 +99,12 @@
   --color-gray-900: var(--gray-900);
 }
 
+/* Text selection styles */
+::selection {
+  background: var(--slate);
+  color: white;
+}
+
 body {
   background: var(--lightgray);
   color: var(--gray-900);
@@ -150,8 +156,8 @@ body {
 .envelope-header-text {
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 
-    0 1px 3px rgba(47, 53, 87, 0.3),
-    0 4px 12px rgba(47, 53, 87, 0.4);
+    0 0 4px rgba(47, 53, 87, 0.5),
+    0 0 24px rgba(47, 53, 87, 0.5);
 }
 
 .envelope-main-body {
