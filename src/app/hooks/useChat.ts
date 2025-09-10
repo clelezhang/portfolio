@@ -131,7 +131,22 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
 
     } catch (err) {
       console.error('Chat error:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      
+      // Create user-friendly error messages in lele's tone
+      let userFriendlyError = 'hmm something went wrong';
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message.toLowerCase();
+        if (errorMessage.includes('http error')) {
+          userFriendlyError = 'looks like there was a connection issue; try again?';
+        } else if (errorMessage.includes('no response body')) {
+          userFriendlyError = 'the response got a bit lost; give it another go';
+        } else if (errorMessage.includes('failed to fetch') || errorMessage.includes('network')) {
+          userFriendlyError = 'your internet might be acting up; check your connection?';
+        }
+      }
+      
+      setError(userFriendlyError);
       
       // Remove the user message if there was an error
       setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));

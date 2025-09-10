@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Origin validation (strict like RYO)
     if (!validateOrigin(req)) {
-      return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+      return new Response(JSON.stringify({ error: 'this request looks a bit suspicious; try refreshing the page?' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (!rateLimitResult.allowed) {
       return new Response(
         JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
+          error: 'we\'ve chatted a lot today! we can talk again tomorrow',
           resetTime: rateLimitResult.resetTime 
         }), 
         {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     const { messages, cardContext }: ChatRequest = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: 'Messages array is required' }), {
+      return new Response(JSON.stringify({ error: 'hmm your message got a bit scrambled; try sending it again?' }), {
         status: 400,
         headers: { ...allHeaders, 'Content-Type': 'application/json' },
       });
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     const corsHeaders = createCORSHeaders(req);
     return new Response(
       JSON.stringify({ 
-        error: 'An error occurred while processing your request',
+        error: 'something went wrong on my end; try again in a sec?',
         details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       }),
       {
