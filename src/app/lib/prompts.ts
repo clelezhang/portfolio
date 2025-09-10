@@ -103,7 +103,7 @@ type CategoryType = 'product' | 'frontend' | 'brand' | 'visuals';
 export const WORK_EXPERIENCE = {
   pearl: {
     title: "Journaling with Pearl",
-    description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned a lot about designing a product from 0→1. I had always felt intimidated by starting things, but this gave me the agency to raise the bar for craft.",
+    description: "Creating a gentle, AI-assisted journal with Emily <span class=\"font-mono text-base\">[1]</span>. I learned how much fun it was to start something from scratch! This experience was very formative in my thoughts on product and brand.",
     order: 1,
     categories: ['product', 'frontend', 'brand'] as CategoryType[]
   },
@@ -121,7 +121,7 @@ export const WORK_EXPERIENCE = {
   },
   auracam: {
     title: "Auracam & Mosaic",
-    description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. Take a picture of yourself and get a visualization of your aura via Hume's sentiment analysis API!",
+    description: "Outside of work, I explored HCI research and implementing little toys. I designed & did the front-end for a generative learning tool that used word and image association, and fully implemented Auracam. Take a picture of yourself <span class=\"font-mono text-base\">[2]</span> and get a visualization of your aura via Hume's sentiment analysis API!",
     order: 4,
     categories: ['product', 'frontend'] as CategoryType[]
   },
@@ -133,7 +133,7 @@ export const WORK_EXPERIENCE = {
   // },
   latch: {
     title: "Latch",
-    description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to Nathan <span class=\"font-mono text-base\">[2]</span> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
+    description: "This is the internship that brought me to SF and introduced me to startups! I'm grateful to Nathan <span class=\"font-mono text-base\">[3]</span> for teaching me terminal commands and how to make my first PR (even though I keep forgetting git syntax).",
     order: 6,
     categories: ['product', 'frontend'] as CategoryType[]
   }

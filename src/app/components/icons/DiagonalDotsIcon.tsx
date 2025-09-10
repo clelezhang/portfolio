@@ -30,7 +30,7 @@ export default function DiagonalDotsIcon({
       {/* Center dot */}
       <circle
         r="1.5"
-        fill="#787B92"
+        fill="#898DA0"
         cx="20.025"
         cy="20"
       />
@@ -38,7 +38,7 @@ export default function DiagonalDotsIcon({
       {/* Top-right dot */}
       <circle
         r="1.5"
-        fill="#787B92"
+        fill="#898DA0"
         cx="24.975"
         cy="24.95"
       />

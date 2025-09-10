@@ -206,13 +206,13 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       <iframe
         id="soundcloud-iframe"
         src="https://w.soundcloud.com/player/?url=https://soundcloud.com/lele-zhang-cherrilynn/sets/portfolio&auto_play=false&shuffle=true"
-        style={{ position: 'absolute', left: '-9999px', width: '300px', height: '166px', visibility: 'hidden' }}
+        className="music-player-iframe"
         allow="autoplay; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />
       
       <div 
-        className={`music-player w-30 ${className}`} 
+        className={`flex h-10 items-center gap-1 bg-glass backdrop-blur-[20px] rounded-full px-1 pr-3 py-2 cursor-pointer transition-all duration-150 hover:bg-glass-bg-hover w-30 ${className}`} 
         onClick={handleCDClick}
       >
         <SpinningCD 

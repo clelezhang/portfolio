@@ -47,7 +47,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-accentgray hover:text-slate transition-colors"
               >
-                TWITTER <span className="text-slate">[3]</span>
+                TWITTER <span className="text-slate">[4]</span>
               </a>
             </div>
             <div>
@@ -56,7 +56,7 @@ export default function Footer() {
                 className="text-accentgray hover:text-slate transition-colors"
                 title={emailCopied ? "Email copied!" : "Copy email address"}
               >
-                EMAIL <span className="text-slate">[{emailCopied ? 'COPIED!' : '4'}]</span>
+                EMAIL <span className="text-slate">[{emailCopied ? 'COPIED!' : '5'}]</span>
               </button>
             </div>
             <div>
@@ -66,18 +66,14 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-accentgray hover:text-slate transition-colors"
               >
-                LINKEDIN <span className="text-slate">[5]</span>
+                LINKEDIN <span className="text-slate">[6]</span>
               </a>
             </div>
           </div>
 
           {/* Large cursive signature */}
           <div 
-            className="text-[100px] sm:text-[120px] md:text-[212px] lg:text-[280px] text-[#898DA0] font-light leading-none md:text-left"
-            style={{ 
-              fontFamily: 'Miss Fajardose, cursive',
-              fontStyle: 'normal'
-            }}
+            className="text-[100px] sm:text-[120px] md:text-[212px] lg:text-[280px] text-[#898DA0] font-light leading-none md:text-left footer-signature"
           >
             Lele&nbsp;&nbsp;Zhang
           </div>
@@ -85,7 +81,7 @@ export default function Footer() {
 
         {/* Bottom footer text */}
         <div className="flex flex-row justify-between items-center text-xs sm:text-sm font-mono text-accentgray uppercase">
-          <div className="flex flex-row items-center justify-between gap-48">
+          <div className="flex flex-row items-center justify-between gap-40">
             <div><span className="text-slate">THANKS</span> FOR VISITING!</div>
             <div className="hidden md:block">
               {loading ? (

@@ -40,7 +40,7 @@ export default function Hero() {
       <div className="max-w-6xl px-4  mx-auto">
         {/* Intro text */}
         <div className="max-w-[600px] mx-auto text-start mb-16">
-          <div className="text-base leading-relaxed font-detail" style={{ color: 'var(--gray-900)' }}>
+          <div className="text-base leading-relaxed font-detail text-gray-900">
             <p>hello there! I&apos;m lele.</p>
             <p className="mt-3">I&apos;m a designer in pursuit of aesthetics and function. I hope to create a 
             world of seeing, learning, thinking, building, and loving.</p>
@@ -49,14 +49,11 @@ export default function Hero() {
         
         {/* Section title */}
         <div className="flex justify-center">
-          <div className="font-detail text-base flex items-center" style={{ color: 'var(--accentgray)' }}>
+          <div className="font-detail text-base flex items-center text-accentgray">
             <span>what i •&nbsp;</span>
             <span 
               key={animationKey}
-              className="relative inline-block text-left"
-              style={{ 
-                minWidth: '3rem'
-              }}
+              className="relative inline-block text-left min-w-12"
             >
               {activeWord.split('').map((letter, index) => (
                 <span

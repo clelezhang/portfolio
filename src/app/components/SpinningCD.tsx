@@ -17,16 +17,11 @@ const SpinningCD = memo(function SpinningCD({
     <div className={`relative w-8 h-8 group ${className}`}>
       {/* Static Shadow */}
       <div 
-        className="absolute inset-0 rounded-full transition-all duration-300 shadow-hover"
-        style={{
-          '--shadow-normal': '0 4px 8px rgba(47, 53, 87,0.25), 0 1px 2px rgba(47, 53, 87,0.1)',
-          '--shadow-hover': '0 4px 12px rgba(47, 53, 87,0.5), 0 1px 2px rgba(47, 53, 87,0.6)',
-          boxShadow: 'var(--shadow-normal)'
-        } as React.CSSProperties}
+        className="absolute inset-0 rounded-full transition-all duration-300 shadow-hover cd-shadow-container"
       />
       
       <motion.div
-        className="absolute inset-0 rounded-full overflow-hidden bg-gray-300"
+        className="absolute inset-0 rounded-full overflow-hidden bg-gray-300 cd-spinning-disc"
         animate={{ rotate: 360 }}
         transition={{
           duration: 8,
@@ -34,21 +29,12 @@ const SpinningCD = memo(function SpinningCD({
           ease: "linear"
         }}
         whileHover={{ scale: 1.05 }}
-        style={{
-          willChange: 'transform',
-          transform: 'translate3d(0, 0, 0)'
-        }}
       >
       {/* Album Artwork with Center Hole Cutout */}
       <div 
-        className="absolute inset-0 rounded-full bg-cover bg-center border border-gray-300"
+        className="absolute inset-0 rounded-full bg-cover bg-center border border-gray-300 cd-artwork-mask"
         style={{
-          backgroundImage: `url(${artwork})`,
-          clipPath: 'circle(50% at 50% 50%)',
-          WebkitClipPath: 'circle(50% at 50% 50%)',
-          mask: 'radial-gradient(circle at center, transparent 0, transparent 15%, black 15%, black 100%)',
-          WebkitMask: 'radial-gradient(circle at center, transparent 0, transparent 15%, black 15%, black 100%)',
-          willChange: 'transform'
+          backgroundImage: `url(${artwork})`
         }}
       />
 
@@ -56,16 +42,13 @@ const SpinningCD = memo(function SpinningCD({
       <div className="absolute inset-0 rounded-full">
         {/* Center rings */}
         <div 
-          className="absolute top-1/2 left-1/2 w-6 h-6 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
-          style={{ willChange: 'transform' }}
+          className="absolute top-1/2 left-1/2 w-6 h-6 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2 cd-ring-center"
         />
         <div 
-          className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
-          style={{ willChange: 'transform' }}
+          className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2 cd-ring-center"
         />
                 <div 
-          className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2" 
-          style={{ willChange: 'transform' }}
+          className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full border border-gray-100 transform -translate-x-1/2 -translate-y-1/2 cd-ring-center"
         />
       </div>
 
