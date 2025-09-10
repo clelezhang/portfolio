@@ -103,7 +103,7 @@ type CategoryType = 'product' | 'frontend' | 'brand' | 'visuals';
 export const WORK_EXPERIENCE = {
   pearl: {
     title: "Journaling with pearl",
-    description: "Creating a gentle, AI-assisted journal & scaled to 2K users with <a href=\"https://www.emilyz.sh/\" class=\"hover:text-gray-500 transition-colors\">Emily <span class=\"font-mono text-base\">[1]</span></a>. Creating pearl from scratch was when I really understood that great products happen when what you make and how it feels are inseparable.",
+    description: "Creating a gentle, AI-assisted journal & scaled to 2K users with <a href=\"https://www.emilyz.sh/\" class=\"hover:text-gray-500 transition-colors\">Emily <span class=\"font-mono text-base\">[1]</span></a>. This was when I really understood that great products happen when what you make and how it feels are inseparable.",
     order: 1,
     categories: ['product', 'frontend', 'brand'] as CategoryType[]
   },
