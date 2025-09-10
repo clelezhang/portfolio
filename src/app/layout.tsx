@@ -78,7 +78,7 @@ const missFajardose = Miss_Fajardose({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://lelezhang.design'),
   title: "lele's website",
   description: "product designer",
   keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
@@ -114,6 +114,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#FBFBFC",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

@@ -146,13 +146,13 @@ export default function WorkSection() {
               <span key={category}>
                 <button
                   onClick={() => setActiveCategory(category)}
-                  className={`hover:text-gray-800 transition-colors lowercase ${
+                  className={`hover:text-gray-800 transition-colors lowercase max-[402px]:text-sm ${
                     activeCategory === category ? 'text-gray-800' : 'text-gray-500'
                   }`}
                 >
                   {category}
                 </button>
-                {index < categories.length - 1 && <span className="mx-2 text-gray-400">•</span>}
+                {index < categories.length - 1 && <span className="mx-2 max-[402px]:mx-1 text-gray-400 max-[402px]:text-sm">•</span>}
               </span>
             ))}
           </div>

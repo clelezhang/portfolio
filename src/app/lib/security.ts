@@ -9,6 +9,8 @@ import { NextRequest } from 'next/server';
 const ALLOWED_ORIGINS = [
   'https://lelezhang.design', // Production domain
   'https://lele-portfolio.vercel.app', // Vercel deployment
+  'https://portfolio-ftmyik8j9-clelezhangs-projects.vercel.app', // Previous Vercel deployment
+  'https://portfolio-2yfkjssxh-clelezhangs-projects.vercel.app', // Current Vercel deployment
   'http://localhost:3000', // Local development
   'http://localhost:3001', // Local development alternate
   'http://localhost:3002', // Local development alternate
