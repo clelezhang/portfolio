@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { getWorkExperience } from '../lib/prompts';
 
 export default function WorkSection() {
@@ -51,12 +52,96 @@ export default function WorkSection() {
     return imageMap[workId] || ['/card-images/apps.jpg'];
   };
 
+  // Map work projects to their links
+  const getProjectLinks = (workId: string) => {
+    const linkMap: { [key: string]: { url?: string; titleLink?: boolean; imageLinks?: boolean[] } } = {
+      pearl: {
+        url: 'https://info.writewithprl.com/',
+        titleLink: true,
+        imageLinks: [true, true, true] // All images link
+      },
+      fragile: {
+        url: 'https://flex.terrakaffe.com/terra-kaffe/checkout?products=tk-02(color%3Dwhite)&_gl=1*f6ybc6*_gcl_aw*R0NMLjE3NTIwMjIwMjkuQ2p3S0NBandnN1BEQmhCeEVpd0FmMUNWdXo1RDlaOXRNTVhlM1ZVaDRtZ0dyS2N0VzZIcUxXSWxDMklDc25wTkxCUkFyMG0xSExxYVNCb0NydFFRQXZEX0J3RQ..*_gcl_au*MTc0NjYxMjk3My4xNzUwODc2NTEy',
+        titleLink: false,
+        imageLinks: [true, false, false] // Only first image links
+      },
+      terrakaffe: {
+        url: 'https://www.terrakaffe.com/products/tk-02?rent=1',
+        titleLink: true,
+        imageLinks: [true, true, true] // All images link
+      },
+      auracam: {
+        url: 'https://auracam.onrender.com/',
+        titleLink: true,
+        imageLinks: [true, false] // Only first image links
+      },
+      latch: {
+        url: 'https://latch.bio/',
+        titleLink: true,
+        imageLinks: [true, true] // Both images link
+      }
+    };
+    return linkMap[workId] || {};
+  };
+
+  // Helper function to check if an image should be linked
+  const shouldLinkImage = (workId: string, imageIndex: number): string | null => {
+    const links = getProjectLinks(workId);
+    if (links.imageLinks && links.imageLinks[imageIndex] && links.url) {
+      return links.url;
+    }
+    return null;
+  };
+
+  // Reusable ImageContainer component
+  const ImageContainer = ({ 
+    workId, 
+    imageIndex, 
+    className, 
+    imageClassName, 
+    containerClassName = "work-image-container-4-3",
+    alt, 
+    sizes 
+  }: {
+    workId: string;
+    imageIndex: number;
+    className: string;
+    imageClassName: string;
+    containerClassName?: string;
+    alt: string;
+    sizes: string;
+  }) => {
+    const linkUrl = shouldLinkImage(workId, imageIndex);
+    const imageElement = (
+      <div className={`w-full relative ${containerClassName}`}>
+        <Image 
+          src={getWorkImages(workId)[imageIndex]} 
+          alt={alt} 
+          fill 
+          className={imageClassName} 
+          draggable={false} 
+          sizes={sizes} 
+        />
+      </div>
+    );
+
+    if (linkUrl) {
+      return (
+        <Link href={linkUrl} target="_blank" rel="noopener noreferrer" className={`${className} cursor-pointer`}>
+          {imageElement}
+        </Link>
+      );
+    }
+
+    return <div className={className}>{imageElement}</div>;
+  };
+
   return (
     <section id="portfolio-grid" className="py-4 px-4 bg-lightgray">
       <div className="max-w-7xl mx-auto">
         {/* Navigation Header */}
         <div className="mb-20">
-                <div className="flex flex-row gap-2">
+          <div className="flex flex-row">
             {categories.map((category, index) => (
               <span key={category}>
                 <button
@@ -67,7 +152,7 @@ export default function WorkSection() {
                 >
                   {category}
                 </button>
-                {index < categories.length - 1 && <span className="mx-1 text-gray-400">•</span>}
+                {index < categories.length - 1 && <span className="mx-2 text-gray-400">•</span>}
               </span>
             ))}
           </div>
@@ -79,7 +164,18 @@ export default function WorkSection() {
             <div key={work.id} className="group">
               {/* Project Title */}
               <h3 className="text-base mb-2 font-sans text-gray-500">
-                {work.title}
+                {getProjectLinks(work.id).titleLink && getProjectLinks(work.id).url ? (
+                  <Link 
+                    href={getProjectLinks(work.id).url!} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-slate transition-colors"
+                  >
+                    {work.title}
+                  </Link>
+                ) : (
+                  work.title
+                )}
               </h3>
               
               {/* Project Description */}
@@ -91,22 +187,31 @@ export default function WorkSection() {
               {/* Project Images - Custom Layout per Project */}
               {work.id === 'pearl' && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                  <div className="md:col-span-8 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
-                    <div className="w-full relative work-image-container-4-3">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Main`} fill className="object-contain work-image-scale-85" draggable={false} sizes="(max-width: 768px) 100vw, 66vw" />
-                    </div>
-                  </div>
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={0}
+                    className="md:col-span-8 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center"
+                    imageClassName="object-contain work-image-scale-85"
+                    alt={`${work.title} - Main`}
+                    sizes="(max-width: 768px) 100vw, 66vw"
+                  />
                   <div className="md:col-span-4 flex flex-row md:flex-col gap-2">
-                    <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
-                      <div className="w-full relative work-image-container-4-3">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Stats`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 33vw" />
-                      </div>
-                    </div>
-                    <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
-                      <div className="w-full relative work-image-container-4-3">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Reflection`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 33vw" />
-                      </div>
-                    </div>
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={1}
+                      className="rounded-lg overflow-hidden border border-gray-50 flex-1"
+                      imageClassName="object-cover"
+                      alt={`${work.title} - Stats`}
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                    />
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={2}
+                      className="rounded-lg overflow-hidden border border-gray-50 flex-1"
+                      imageClassName="object-cover"
+                      alt={`${work.title} - Reflection`}
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                    />
                   </div>
                 </div>
               )}
@@ -114,60 +219,90 @@ export default function WorkSection() {
 
               {work.id === 'fragile' && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                  <div className="md:col-span-7 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
-                    <div className="w-full relative work-image-container-4-3">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Checkout`} fill className="object-contain work-image-scale-85" draggable={false} sizes="(max-width: 768px) 100vw, 58vw" />
-                    </div>
-                  </div>
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={0}
+                    className="md:col-span-7 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center"
+                    imageClassName="object-contain work-image-scale-85"
+                    alt={`${work.title} - Checkout`}
+                    sizes="(max-width: 768px) 100vw, 58vw"
+                  />
                   <div className="md:col-span-5 flex flex-row md:flex-col sm:flex-row gap-2">
-                    <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1">
-                      <div className="w-full relative work-image-container-16-9">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Presentation`} fill className="object-contain work-image-scale-90" draggable={false} sizes="(max-width: 768px) 50vw, 42vw" />
-                      </div>
-                    </div>
-                    <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1">
-                      <div className="w-full relative work-image-container-16-9">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Branding`} fill className="object-contain work-image-scale-80" draggable={false} sizes="(max-width: 768px) 50vw, 42vw" />
-                      </div>
-                    </div>
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={1}
+                      className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1"
+                      imageClassName="object-contain work-image-scale-90"
+                      containerClassName="work-image-container-16-9"
+                      alt={`${work.title} - Presentation`}
+                      sizes="(max-width: 768px) 50vw, 42vw"
+                    />
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={2}
+                      className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1"
+                      imageClassName="object-contain work-image-scale-80"
+                      containerClassName="work-image-container-16-9"
+                      alt={`${work.title} - Branding`}
+                      sizes="(max-width: 768px) 50vw, 42vw"
+                    />
                   </div>
                 </div>
               )}
 
               {work.id === 'terrakaffe' && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                  <div className="md:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
-                    <div className="w-full relative work-image-container-4-3">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Product`} fill className="object-contain work-image-scale-85" draggable={false} sizes="(max-width: 768px) 100vw, 50vw" />
-                    </div>
-                  </div>
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={0}
+                    className="md:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center"
+                    imageClassName="object-contain work-image-scale-85"
+                    alt={`${work.title} - Product`}
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
                   <div className="md:col-span-6 flex flex-row gap-2">
-                    <div className="rounded-lg overflow-hidden flex-1">
-                      <div className="w-full relative work-image-container-9-16">
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Marketing`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 25vw" />
-                      </div>
-                    </div>
-                    <div className="rounded-lg overflow-hidden flex-1">
-                      <div className="w-full relative work-image-container-9-16">
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Coffee`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 25vw" />
-                      </div>
-                    </div>
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={1}
+                      className="rounded-lg overflow-hidden flex-1"
+                      imageClassName="object-cover"
+                      containerClassName="work-image-container-9-16"
+                      alt={`${work.title} - Marketing`}
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                    <ImageContainer
+                      workId={work.id}
+                      imageIndex={2}
+                      className="rounded-lg overflow-hidden flex-1"
+                      imageClassName="object-cover"
+                      containerClassName="work-image-container-9-16"
+                      alt={`${work.title} - Coffee`}
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
                   </div>
                 </div>
               )}
 
               {work.id === 'auracam' && (
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-6 rounded-lg overflow-hidden">
-                    <div className="w-full relative work-image-container-1-1">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Auracam`} fill className="object-cover" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
-                    </div>
-                  </div>
-                  <div className="bg-white sm:col-span-6 rounded-lg overflow-hidden border border-gray-50 flex items-center justify-center">
-                    <div className="w-full relative work-image-container-1-1">
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-contain work-image-scale-85" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
-                    </div>
-                  </div>
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={0}
+                    className="sm:col-span-6 rounded-lg overflow-hidden"
+                    imageClassName="object-cover"
+                    containerClassName="work-image-container-1-1"
+                    alt={`${work.title} - Auracam`}
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={1}
+                    className="bg-white sm:col-span-6 rounded-lg overflow-hidden border border-gray-50 flex items-center justify-center"
+                    imageClassName="object-contain work-image-scale-85"
+                    containerClassName="work-image-container-1-1"
+                    alt={`${work.title} - Mosaic`}
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
                 </div>
               )}
 
@@ -188,16 +323,24 @@ export default function WorkSection() {
 
               {work.id === 'latch' && (
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
-                    <div className="w-full relative work-image-container-1-1">
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Data Sync`} fill className="object-contain work-image-scale-85" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
-                    </div>
-                  </div>
-                  <div className="sm:col-span-6 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 w-full relative work-image-container-1-1">
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Case Study`} fill className="object-cover" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
-                    </div>
-                  </div>
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={0}
+                    className="sm:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center"
+                    imageClassName="object-contain work-image-scale-85"
+                    containerClassName="work-image-container-1-1"
+                    alt={`${work.title} - Data Sync`}
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
+                  <ImageContainer
+                    workId={work.id}
+                    imageIndex={1}
+                    className="sm:col-span-6 rounded-lg overflow-hidden"
+                    imageClassName="object-cover"
+                    containerClassName="bg-gray-50 w-full relative work-image-container-1-1"
+                    alt={`${work.title} - Case Study`}
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
                 </div>
               )}
             </div>

@@ -122,12 +122,12 @@ export async function POST(req: NextRequest) {
 
     // 5. Create streaming response optimized for speed
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514', // Use Sonnet for better personality
-      max_tokens: 800, // Reduced for faster responses
+      model: 'claude-sonnet-4-20250514',  
+      max_tokens: 800,  
       messages: claudeMessages,
-      system: systemPrompt, // Use system parameter instead
-      stream: true,
-      temperature: 0.6, // Slightly lower for more consistent speed
+      system: systemPrompt, 
+        stream: true,
+        temperature: 0.6, // Slightly lower for more consistent speed
     });
 
     // 6. Optimized streaming for faster initial response
@@ -141,7 +141,8 @@ export async function POST(req: NextRequest) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               const text = chunk.delta.text;
               fullAssistantResponse += text;
-              // Send text immediately for faster response
+              // Add artificial delay for slower streaming effect
+              await new Promise(resolve => setTimeout(resolve, 200));
               controller.enqueue(encoder.encode(text));
             }
           }

@@ -78,20 +78,33 @@ const missFajardose = Miss_Fajardose({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   title: "lele's website",
   description: "product designer",
   keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
+  icons: {
+    icon: '/favicon.svg',
+  },
   openGraph: {
     title: "lele's portfolio",
     description: "a little glimpse into my work and thoughts",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "/preview.webp",
+        width: 1200,
+        height: 630,
+        alt: "lele's portfolio preview",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "lele's portfolio",
     description: "a little glimpse into my work and thoughts",
     creator: "@CherrilynnZ",
+    images: ["/preview.webp"],
   },
   robots: {
     index: true,

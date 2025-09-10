@@ -10,7 +10,7 @@ interface SpinningCDProps {
 }
 
 const SpinningCD = memo(function SpinningCD({ 
-  artwork = "https://picsum.photos/40/40?random=3", 
+  artwork = "/cd.png", 
   className = "" 
 }: SpinningCDProps) {
   return (
