@@ -211,10 +211,12 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         sandbox="allow-scripts allow-same-origin allow-presentation"
       />
       
-      <div className={`flex h-10 w-30 items-center gap-1 bg-gray-50 backdrop-blur-[20px] rounded-full pl-1 pr-3 py-2 ${className}`} style={{ willChange: 'transform' }}>
+      <div 
+        className={`music-player w-30 ${className}`} 
+        onClick={handleCDClick}
+      >
         <SpinningCD 
           artwork={trackInfo.artwork}
-          onClick={handleCDClick}
           className="flex-shrink-0"
         />
         

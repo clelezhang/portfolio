@@ -24,47 +24,47 @@ const cardData: CardData[] = [
   {
     id: 'apps',
     title: 'software made with care',
-    image: '/card-images/apps.jpg',
+    image: '/card-images/apps.webp',
   },
   {
     id: 'house',
     title: 'designing for someone you love',
-    image: '/card-images/house.jpg',
+    image: '/card-images/house.webp',
   },
   {
     id: 'apple',
     title: 'puns made visual',
-    image: '/card-images/apple.jpg',
+    image: '/card-images/apple1.webp',
   },
   {
     id: 'cyanotype',
     title: 'cyanotypes',
-    image: '/card-images/cyanotype.jpg',
+    image: '/card-images/cyanotype1.webp',
   },
   {
     id: 'journal',
     title: 'the journal that reflects with you',
-    image: '/card-images/journal.jpg',
+    image: '/card-images/journal.webp',
   },
   {
     id: 'charcuterie',
     title: 'charcuterie for my friends',
-    image: '/card-images/charcuterie.jpg',
+    image: '/card-images/charcuterie1.webp',
   },
   {
     id: 'family',
     title: 'my family :)',
-    image: '/card-images/family.jpg',
+    image: '/card-images/family1.webp',
   },
   {
     id: 'lilypad',
     title: "my mother's hometown",
-    image: '/card-images/lilypad.jpg',
+    image: '/card-images/lilypad1.webp',
   },
   {
     id: 'friend',
     title: 'my friends',
-    image: '/card-images/friend.jpg',
+    image: '/card-images/friend1.webp',
   }
 ];
 
@@ -826,7 +826,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         )}
 
         {/* Envelope */}
-        <div className="flex justify-center items-center">
+        <div id="talk-to-me" className="flex justify-center items-center">
           <div className="relative w-full max-w-[600px] mx-auto">
             {/* Top Flap */}
             <div className="envelope-top-flap"

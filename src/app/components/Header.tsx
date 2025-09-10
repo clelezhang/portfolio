@@ -16,6 +16,16 @@ export default function Header() {
     navigator.clipboard.writeText('clzhang@berkeley.edu');
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   return (
     <header>
       {/* Desktop/Tablet: Full header - use CSS media queries only */}
@@ -23,13 +33,19 @@ export default function Header() {
         <div className="fixed w-full left-0 top-0 flex justify-between items-center p-4 z-[90]">
           {/* Left pills */}
           <div className="flex items-center gap-2">
-            <div className="bg-gray-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
+            <button 
+              onClick={() => scrollToSection('talk-to-me')}
+              className="nav-pill"
+            >
               contact
-            </div>
-            <div className="bg-gray-50 text-brown px-5 py-3 rounded-full text-xs font-sans flex items-center gap-2 backdrop-blur-[20px]">
+            </button>
+            <button 
+              onClick={() => scrollToSection('portfolio-grid')}
+              className="nav-pill flex items-center gap-2"
+            >
               <HeartIcon className="text-accentgray"/>
               working & playing
-            </div>
+            </button>
           </div>
           
           {/* Center: Logo */}
@@ -39,7 +55,7 @@ export default function Header() {
           
           {/* Right pills */}
           <div className="flex items-center gap-2">
-            <div className="bg-gray-50 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]">
+            <div className="text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px]" style={{ backgroundColor: '#C6C7D24D' }}>
               san francisco, ca
             </div>
             <MusicPlayer />
@@ -79,7 +95,7 @@ export default function Header() {
         <div className="fixed bottom-0 right-0 z-[80] p-4">
           <div className="flex justify-between items-end">
             <MusicPlayer className="flex-1 mr-4 w-[180px]" />
-                          <ExpandCollapseButton
+                <ExpandCollapseButton
                 isExpanded={isMenuOpen}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="flex-shrink-0"
@@ -103,25 +119,33 @@ export default function Header() {
             >
               <div className="absolute bottom-16 right-18 flex flex-col gap-2 items-end">
                 <button 
-                  onClick={handleEmailCopy}
-                  className="bg-gray-50/90 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] hover:bg-gray-100/90 transition-colors whitespace-nowrap"
+                  onClick={() => {
+                    handleEmailCopy();
+                    scrollToSection('talk-to-me');
+                    setIsMenuOpen(false);
+                  }}
+                  className="nav-pill whitespace-nowrap"
                   style={{ backdropFilter: 'blur(20px)' }}
                 >
                   contact
                 </button>
                 <div 
-                  className="bg-gray-50/90 text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] whitespace-nowrap"
-                  style={{ backdropFilter: 'blur(20px)' }}
+                  className="text-brown px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] whitespace-nowrap"
+                  style={{ backgroundColor: '#C6C7D24D', backdropFilter: 'blur(20px)' }}
                 >
                   san francisco, ca
                 </div>
-                <div 
-                  className="bg-gray-50/90 text-brown px-5 py-3 rounded-full text-xs font-sans flex items-center gap-2 backdrop-blur-[20px] whitespace-nowrap"
+                <button 
+                  onClick={() => {
+                    scrollToSection('portfolio-grid');
+                    setIsMenuOpen(false);
+                  }}
+                  className="nav-pill flex items-center gap-2 whitespace-nowrap"
                   style={{ backdropFilter: 'blur(20px)' }}
                 >
                   <HeartIcon className="text-accentgray" size={12} />
                   working & playing
-                </div>
+                </button>
               </div>
             </motion.div>
           )}

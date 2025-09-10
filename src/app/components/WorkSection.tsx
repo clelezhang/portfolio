@@ -52,7 +52,7 @@ export default function WorkSection() {
   };
 
   return (
-    <section className="py-4 px-4" style={{ backgroundColor: 'var(--cream)' }}>
+    <section id="portfolio-grid" className="py-4 px-4" style={{ backgroundColor: 'var(--cream)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Navigation Header */}
         <div className="mb-20">

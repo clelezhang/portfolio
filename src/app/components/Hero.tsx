@@ -81,11 +81,13 @@ export default function Hero() {
       
       {/* Full-width card stack and envelope container with gradient background */}
       <div 
-        className="w-full px-4"
+        className="w-full px-4 relative"
         style={{
-          background: 'linear-gradient(rgba(154, 156, 184, 0) 20%,  #9A9CB8 60%, #85768C 80%, #62718C 92%, #4C5E7C 100%)'
+          background: 'linear-gradient(rgba(154, 156, 184, 0) 20%,rgba(154, 156, 184, 0.85) 75%, rgba(98, 113, 140, 0.9) 98%, #4C5E7C 100%)'
         }}
       >
+        {/* Blur overlay */}
+        <div className="absolute inset-0 backdrop-blur-xl pointer-events-none"></div>
         <div className="max-w-6xl mx-auto relative">
           <InteractivePortfolio onCardClick={handleCardClick} />
         </div>
