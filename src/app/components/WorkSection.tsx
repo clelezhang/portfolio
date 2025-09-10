@@ -93,18 +93,18 @@ export default function WorkSection() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
                   <div className="md:col-span-8 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '4/3' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Main`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Main`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} sizes="(max-width: 768px) 100vw, 66vw" />
                     </div>
                   </div>
                   <div className="md:col-span-4 flex flex-row md:flex-col gap-2">
                     <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '4/3' }}>
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Stats`} fill className="object-cover" draggable={false} />
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Stats`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 33vw" />
                       </div>
                     </div>
                     <div className="rounded-lg overflow-hidden border border-gray-50 flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '4/3' }}>
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Reflection`} fill className="object-cover" draggable={false} />
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Reflection`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 33vw" />
                       </div>
                     </div>
                   </div>
@@ -116,18 +116,18 @@ export default function WorkSection() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
                   <div className="md:col-span-7 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '4/3' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Checkout`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Checkout`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} sizes="(max-width: 768px) 100vw, 58vw" />
                     </div>
                   </div>
                   <div className="md:col-span-5 flex flex-row md:flex-col sm:flex-row gap-2">
                     <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '16/9' }}>
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Presentation`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.9)' }} />
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Presentation`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.9)' }} sizes="(max-width: 768px) 50vw, 42vw" />
                       </div>
                     </div>
                     <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '16/9' }}>
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Branding`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.8)' }} />
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Branding`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.8)' }} sizes="(max-width: 768px) 50vw, 42vw" />
                       </div>
                     </div>
                   </div>
@@ -138,18 +138,18 @@ export default function WorkSection() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
                   <div className="md:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '4/3' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Product`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Product`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} sizes="(max-width: 768px) 100vw, 50vw" />
                     </div>
                   </div>
                   <div className="md:col-span-6 flex flex-row gap-2">
                     <div className="rounded-lg overflow-hidden flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '9/16' }}>
-                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Marketing`} fill className="object-cover" draggable={false} />
+                        <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Marketing`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 25vw" />
                       </div>
                     </div>
                     <div className="rounded-lg overflow-hidden flex-1">
                       <div className="w-full relative" style={{ aspectRatio: '9/16' }}>
-                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Coffee`} fill className="object-cover" draggable={false} />
+                        <Image src={getWorkImages(work.id)[2]} alt={`${work.title} - Coffee`} fill className="object-cover" draggable={false} sizes="(max-width: 768px) 50vw, 25vw" />
                       </div>
                     </div>
                   </div>
@@ -160,12 +160,12 @@ export default function WorkSection() {
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-6 rounded-lg overflow-hidden">
                     <div className="w-full relative" style={{ aspectRatio: '1/1' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Auracam`} fill className="object-cover" draggable={false} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Auracam`} fill className="object-cover" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
                     </div>
                   </div>
                   <div className="bg-white sm:col-span-6 rounded-lg overflow-hidden border border-gray-50 flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '1/1' }}>
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-contain" draggable={false}  style={{ transform: 'scale(0.85)' }}/>
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Mosaic`} fill className="object-contain" draggable={false}  style={{ transform: 'scale(0.85)' }} sizes="(max-width: 640px) 100vw, 50vw" />
                     </div>
                   </div>
                 </div>
@@ -175,12 +175,12 @@ export default function WorkSection() {
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-9 bg-black rounded-lg overflow-hidden flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '16/9' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Landing`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.8)' }} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Landing`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.8)' }} sizes="75vw" />
                     </div>
                   </div>
                   <div className="col-span-3 rounded-lg overflow-hidden">
                     <div className="w-full relative" style={{ aspectRatio: '9/16' }}>
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Sleep`} fill className="object-cover" draggable={false} />
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Sleep`} fill className="object-cover" draggable={false} sizes="25vw" />
                     </div>
                   </div>
                 </div>
@@ -190,12 +190,12 @@ export default function WorkSection() {
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-6 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
                     <div className="w-full relative" style={{ aspectRatio: '1/1' }}>
-                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Data Sync`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} />
+                      <Image src={getWorkImages(work.id)[0]} alt={`${work.title} - Data Sync`} fill className="object-contain" draggable={false} style={{ transform: 'scale(0.85)' }} sizes="(max-width: 640px) 100vw, 50vw" />
                     </div>
                   </div>
                   <div className="sm:col-span-6 rounded-lg overflow-hidden">
                     <div className="bg-gray-50 w-full relative" style={{ aspectRatio: '1/1' }}>
-                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Case Study`} fill className="object-cover" draggable={false} />
+                      <Image src={getWorkImages(work.id)[1]} alt={`${work.title} - Case Study`} fill className="object-cover" draggable={false} sizes="(max-width: 640px) 100vw, 50vw" />
                     </div>
                   </div>
                 </div>
