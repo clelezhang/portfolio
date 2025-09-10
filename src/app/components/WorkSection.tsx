@@ -37,7 +37,7 @@ export default function WorkSection() {
         '/work-images/tk-3.webp'
       ], 
       auracam: [
-        '/work-images/auracam-2.webp',
+        '/work-images/auracam-4.webp',
         '/work-images/auracam-3.webp'
       ],
       // whim: [
