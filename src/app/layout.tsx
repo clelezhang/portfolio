@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Miss_Fajardose } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,6 +15,66 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
   preload: false,
+});
+
+// Optimized local fonts with Next.js
+const untitledSans = localFont({
+  src: [
+    {
+      path: '../../public/fonts/Untitled Sans/TestUntitledSans-Light.otf',
+      weight: '300',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Untitled Sans/TestUntitledSans-Regular.otf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Untitled Sans/TestUntitledSans-Medium.otf',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Untitled Sans/TestUntitledSans-Bold.otf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-untitled-sans',
+  display: 'swap',
+  preload: true,
+});
+
+const compagnon = localFont({
+  src: [
+    {
+      path: '../../public/fonts/Compagnon/Compagnon-Roman.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Compagnon/Compagnon-Medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Compagnon/Compagnon-Bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-compagnon',
+  display: 'swap',
+  preload: false, // Only preload if used above the fold
+});
+
+const missFajardose = Miss_Fajardose({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-miss-fajardose",
+  preload: false, // Only used in footer
 });
 
 export const metadata: Metadata = {
@@ -50,7 +111,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${untitledSans.variable} ${compagnon.variable} ${missFajardose.variable} antialiased`}
         suppressHydrationWarning
       >
         {children}
