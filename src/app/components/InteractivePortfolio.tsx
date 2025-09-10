@@ -832,7 +832,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             <div className="envelope-top-flap"
              >
             {/* Header */}
-              <h2 className="font-mono text-lg tracking-wider mt-10 envelope-header-text">
+              <h2 className="font-mono text-md tracking-wider envelope-header-text">
                 TALK <span className="italic">2</span> ME
               </h2>
              </div>
