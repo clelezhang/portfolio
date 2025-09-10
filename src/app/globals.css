@@ -54,6 +54,30 @@ body {
   overflow-y: auto;
 }
 
+/* Ensure mobile browsers respect overflow-x hidden */
+html {
+  overflow-x: hidden;
+}
+
+/* Additional mobile fixes for webkit browsers */
+@supports (-webkit-touch-callout: none) {
+  body {
+    position: relative;
+    overflow-x: hidden !important;
+  }
+  
+  /* Prevent horizontal scrolling on mobile webkit */
+  * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* Exception for absolutely positioned elements that need to overflow */
+  .draggable-card {
+    max-width: none;
+  }
+}
+
 .font-sans {
   font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
