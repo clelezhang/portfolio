@@ -301,6 +301,9 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   // Detect if user is on mobile device
   const isMobile = useMobileDetection();
   
+  // State for initial page load animation
+  const [hasLoadedCards, setHasLoadedCards] = useState(false);
+  
   // Consolidated state with useReducer
   const [state, dispatch] = useReducer(portfolioReducer, {
     // Card state
@@ -490,6 +493,15 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
     };
   }, []);
 
+  // Trigger card fade-in animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasLoadedCards(true);
+    }); 
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Handle card interaction to bring to front
   const handleCardInteraction = (cardId: string) => {
     dispatch({ type: 'UPDATE_PICKED_ORDER', cardId });
@@ -617,11 +629,32 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
   return (
     <div className="w-full">
       {/* Card stack section */}
-      <div 
+      <motion.div 
         ref={containerRef}
         className="portfolio-cards-container"
         role="region"
         aria-label="Interactive portfolio cards"
+        initial={{
+          opacity: 0,
+          filter: "blur(8px)"
+        }}
+        animate={hasLoadedCards ? {
+          opacity: 1,
+          filter: "blur(0px)",
+          transition: {
+            duration: 0.5,
+            ease: "easeOut",
+            scale: {
+              type: "spring",
+              stiffness: 200,
+              damping: 25,
+              mass: 1.2
+            }
+          }
+        } : {
+          opacity: 0,
+          filter: "blur(8px)",
+        }}
       >
         {cardData.map((card, index) => {
           const position = getCardPosition(index, card.id);
@@ -686,8 +719,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                 opacity: 1
               } : {
                 rotate: currentRotation,
-                scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1),
-                opacity: 1
+                scale: isDraggingThis && state.dragState.isPastSnapPoint ? 0.7 : (isTapped ? 1.08 : 1)
               }}
               drag={!isPullingThis && !isMobile}
               dragMomentum={false}
@@ -773,7 +805,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
 
       {/* Envelope section */}
@@ -818,7 +850,7 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
                     textShadow: '0 0px 8px white, 0 0px 24px white'
                   }}
                 >
-                  {getCardPreviewMessage(state.dragState.draggedCardId)}
+                  {getCardPreviewMessage(state.dragState.draggedCardId!)}
                 </div>
               )}
             </div>
