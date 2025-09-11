@@ -37,13 +37,13 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       return "click to listen ⸜(｡˃ ᵕ ˂ )⸝*.ﾟ♫⋆｡♪ ₊˚.";
     }
     if (playerState === 'loading') {
-      return "loading track...";
+      return "loading ~₊.ﾟ*♪.˙";
     }
     // Only show track title if it's actually loaded and not the default
     if (trackInfo.title && trackInfo.title !== "click to listen ⸜(｡˃ ᵕ ˂ )⸝*.ﾟ♫⋆｡♪ ₊˚.") {
       return trackInfo.title;
     }
-    return "loading track...";
+    return "loading ~₊.ﾟ*♪.˙";
   })();
   
   const widgetRef = useRef<any>(null);
