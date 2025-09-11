@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 // Allowed origins for CORS - very restrictive like RYO
 const ALLOWED_ORIGINS = [
   'https://lelezhang.design', // Production domain
+  'https://www.lelezhang.design', // Production domain with www
   'https://lele-portfolio.vercel.app', // Vercel deployment
   'https://portfolio-ftmyik8j9-clelezhangs-projects.vercel.app', // Previous Vercel deployment
   'https://portfolio-2yfkjssxh-clelezhangs-projects.vercel.app', // Current Vercel deployment
