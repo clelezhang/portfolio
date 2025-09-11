@@ -53,6 +53,12 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clickCountRef = useRef<number>(0);
 
+  // Detect mobile devices where volume control doesn't work
+  const isMobile = typeof window !== 'undefined' && (
+    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.matchMedia('(max-width: 768px)').matches
+  );
+
   // Save mute state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -265,7 +271,15 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         if (playerState === 'playing' || playerState === 'muted') {
           setTimeout(() => {
             if (widgetRef.current) {
-              widgetRef.current.setVolume(playerState === 'muted' ? 0 : 25);
+              if (isMobile) {
+                // On mobile, handle play/pause state
+                if (playerState === 'muted') {
+                  widgetRef.current.pause();
+                } // If playing, it should continue playing automatically
+              } else {
+                // On desktop, set volume
+                widgetRef.current.setVolume(playerState === 'muted' ? 0 : 25);
+              }
             }
           }, 100);
         }
@@ -273,7 +287,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         console.error('Failed to skip to next song:', error);
       }
     }
-  }, [playerState]);
+  }, [playerState, isMobile]);
 
   const handleSingleClick = useCallback(() => {
     switch (playerState) {
@@ -330,7 +344,13 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       case 'playing':
         // Currently playing - mute
         if (widgetRef.current) {
-          widgetRef.current.setVolume(0);
+          if (isMobile) {
+            // On mobile, pause instead of setting volume to 0
+            widgetRef.current.pause();
+          } else {
+            // On desktop, use volume control
+            widgetRef.current.setVolume(0);
+          }
           setIsMuted(true);
           setPlayerState('muted');
         }
@@ -339,13 +359,19 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       case 'muted':
         // Currently muted - unmute
         if (widgetRef.current) {
-          widgetRef.current.setVolume(25);
+          if (isMobile) {
+            // On mobile, resume playing
+            widgetRef.current.play();
+          } else {
+            // On desktop, restore volume
+            widgetRef.current.setVolume(25);
+          }
           setIsMuted(false);
           setPlayerState('playing');
         }
         break;
     }
-  }, [playerState, isMuted, initializeWidget]);
+  }, [playerState, isMuted, isMobile, initializeWidget]);
 
   const handleCDClick = useCallback(() => {
     clickCountRef.current += 1;

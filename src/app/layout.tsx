@@ -131,6 +131,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${untitledSans.variable} ${compagnon.variable} ${missFajardose.variable} antialiased`}
         suppressHydrationWarning
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              console.log("what r u doing here?? if ur just being nosy, here's a cookie 🍪\\nif something is broken, AAAAAA pls text me at 8582261998 i will fix");
+            `,
+          }}
+        />
         {children}
       </body>
     </html>

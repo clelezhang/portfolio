@@ -584,7 +584,7 @@ html {
 /* SpinningCD styles */
 .cd-shadow-container {
   --shadow-normal: 0 4px 8px rgba(47, 53, 87,0.25), 0 1px 2px rgba(47, 53, 87,0.1);
-  --shadow-hover: 0 4px 12px rgba(47, 53, 87,0.5), 0 1px 2px rgba(47, 53, 87,0.6);
+  --shadow-hover: 0 4px 12px rgba(47, 53, 87,0.5), 0 1px 2px rgba(47, 53, 87,0.2);
   box-shadow: var(--shadow-normal);
 }
 
