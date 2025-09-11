@@ -41,7 +41,7 @@
 /* Text selection styles */
 ::selection {
   background: var(--slate);
-  color: white;
+  color: var(--lightgray);
 }
 
 body {
