@@ -34,7 +34,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="pt-0 sm:pt-48 lg:pt-80 pb-6 px-4 sm:px-4 bg-lightgray relative">
+    <footer className="pt-0 sm:pt-48 lg:pt-80 pb-17 sm:pb-6 px-4 sm:px-4 bg-lightgray relative">
       <div className="max-w-7xl mx-auto">
         {/* Main signature area */}
         <div className="relative mb-6 ">

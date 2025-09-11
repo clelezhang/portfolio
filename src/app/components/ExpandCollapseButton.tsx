@@ -20,7 +20,7 @@ export default function ExpandCollapseButton({
   return (
     <button
       onClick={onClick}
-      className={`relative w-10 h-10 flex items-center justify-center bg-glass backdrop-blur-[20px] rounded-full transition-all duration-150 cursor-pointer border-none hover:bg-glass-bg-hover ${className}`}
+      className={`relative w-10 h-10 flex items-center justify-center bg-glass backdrop-blur-[20px] rounded-full transition-all duration-150 cursor-pointer border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover ${className}`}
       aria-label={isExpanded ? "Collapse menu" : "Expand menu"}
     >
       {/* First icon - diagonal dots (always stays in place) */}

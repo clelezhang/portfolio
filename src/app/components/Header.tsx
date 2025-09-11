@@ -35,13 +35,13 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => scrollToSection('talk-to-me')}
-              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover"
+              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover"
             >
               contact
             </button>
             <button 
               onClick={() => scrollToSection('portfolio-grid')}
-              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover flex items-center gap-2"
+              className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover flex items-center gap-2"
             >
               <HeartIcon className="text-accentgray"/>
               working & playing
@@ -124,7 +124,7 @@ export default function Header() {
                     scrollToSection('talk-to-me');
                     setIsMenuOpen(false);
                   }}
-                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none whitespace-nowrap hover:bg-glass-bg-hover"
+                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none whitespace-nowrap hover:bg-glass-bg-hover active:bg-glass-bg-hover"
                 >
                   contact
                 </button>
@@ -138,7 +138,7 @@ export default function Header() {
                     scrollToSection('portfolio-grid');
                     setIsMenuOpen(false);
                   }}
-                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover flex items-center gap-2 whitespace-nowrap"
+                  className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover flex items-center gap-2 whitespace-nowrap"
                 >
                   <HeartIcon className="text-accentgray" size={12} />
                   working & playing
