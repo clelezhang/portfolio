@@ -32,16 +32,6 @@ export async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig
 ): Promise<RateLimitResult> {
-  // Skip rate limiting in development if KV is not configured
-  if (process.env.NODE_ENV === 'development' && !process.env.KV_REST_API_URL) {
-    return {
-      allowed: true,
-      remaining: config.maxRequests - 1,
-      resetTime: Date.now() + config.windowMs,
-      total: config.maxRequests,
-    };
-  }
-
   try {
     const key = `${config.keyPrefix}:${identifier}`;
     const window = Math.floor(Date.now() / config.windowMs);
@@ -69,10 +59,11 @@ export async function checkRateLimit(
     };
   } catch (error) {
     console.error('Rate limit check failed:', error);
-    // Fail open - allow request if rate limiting fails
+    // In development, allow requests when KV fails (for easier development)
+    // In production, block requests as a safety measure
     return {
-      allowed: true,
-      remaining: 0,
+      allowed: process.env.NODE_ENV === 'development',
+      remaining: process.env.NODE_ENV === 'development' ? config.maxRequests - 1 : 0,
       resetTime: Date.now() + config.windowMs,
       total: config.maxRequests,
     };
