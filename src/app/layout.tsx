@@ -78,49 +78,62 @@ const missFajardose = Miss_Fajardose({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://lelezhang.design'),
-  title: "lele's website",
-  description: "product designer",
-  keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', type: 'image/x-icon' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/favicon-192x192.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: '/apple-touch-icon.png',
-    shortcut: '/favicon.ico',
+  // Basic metadata
+  title: {
+    default: "lele's portfolio",
+    template: "%s | lele's portfolio"
   },
+  description: "product designer",
+  keywords: ["lele zhang", "cherrilynn zhang", "cherrilynnz", "lele zhang berkeley", "lele zhang design"],
+  authors: [{ name: "Lele Zhang" }],
+  creator: "Lele Zhang",
+  
+  // Icons are handled automatically by Next.js file conventions:
+
+  // Open Graph for social sharing (Facebook, iMessage, etc.)
   openGraph: {
-    title: "lele's portfolio",
-    description: "a little glimpse into my work and thoughts",
     type: "website",
     locale: "en_US",
     url: "https://lelezhang.design",
     siteName: "lele's portfolio",
-    images: [
-      {
-        url: "/preview-1.webp",
-        width: 1200,
-        height: 630,
-        alt: "lele's portfolio preview",
-      },
-    ],
+    title: "lele's portfolio",
+    description: "product designer",
+    // OpenGraph image handled automatically by /app/opengraph-image.jpg
   },
+  
+  // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "lele's portfolio",
-    description: "a little glimpse into my work and thoughts",
+    site: "@CherrilynnZ",
     creator: "@CherrilynnZ",
-    images: ["/preview-1.webp"],
+    title: "lele's portfolio", 
+    description: "a little glimpse into my work and thoughts",
+    // Twitter image handled automatically by /app/opengraph-image.jpg
   },
+  
+  // Additional metadata
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1
+    }
   },
+  
+  // Mobile and app metadata
+  other: {
+    "apple-mobile-web-app-title": "lele's portfolio",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "format-detection": "telephone=no",
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#FBFBFC",
+    "theme-color": "#FBFBFC"
+  }
 };
 
 export const viewport: Viewport = {
