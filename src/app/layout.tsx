@@ -83,13 +83,24 @@ export const metadata: Metadata = {
   description: "product designer",
   keywords: ["product designer", "portfolio", "design", "startups", "san francisco"],
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
     title: "lele's portfolio",
     description: "a little glimpse into my work and thoughts",
     type: "website",
     locale: "en_US",
+    url: "https://lelezhang.design",
+    siteName: "lele's portfolio",
     images: [
       {
         url: "/preview.webp",

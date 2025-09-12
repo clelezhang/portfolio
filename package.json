@@ -39,6 +39,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "lighthouse": "^12.0.0",
+    "sharp": "^0.34.3",
+    "sharp-ico": "^0.1.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
