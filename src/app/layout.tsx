@@ -103,7 +103,7 @@ export const metadata: Metadata = {
     siteName: "lele's portfolio",
     images: [
       {
-        url: "/preview.webp",
+        url: "/preview-1.webp",
         width: 1200,
         height: 630,
         alt: "lele's portfolio preview",
@@ -115,7 +115,7 @@ export const metadata: Metadata = {
     title: "lele's portfolio",
     description: "a little glimpse into my work and thoughts",
     creator: "@CherrilynnZ",
-    images: ["/preview.webp"],
+    images: ["/preview-1.webp"],
   },
   robots: {
     index: true,
