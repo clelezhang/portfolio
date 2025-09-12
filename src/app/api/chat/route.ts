@@ -41,20 +41,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Rate limiting (skip in development for faster testing)
-    let rateLimitResult;
-    if (process.env.NODE_ENV === 'development') {
-      // Skip expensive rate limiting in development
-      rateLimitResult = {
-        allowed: true,
-        remaining: 29,
-        resetTime: Date.now() + 3600000,
-        total: 30
-      };
-    } else {
-      const visitorId = await generateVisitorId(req);
-      rateLimitResult = await checkChatRateLimit(visitorId);
-    }
+    // 2. Rate limiting
+    const visitorId = await generateVisitorId(req);
+    const rateLimitResult = await checkChatRateLimit(visitorId);
     
     const corsHeaders = createCORSHeaders(req);
     const rateLimitHeaders = createRateLimitHeaders(rateLimitResult);
@@ -84,7 +73,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Save incoming user message to KV
-    const visitorId = await generateVisitorId(req);
     const timestamp = new Date().toISOString();
     const lastUserMessage = messages[messages.length - 1];
     
