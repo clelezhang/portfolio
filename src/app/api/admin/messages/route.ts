@@ -20,35 +20,62 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    console.log('🔍 Fetching messages from KV...');
+    
     // Get all visitor IDs
     const visitors = await kv.smembers('chat:visitors');
+    console.log(`📊 Found ${visitors.length} visitors in KV`);
     
     const allConversations = [];
+    let totalMessages = 0;
     
     for (const visitorId of visitors) {
       // Get all message keys for this visitor
       const messageKeys = await kv.lrange(`chat:${visitorId}:messages`, 0, -1);
+      console.log(`👤 Visitor ${visitorId}: ${messageKeys.length} message keys`);
       
       const messages = [];
       for (const key of messageKeys) {
         const message = await kv.get(key as string);
         if (message) {
           messages.push(message);
+        } else {
+          console.log(`⚠️  Missing message for key: ${key}`);
         }
       }
       
       if (messages.length > 0) {
+        totalMessages += messages.length;
+        
+        // Sort messages by timestamp (chronological order)
+        const sortedMessages = messages.sort((a: any, b: any) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        
         allConversations.push({
           visitorId,
           messageCount: messages.length,
-          messages: messages.reverse(), // Reverse to show in chronological order
+          messages: sortedMessages,
+          lastMessageTime: sortedMessages[sortedMessages.length - 1]?.timestamp,
         });
       }
     }
     
+    console.log(`✅ Retrieved ${totalMessages} total messages from ${visitors.length} visitors`);
+    
+    // Sort conversations by most recent activity
+    allConversations.sort((a: any, b: any) => 
+      new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+    );
+    
     return new Response(JSON.stringify({
       totalVisitors: visitors.length,
+      totalMessages,
       conversations: allConversations,
+      debug: {
+        kvConnected: true,
+        timestamp: new Date().toISOString(),
+      }
     }, null, 2), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
