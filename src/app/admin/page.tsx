@@ -17,6 +17,13 @@ interface Conversation {
   messages: Message[];
 }
 
+interface Note {
+  visitorId: string;
+  note: string;
+  isBookmarked: boolean;
+  updatedAt: string;
+}
+
 interface AdminData {
   totalVisitors: number;
   totalMessages: number;
@@ -29,11 +36,15 @@ interface AdminData {
 
 export default function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
+  const [notes, setNotes] = useState<Record<string, Note>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adminKey, setAdminKey] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVisitor, setSelectedVisitor] = useState<string | null>(null);
+  const [filterBookmarked, setFilterBookmarked] = useState(false);
+  const [editingNote, setEditingNote] = useState<string | null>(null);
+  const [tempNote, setTempNote] = useState('');
 
   const fetchMessages = async () => {
     if (!adminKey.trim()) {
@@ -45,14 +56,24 @@ export default function AdminPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/messages?key=${encodeURIComponent(adminKey)}`);
+      // Fetch messages and notes in parallel
+      const [messagesResponse, notesResponse] = await Promise.all([
+        fetch(`/api/admin/messages?key=${encodeURIComponent(adminKey)}`),
+        fetch(`/api/admin/notes?key=${encodeURIComponent(adminKey)}`)
+      ]);
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!messagesResponse.ok) {
+        throw new Error(`HTTP ${messagesResponse.status}: ${messagesResponse.statusText}`);
       }
 
-      const result = await response.json();
-      setData(result);
+      const messagesResult = await messagesResponse.json();
+      setData(messagesResult);
+
+      // Notes might not exist yet, so don't throw error if 404
+      if (notesResponse.ok) {
+        const notesResult = await notesResponse.json();
+        setNotes(notesResult.notes || {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch messages');
     } finally {
@@ -60,16 +81,68 @@ export default function AdminPage() {
     }
   };
 
+  const saveNote = async (visitorId: string, note: string, isBookmarked: boolean) => {
+    try {
+      const response = await fetch('/api/admin/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitorId, note, isBookmarked, adminKey })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setNotes(prev => ({
+          ...prev,
+          [visitorId]: result.note
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to save note:', err);
+    }
+  };
+
+  const toggleBookmark = async (visitorId: string) => {
+    const currentNote = notes[visitorId];
+    const newBookmarkState = !currentNote?.isBookmarked;
+    await saveNote(visitorId, currentNote?.note || '', newBookmarkState);
+  };
+
+  const startEditingNote = (visitorId: string) => {
+    setEditingNote(visitorId);
+    setTempNote(notes[visitorId]?.note || '');
+  };
+
+  const saveEditedNote = async (visitorId: string) => {
+    await saveNote(visitorId, tempNote, notes[visitorId]?.isBookmarked || false);
+    setEditingNote(null);
+    setTempNote('');
+  };
+
+  const cancelEditingNote = () => {
+    setEditingNote(null);
+    setTempNote('');
+  };
+
   const filteredConversations = data?.conversations.filter(conv => {
-    if (!searchTerm) return true;
+    // Filter by bookmark status
+    if (filterBookmarked && !notes[conv.visitorId]?.isBookmarked) {
+      return false;
+    }
     
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      conv.visitorId.toLowerCase().includes(searchLower) ||
-      conv.messages.some(msg => 
-        msg.message.toLowerCase().includes(searchLower)
-      )
-    );
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = (
+        conv.visitorId.toLowerCase().includes(searchLower) ||
+        conv.messages.some(msg => 
+          msg.message.toLowerCase().includes(searchLower)
+        ) ||
+        notes[conv.visitorId]?.note.toLowerCase().includes(searchLower)
+      );
+      if (!matchesSearch) return false;
+    }
+    
+    return true;
   }) || [];
 
   const formatTimestamp = (timestamp: string) => {
@@ -138,16 +211,35 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Search */}
+        {/* Search and Filters */}
         {data && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search messages or visitor IDs..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="flex gap-4 items-center mb-4">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search messages, visitor IDs, or notes..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={filterBookmarked}
+                  onChange={(e) => setFilterBookmarked(e.target.checked)}
+                  className="rounded"
+                />
+                Show only bookmarked
+              </label>
+            </div>
+            <div className="text-sm text-gray-500">
+              Showing {filteredConversations.length} of {data.conversations.length} conversations
+              {Object.keys(notes).filter(id => notes[id].isBookmarked).length > 0 && (
+                <span className="ml-2">
+                  • {Object.keys(notes).filter(id => notes[id].isBookmarked).length} bookmarked
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -161,25 +253,88 @@ export default function AdminPage() {
             ) : (
               filteredConversations.map((conversation) => (
                 <div key={conversation.visitorId} className="bg-white rounded-lg shadow">
-                  <div 
-                    className="p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
-                    onClick={() => setSelectedVisitor(
-                      selectedVisitor === conversation.visitorId ? null : conversation.visitorId
-                    )}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Visitor: {conversation.visitorId.slice(0, 8)}...
-                        </h3>
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Visitor: {conversation.visitorId.slice(0, 8)}...
+                          </h3>
+                          <button
+                            onClick={() => toggleBookmark(conversation.visitorId)}
+                            className={`text-xl ${
+                              notes[conversation.visitorId]?.isBookmarked 
+                                ? 'text-yellow-500' 
+                                : 'text-gray-300 hover:text-yellow-400'
+                            }`}
+                            title={notes[conversation.visitorId]?.isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                          >
+                            ⭐
+                          </button>
+                        </div>
                         <p className="text-sm text-gray-500">
                           {conversation.messageCount} messages
                         </p>
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 text-right">
                         Latest: {formatTimestamp(conversation.messages[conversation.messages.length - 1]?.timestamp)}
                       </div>
                     </div>
+                    
+                    {/* Notes section */}
+                    <div className="mb-3">
+                      {editingNote === conversation.visitorId ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={tempNote}
+                            onChange={(e) => setTempNote(e.target.value)}
+                            placeholder="Add a note..."
+                            className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => saveEditedNote(conversation.visitorId)}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEditingNote}
+                            className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {notes[conversation.visitorId]?.note ? (
+                            <div className="flex-1 px-3 py-1 text-sm bg-blue-50 border border-blue-200 rounded">
+                              📝 {notes[conversation.visitorId].note}
+                            </div>
+                          ) : (
+                            <div className="flex-1 text-sm text-gray-400 italic">
+                              No notes
+                            </div>
+                          )}
+                          <button
+                            onClick={() => startEditingNote(conversation.visitorId)}
+                            className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                          >
+                            {notes[conversation.visitorId]?.note ? 'Edit' : 'Add Note'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => setSelectedVisitor(
+                        selectedVisitor === conversation.visitorId ? null : conversation.visitorId
+                      )}
+                      className="w-full text-left text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      {selectedVisitor === conversation.visitorId ? '▼ Hide messages' : '▶ View messages'}
+                    </button>
                   </div>
                   
                   {selectedVisitor === conversation.visitorId && (
