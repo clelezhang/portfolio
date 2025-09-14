@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         totalMessages += messages.length;
         
         // Sort messages by timestamp (chronological order)
-        const sortedMessages = messages.sort((a: any, b: any) => 
+        const sortedMessages = (messages as { timestamp: string }[]).sort((a, b) => 
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     console.log(`✅ Retrieved ${totalMessages} total messages from ${visitors.length} visitors`);
     
     // Sort conversations by most recent activity
-    allConversations.sort((a: any, b: any) => 
+    allConversations.sort((a, b) => 
       new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
     

@@ -246,7 +246,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         });
       }
     });
-  }, [isMuted, playerState, startProgressTracking]);
+  }, [startProgressTracking, stopProgressTracking]);
 
   const handleHover = useCallback(() => {
     // Preload on hover (silent - no state change)
@@ -371,7 +371,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         }
         break;
     }
-  }, [playerState, isMuted, isMobile, initializeWidget]);
+  }, [playerState, isMobile, initializeWidget]);
 
   const handleCDClick = useCallback(() => {
     clickCountRef.current += 1;

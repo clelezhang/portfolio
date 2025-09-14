@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   try {
     // Get all noted conversations
     const notedVisitors = await kv.smembers('noted:conversations');
-    const notes: Record<string, any> = {};
+    const notes: Record<string, unknown> = {};
     
     for (const visitorId of notedVisitors) {
       const noteKey = `note:${visitorId}`;
