@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface Message {
   visitorId: string;
@@ -366,7 +366,7 @@ export default function AdminPage() {
                           )}
                           {message.inResponseTo && (
                             <div className="mt-2 text-xs text-gray-500">
-                              💬 In response to: "{message.inResponseTo.slice(0, 50)}..."
+                              💬 In response to: &quot;{message.inResponseTo.slice(0, 50)}...&quot;
                             </div>
                           )}
                         </div>
