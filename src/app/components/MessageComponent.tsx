@@ -244,7 +244,7 @@ export default function MessageComponent({
                 content={content}
                 commentThreads={displayThreads}
                 onAddComment={(threadId, content, searchMode) => onAddCommentToThread?.(message.id, threadId, content, searchMode)}
-                onAIRespond={(threadId, searchMode) => onAIRespondToThread?.(message.id, threadId, searchMode)}
+                onAIRespond={(threadId) => onAIRespondToThread?.(message.id, threadId)}
                 onCancelDraft={(threadId) => onCancelDraft?.(message.id, threadId)}
                 onClick={handleClick}
                 className="cursor-text whitespace-pre-wrap break-words p-0 m-0"
@@ -324,7 +324,7 @@ export default function MessageComponent({
             <ContentWithComments
               content={parseCitationsToHTML(content, message.sources)}
               commentThreads={displayThreads}
-              onAddComment={(threadId, content) => onAddCommentToThread?.(message.id, threadId, content)}
+              onAddComment={(threadId, content, searchMode) => onAddCommentToThread?.(message.id, threadId, content, searchMode)}
               onAIRespond={(threadId) => onAIRespondToThread?.(message.id, threadId)}
               onCancelDraft={(threadId) => onCancelDraft?.(message.id, threadId)}
               onClick={handleClick}

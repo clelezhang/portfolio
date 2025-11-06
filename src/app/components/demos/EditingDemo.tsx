@@ -8,62 +8,18 @@ const DEMO_MESSAGES: Message[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'What are the key differences between Python and JavaScript?',
-    timestamp: Date.now() - 180000,
+    content: 'if i felt a little sick (occasional nausea/lower energy/cold temperature) for 5 days, and then felt very sick afterwards (high fever, no energy, cough & congestion) that\'s been declining for the last 3 days, should i go to the doctor? its flu season',
+    timestamp: Date.now() - 120000,
   },
   {
     id: 'msg-2',
     role: 'assistant',
-    content: `Great question! Here are the main differences:
+    content: `Based on what you're describing, if your symptoms are genuinely declining over the last 3 days, you may not need to rush to the doctor—that's a good sign that your body is fighting it off. Most people with flu or a bad cold can recover at home with rest, fluids, and time.
 
-## Syntax and Philosophy
+Since you're already 3 days into improvement, it might be worth waiting another day or two to see if the trend continues. If you're clearly getting better, you've probably passed the point where antiviral treatment (if applicable) would help anyway. A doctor visit is more useful if symptoms worsen, plateau, or you develop new concerning symptoms.
 
-**Python** emphasizes readability with significant whitespace and a "there should be one obvious way to do it" philosophy. **JavaScript** uses curly braces and semicolons, with more flexibility in coding style.
-
-## Type Systems
-
-Python is dynamically typed but emphasizes explicit types with type hints. JavaScript is also dynamically typed but more loosely so - it performs automatic type coercion.
-
-## Use Cases
-
-- **Python**: Data science, machine learning, backend web development, automation
-- **JavaScript**: Frontend web development, Node.js backends, full-stack applications
-
-## Execution
-
-Python is typically interpreted, while JavaScript runs in browsers or Node.js runtime environments.`,
-    timestamp: Date.now() - 120000,
-  },
-  {
-    id: 'msg-3',
-    role: 'user',
-    content: 'Can you show me a code example?',
+In the meantime, rest, hydrate, and monitor yourself. Trust your instincts—if something feels off or you're worried, it's okay to call your doctor's office for advice even if you don't go in.`,
     timestamp: Date.now() - 60000,
-  },
-  {
-    id: 'msg-4',
-    role: 'assistant',
-    content: `Sure! Here's a simple function in both languages:
-
-**Python:**
-\`\`\`python
-def greet(name):
-    return f"Hello, {name}!"
-
-print(greet("World"))
-\`\`\`
-
-**JavaScript:**
-\`\`\`javascript
-function greet(name) {
-    return \`Hello, \${name}!\`;
-}
-
-console.log(greet("World"));
-\`\`\`
-
-Notice how Python uses \`def\` while JavaScript uses \`function\`, and Python's f-strings vs JavaScript's template literals.`,
-    timestamp: Date.now() - 30000,
   },
 ];
 

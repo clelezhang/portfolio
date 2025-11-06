@@ -15,19 +15,23 @@ function shouldSearchAuto(query: string): boolean {
 }
 
 // Perform Exa search
-async function performSearch(query: string): Promise<{ query: string; results: any[] } | null> {
+async function performSearch(query: string): Promise<{ query: string; results: Array<{
+  url: string;
+  title: string;
+  publishedDate?: string;
+  author?: string;
+  score?: number;
+}> } | null> {
   try {
     const exa = new Exa(process.env.EXA_API_KEY);
     const searchResponse = await exa.searchAndContents(query, {
       numResults: 5,
       type: 'auto',
-      highlights: true,
     });
 
     const results = searchResponse.results.map(result => ({
       url: result.url,
-      title: result.title,
-      highlights: result.highlights || [],
+      title: result.title || 'Untitled',
       publishedDate: result.publishedDate,
       author: result.author,
       score: result.score,

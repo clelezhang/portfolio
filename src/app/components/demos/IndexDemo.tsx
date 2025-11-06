@@ -9,72 +9,124 @@ const DEMO_MESSAGES: Message[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'Tell me about the history of computing',
+    content: 'how could i franchise a boba shop',
     timestamp: Date.now() - 600000,
   },
   {
     id: 'msg-2',
     role: 'assistant',
-    content: `# Early Mechanical Computers
+    content: `# Franchise Requirements and Costs
 
-The history of computing begins with mechanical devices. Charles Babbage designed the Analytical Engine in the 1830s, which is considered the first general-purpose computer design. Ada Lovelace wrote the first algorithm intended for this machine.`,
+Initial investment: $150K-$350K typically
+Franchise fee: $25K-$50K
+Liquid capital: $100K-$200K required
+Net worth: $250K-$500K minimum
+Space: 800-1,500 sq ft retail location
+Equipment: $40K-$80K for boba machines, blenders, POS systems
+Ongoing fees: 4-7% royalty, 2-4% marketing fee
+
+## Requirements
+
+- Food service experience preferred
+- Ability to secure prime retail location
+- Pass franchisor's approval process
+- Complete training program
+- Comply with brand standards and operational procedures
+
+Popular boba franchises include Kung Fu Tea, Gong Cha, and Tiger Sugar.`,
     timestamp: Date.now() - 540000,
   },
   {
     id: 'msg-3',
     role: 'user',
-    content: 'What about electronic computers?',
+    content: 'tell me about business model development',
     timestamp: Date.now() - 480000,
   },
   {
     id: 'msg-4',
     role: 'assistant',
-    content: `# Electronic Era
+    content: `# Business Model Development for Boba Shop Franchise
 
-The ENIAC (1945) was one of the first electronic general-purpose computers. It weighed 30 tons and occupied an entire room. The transistor invention in 1947 revolutionized computing by replacing vacuum tubes.`,
+## Revenue Streams
+
+- Beverage sales (boba tea, smoothies, specialty drinks)
+- Food add-ons (pastries, snacks, light meals)
+- Merchandise and branded items
+
+## Key Components
+
+- **Target market**: Young adults, students, health-conscious consumers
+- **Value proposition**: Quality ingredients, customizable drinks, trendy atmosphere
+- **Pricing strategy**: Premium pricing ($4-$8 per drink) for perceived quality
+- **Location strategy**: High foot-traffic areas (malls, colleges, busy streets)
+- **Operational model**: Quick-service format with 2-4 staff members
+
+**Scalability**: Franchise model allows rapid expansion with lower capital requirements than company-owned stores while maintaining brand consistency.`,
     timestamp: Date.now() - 420000,
   },
   {
     id: 'msg-5',
     role: 'user',
-    content: 'And personal computers?',
+    content: 'tell me about legal documentation process',
     timestamp: Date.now() - 360000,
   },
   {
     id: 'msg-6',
     role: 'assistant',
-    content: `# Personal Computer Revolution
+    content: `# Legal Documentation Process for Boba Shop Franchise
 
-The 1970s-80s saw the rise of personal computers. The Altair 8800 (1975) was the first commercially successful PC. Apple II (1977) and IBM PC (1981) made computers accessible to homes and small businesses. This era democratized computing.`,
+## Key Documents Required
+
+- **Franchise Disclosure Document (FDD)**: Must be provided 14 days before signing
+- **Franchise Agreement**: Master contract outlining terms, fees, territory rights
+- **Business registration**: LLC/Corporation formation documents
+- **Operating licenses**: Food service permit, business license, health permits
+- **Lease agreements**: Commercial space rental contracts
+- **Insurance policies**: General liability, workers comp, property coverage
+- **Employment contracts**: Staff hiring documentation
+
+## Legal Steps
+
+1. Review FDD with franchise attorney
+2. Secure financing/investor agreements
+3. File business entity formation
+4. Obtain required permits/licenses
+5. Execute franchise agreement
+6. Complete real estate documentation
+
+Professional legal review is essential before signing any franchise agreements.`,
     timestamp: Date.now() - 300000,
   },
   {
     id: 'msg-7',
     role: 'user',
-    content: 'What about the internet?',
+    content: 'tell me about location and marketing strategy',
     timestamp: Date.now() - 240000,
   },
   {
     id: 'msg-8',
     role: 'assistant',
-    content: `# Internet & Web Era
+    content: `# Location & Marketing Strategy
 
-The internet evolved from ARPANET (1969). Tim Berners-Lee invented the World Wide Web in 1989. The 1990s saw massive growth with browsers like Netscape and Internet Explorer. Email, e-commerce, and search engines transformed how we communicate and access information.`,
+## Location Strategy
+
+- **High-traffic areas**: Shopping malls, college campuses, downtown districts
+- **Demographics**: Target areas with 18-35 age group, disposable income
+- **Visibility**: Ground-floor spaces with street visibility and foot traffic
+- **Proximity**: Near schools, offices, entertainment venues
+- **Accessibility**: Easy parking, public transit access
+
+## Marketing Strategy
+
+- **Social media focus**: Instagram, TikTok for visual appeal of colorful drinks
+- **Grand opening**: Free samples, discounts, influencer partnerships
+- **Loyalty programs**: Digital punch cards, mobile app rewards
+- **Local partnerships**: College events, food delivery apps
+- **Seasonal promotions**: Limited-time flavors, holiday specials
+- **Community engagement**: Local festivals, sponsorships
+
+Digital presence and visual marketing are crucial since boba drinks are highly "Instagrammable" and appeal to social media-savvy demographics.`,
     timestamp: Date.now() - 180000,
-  },
-  {
-    id: 'msg-9',
-    role: 'user',
-    content: 'And now with AI?',
-    timestamp: Date.now() - 120000,
-  },
-  {
-    id: 'msg-10',
-    role: 'assistant',
-    content: `# Modern AI Age
-
-Today we're in the age of artificial intelligence and machine learning. Deep learning breakthroughs have enabled capabilities like natural language processing, computer vision, and generative AI. Cloud computing provides massive computational power, enabling both innovation and widespread access to AI technologies.`,
-    timestamp: Date.now() - 60000,
   },
 ];
 
@@ -82,33 +134,21 @@ const DEMO_INDEX: ConversationIndexType = {
   sections: [
     {
       id: 'section-1',
-      title: 'Early Mechanical Computing',
-      startMessageId: 'msg-2',
-      endMessageId: 'msg-2',
-    },
-    {
-      id: 'section-2',
-      title: 'Electronic Computer Era',
+      title: 'Business Model Development',
       startMessageId: 'msg-4',
       endMessageId: 'msg-4',
     },
     {
-      id: 'section-3',
-      title: 'Personal Computer Revolution',
+      id: 'section-2',
+      title: 'Legal Documentation Process',
       startMessageId: 'msg-6',
       endMessageId: 'msg-6',
     },
     {
-      id: 'section-4',
-      title: 'Internet & Web Era',
+      id: 'section-3',
+      title: 'Location and Marketing',
       startMessageId: 'msg-8',
       endMessageId: 'msg-8',
-    },
-    {
-      id: 'section-5',
-      title: 'Modern AI Age',
-      startMessageId: 'msg-10',
-      endMessageId: 'msg-10',
     },
   ],
   lastGenerated: Date.now(),
@@ -225,7 +265,7 @@ export default function IndexDemo() {
               onMouseEnter={() => !isAnimating && setHoveredItemId('demo-chat')}
               onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
             >
-              <span className="chat-title">History of Computing</span>
+              <span className="chat-title">Franchising a Boba Shop</span>
             </button>
             
             {/* Index sections */}

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Extract bookmarks if preserveBookmarks is true
-    let bookmarks: string[] = [];
+    const bookmarks: string[] = [];
     if (preserveBookmarks) {
       const markRegex = /<mark[^>]*>(.*?)<\/mark>/g;
       let match;

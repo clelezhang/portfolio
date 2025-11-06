@@ -7,47 +7,73 @@ import { Exploration, ExploreSegment } from '@/app/lib/types';
 const DEMO_SEGMENTS: ExploreSegment[] = [
   {
     id: 'segment-1',
-    title: 'Neural Networks',
-    description: 'Foundation of deep learning',
-    content: `Neural networks are computational models inspired by biological neurons. They consist of layers of interconnected nodes that process information through weighted connections. Each layer transforms the input data, allowing the network to learn complex patterns.`,
+    title: 'The Chemistry Behind Love',
+    description: 'Neurochemicals and hormones',
+    content: `Love involves a complex interplay of neurochemicals and hormones that create powerful emotional and physical responses. When we experience attraction, our brains release dopamine (pleasure), norepinephrine (focus), and decrease serotonin (obsessive thinking), creating that euphoric "falling in love" feeling. Over time, oxytocin and vasopressin take over, fostering deeper bonding, trust, and attachment in long-term relationships.`,
     depth: 0,
     isExpanded: false,
   },
   {
     id: 'segment-2',
-    title: 'Training Process',
-    description: 'How networks learn',
-    content: `Training involves feeding data through the network, comparing outputs to expected results, and adjusting weights to minimize error. This process uses backpropagation and gradient descent to optimize the network's performance over many iterations.`,
+    title: 'The Psychological Components',
+    description: 'Attraction, commitment, and intimacy',
+    content: `Love combines multiple psychological elements including attraction, commitment, and intimacy—what psychologists call the "triangular theory" of love. Our attachment styles (formed in childhood), personal values, and emotional needs all influence who we fall for and how we love. Love also involves vulnerability, trust-building, and the willingness to prioritize another person's wellbeing alongside your own.`,
     depth: 0,
     isExpanded: false,
   },
   {
     id: 'segment-3',
-    title: 'Applications',
-    description: 'Real-world uses',
-    content: `Neural networks power image recognition, natural language processing, autonomous vehicles, and recommendation systems. They excel at tasks involving pattern recognition and prediction from large datasets.`,
+    title: 'Love as a Choice and Action',
+    description: 'Daily practice of showing up',
+    content: `Beyond chemistry and emotion, love is actively chosen and maintained through consistent effort, communication, and intentional behaviors. Real love requires:
+
+- Regular emotional connection and vulnerability
+- Acts of service and consideration
+- Conflict resolution and forgiveness
+- Supporting growth and shared goals
+
+Love isn't just a feeling—it's a daily practice of showing up for someone.`,
+    depth: 0,
+    isExpanded: false,
+  },
+  {
+    id: 'segment-4',
+    title: "Love's Evolution Over Time",
+    description: 'From passion to companionship',
+    content: `Passionate love (intense, obsessive) typically transitions to companionate love (deep friendship, stability, commitment) as relationships mature. This shift isn't a sign of failing love but rather its deepening and stabilization. The initial "butterflies" fade, but they're replaced by profound security, reliability, and genuine partnership that often feels more meaningful than the beginning stages.`,
     depth: 0,
     isExpanded: false,
   },
 ];
 
 // Pre-generate the full content so it starts with sections visible
-const FULL_CONTENT = `## Neural Networks
+const FULL_CONTENT = `## The Chemistry Behind Love
 
-Neural networks are computational models inspired by biological neurons. They consist of layers of interconnected nodes that process information through weighted connections. Each layer transforms the input data, allowing the network to learn complex patterns.
+Love involves a complex interplay of neurochemicals and hormones that create powerful emotional and physical responses. When we experience attraction, our brains release dopamine (pleasure), norepinephrine (focus), and decrease serotonin (obsessive thinking), creating that euphoric "falling in love" feeling. Over time, oxytocin and vasopressin take over, fostering deeper bonding, trust, and attachment in long-term relationships.
 
-## Training Process
+## The Psychological Components
 
-Training involves feeding data through the network, comparing outputs to expected results, and adjusting weights to minimize error. This process uses backpropagation and gradient descent to optimize the network's performance over many iterations.
+Love combines multiple psychological elements including attraction, commitment, and intimacy—what psychologists call the "triangular theory" of love. Our attachment styles (formed in childhood), personal values, and emotional needs all influence who we fall for and how we love. Love also involves vulnerability, trust-building, and the willingness to prioritize another person's wellbeing alongside your own.
 
-## Applications
+## Love as a Choice and Action
 
-Neural networks power image recognition, natural language processing, autonomous vehicles, and recommendation systems. They excel at tasks involving pattern recognition and prediction from large datasets.`;
+Beyond chemistry and emotion, love is actively chosen and maintained through consistent effort, communication, and intentional behaviors. Real love requires:
+
+- Regular emotional connection and vulnerability
+- Acts of service and consideration
+- Conflict resolution and forgiveness
+- Supporting growth and shared goals
+
+Love isn't just a feeling—it's a daily practice of showing up for someone.
+
+## Love's Evolution Over Time
+
+Passionate love (intense, obsessive) typically transitions to companionate love (deep friendship, stability, commitment) as relationships mature. This shift isn't a sign of failing love but rather its deepening and stabilization. The initial "butterflies" fade, but they're replaced by profound security, reliability, and genuine partnership that often feels more meaningful than the beginning stages.`;
 
 const DEMO_EXPLORATION: Exploration = {
   id: 'swipe-demo',
-  rootTopic: 'Neural Networks and Deep Learning',
-  title: 'Neural Networks and Deep Learning',
+  rootTopic: 'How Does Love Work',
+  title: 'How Does Love Work',
   fullContent: FULL_CONTENT,
   segments: DEMO_SEGMENTS,
   createdAt: Date.now(),

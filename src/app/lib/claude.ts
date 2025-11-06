@@ -22,7 +22,13 @@ function extractBookmarks(messages: Message[]): string[] {
 
 export async function generateClaudeResponse(
   messages: Message[],
-  searchResults?: { query: string; results: any[] },
+  searchResults?: { query: string; results: Array<{
+    url: string;
+    title: string;
+    publishedDate?: string;
+    author?: string;
+    score?: number;
+  }> },
   queueMode?: boolean,
   queueTopic?: string
 ): Promise<AsyncGenerator<string, void, unknown>> {
@@ -67,7 +73,6 @@ Here are the most relevant results:
 ${searchResults.results.map((result, idx) => `
 [${idx + 1}] ${result.title}
     URL: ${result.url}
-    ${result.highlights && result.highlights.length > 0 ? `Key excerpts:\n    - ${result.highlights.join('\n    - ')}` : ''}
 `).join('\n')}
 
 CITATION FORMAT RULES:
