@@ -23,8 +23,8 @@ interface MessageComponentProps {
   onUpdate: (messageId: string, newContent: string) => void;
   onRun?: (messageId: string) => void;
   onComment?: (messageId: string, threadId: string) => void; // Callback when user creates a comment (threadId is generated)
-  onAddCommentToThread?: (messageId: string, threadId: string, content: string) => void; // Add comment to existing thread
-  onAIRespondToThread?: (messageId: string, threadId: string) => void; // AI responds to a comment thread
+  onAddCommentToThread?: (messageId: string, threadId: string, content: string, searchMode: 'on' | 'auto' | 'off') => void; // Add comment to existing thread
+  onAIRespondToThread?: (messageId: string, threadId: string, searchMode?: 'on' | 'auto' | 'off') => void; // AI responds to a comment thread
   onCancelDraft?: (messageId: string, threadId: string) => void; // Cancel draft thread
   draftThreads?: CommentThread[]; // Draft threads for this message (not yet saved)
   isGenerating?: boolean;
@@ -243,8 +243,8 @@ export default function MessageComponent({
               <ContentWithComments
                 content={content}
                 commentThreads={displayThreads}
-                onAddComment={(threadId, content) => onAddCommentToThread?.(message.id, threadId, content)}
-                onAIRespond={(threadId) => onAIRespondToThread?.(message.id, threadId)}
+                onAddComment={(threadId, content, searchMode) => onAddCommentToThread?.(message.id, threadId, content, searchMode)}
+                onAIRespond={(threadId, searchMode) => onAIRespondToThread?.(message.id, threadId, searchMode)}
                 onCancelDraft={(threadId) => onCancelDraft?.(message.id, threadId)}
                 onClick={handleClick}
                 className="cursor-text whitespace-pre-wrap break-words p-0 m-0"

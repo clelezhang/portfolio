@@ -3,11 +3,13 @@ export interface Comment {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  sources?: Source[]; // Sources for citations in comments
 }
 
 export interface CommentThread {
   id: string;
   comments: Comment[];
+  isGenerating?: boolean; // Track if AI is currently generating a response for this thread
   // Note: Highlights are now embedded in markdown as <mark data-thread-id="xxx">text</mark>
   // The thread ID matches the data-thread-id attribute in the markdown
 }

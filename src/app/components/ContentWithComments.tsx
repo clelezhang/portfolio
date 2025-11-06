@@ -11,7 +11,7 @@ import rehypeRaw from 'rehype-raw';
 interface ContentWithCommentsProps {
   content: string;
   commentThreads?: CommentThread[];
-  onAddComment?: (threadId: string, content: string) => void;
+  onAddComment?: (threadId: string, content: string, searchMode: 'on' | 'auto' | 'off') => void;
   onAIRespond?: (threadId: string) => void;
   onCancelDraft?: (threadId: string) => void;
   onClick?: (e: React.MouseEvent) => void;
@@ -231,7 +231,7 @@ export default function ContentWithComments({
             <div key={index} style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
               <InlineCommentThread
                 thread={thread}
-                onAddComment={(threadId, content) => onAddComment?.(threadId, content)}
+                onAddComment={(threadId, content, searchMode) => onAddComment?.(threadId, content, searchMode)}
                 onAIRespond={(threadId) => onAIRespond?.(threadId)}
                 onCancelDraft={(threadId) => onCancelDraft?.(threadId)}
               />
