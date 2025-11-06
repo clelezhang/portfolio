@@ -1,0 +1,76 @@
+/* Tiptap Editor Styles */
+/* Most content styling (headings, lists, code, etc.) is in EditableChatCanvas.css */
+/* under the shared .message-content and .tiptap-editor selectors */
+
+.blog-demos .tiptap-editor {
+  outline: none;
+  width: 100%;
+  background: transparent;
+  border: none;
+  resize: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  caret-color: var(--color-olive-dark); /* Olive green cursor */
+}
+
+/* Remove default margins from direct children */
+.blog-demos .tiptap-editor > * {
+  margin: 0;
+}
+
+.blog-demos .tiptap-editor > * + * {
+  margin-top: 0;
+}
+
+/* Placeholder styling */
+.blog-demos .tiptap-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--text-400));
+  pointer-events: none;
+  height: 0;
+  font-style: normal;
+}
+
+/* Selection styling - match your color scheme */
+.blog-demos .tiptap-editor ::selection {
+  background-color: var(--color-highlight);
+  color: var(--color-olive-dark);
+}
+
+/* Keep selection visible even when editor loses focus (unfocused state) */
+.blog-demos .tiptap-editor:not(:focus) ::selection {
+  background-color: var(--color-highlight);
+  color: var(--color-olive-dark);
+}
+
+/* Also style the mark element to stay visible */
+.blog-demos .tiptap-editor mark {
+  background-color: var(--color-highlight);
+  color: var(--color-olive-dark);
+}
+
+/* Hard break */
+.blog-demos .tiptap-editor br {
+  display: block;
+  content: "";
+  margin: 0;
+}
+
+/* Focus state - no additional outline, matches textarea */
+.blog-demos .tiptap-editor:focus {
+  outline: none;
+}
+
+/* Ensure empty lines take up space */
+.blog-demos .tiptap-editor p:empty::before {
+  content: "\00A0";
+  color: transparent;
+  display: inline-block;
+  width: 0;
+}

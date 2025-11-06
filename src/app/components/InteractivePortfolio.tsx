@@ -814,8 +814,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
         {/* Drop zone overlay - shows when card is past snap point */}
         {state.dragState.isDragging && state.dragState.isPastSnapPoint && (
           <div className="absolute flex justify-center items-center inset-0 pointer-events-auto z-[4]">
-            <div 
-              className="envelope-outer-container"
+            <div
+              className="envelope-outer-container portfolio-chat"
               style={{
                 animation: 'fadeIn 0.5s ease-out',
                 backdropFilter: 'blur(2px)',
