@@ -1,0 +1,376 @@
+/* Swipe Deeper horizontal scroll container */
+.blog-demos .swipe-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  position: relative;
+  width: 100%;
+  height: 100%; /* Fill parent container */
+  box-sizing: border-box;
+  background-color: var(--color-white);
+}
+
+/* Hide scrollbar but keep functionality */
+.blog-demos .swipe-container::-webkit-scrollbar {
+  display: none;
+}
+
+.blog-demos .swipe-container {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Each depth level page */
+.blog-demos .depth-page {
+  width: 100%;
+  height: 100%; /* Full height of container */
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  display: flex;
+  justify-content: center;
+  /* No background color - transparent to avoid grey background */
+  background-color: transparent;
+  position: relative;
+  overflow-y: auto; /* Each page scrolls independently */
+  overflow-x: hidden;
+}
+
+/* Left sidebar for previous page title (depth > 0) - functions as back button */
+.blog-demos .depth-page-sidebar {
+  position: fixed; /* Fixed to viewport like nav bar */
+  left: 0;
+  top: 5.5rem; /* Below nav bar */
+  bottom: 2.5rem;
+  z-index: 40; /* Below nav bar (z-50) but above content */
+  border-radius: 0 24px 24px 0;
+  width: calc((100% - 35rem) / 2); /* Fill left negative space */
+  background-color: var(--color-off-white);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: .5rem;
+  cursor: pointer;
+  /* Animate slide in/out from left with smooth transitions */
+  transition: transform 200ms ease-out, opacity 200ms ease-out, background-color 200ms ease-out;
+  transform: translateX(0);
+  opacity: 1;
+  overflow: hidden; /* Hide overflow */
+}
+
+/* Inside demo containers, use absolute positioning */
+.blog-demos .demo-container .depth-page-sidebar {
+  position: absolute;
+  top: 4.5rem; /* Below breadcrumb bar */
+  bottom: 1.5rem;
+}
+
+.blog-demos .demo-container .depth-page-sidebar-content h2 {
+  font-size: 2rem; /* Smaller heading for demo */
+  font-weight: 500;
+  line-height: 1.05;
+  color: #6f6f6f3c;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Hide state - slide out to the left */
+.blog-demos .depth-page-sidebar[data-hidden="true"] {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.blog-demos .depth-page-sidebar:hover {
+  background-color: var(--color-hover-off-white); /* Slightly darker on hover */
+}
+
+.blog-demos .depth-page-sidebar-content {
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden; /* Handle text overflow */
+}
+
+.blog-demos .depth-page-sidebar-content h2 {
+  font-size: 4rem;
+  font-weight: 500;
+  line-height: 1.05;
+  color: #6f6f6f3c;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Inner container with max width */
+.blog-demos .depth-page-inner {
+  width: 100%;
+  max-width: 40rem;
+  padding: 1rem 1rem 0 1rem; /* Minimal top padding since swipe-container handles spacing */
+  position: relative;
+  z-index: 1;
+  min-height: 100%; /* Ensure it fills available space */
+  box-sizing: border-box;
+}
+
+/* Add bottom spacing after all sections */
+.blog-demos .depth-page-inner::after {
+  content: '';
+  display: block;
+  height: 4rem; /* 4rem of bottom spacing */
+}
+
+/* Breadcrumb buttons - animated width property */
+.blog-demos .breadcrumb-button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Use explicit width which animates reliably */
+  flex: 0 0 auto;
+  width: calc(100% / var(--breadcrumb-total, 1) - 0.25rem);
+  min-width: 0;
+  padding: 0.5rem 1rem;
+  /* Animate width as button count changes */
+  transition: width 200ms ease-out, background-color 200ms ease-out, filter 150ms ease-out;
+  /* Calculate lightness: start at 85%, decrease by 5% per level, floor at 50% */
+  background-color: hsl(75, 40%, max(calc(85% - (var(--breadcrumb-index, 0) * 5%)), 50%));
+}
+
+.blog-demos .breadcrumb-flex-container {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0rem 0.5rem;
+  height: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.blog-demos .breadcrumb-bar-container {
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.blog-demos .breadcrumb-button:hover {
+  filter: brightness(0.96);
+}
+
+/* Arrow navigation buttons */
+.blog-demos .swipe-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9;
+  background-color: var(--color-white);
+  border: 1px solid var(--border-toolbar);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 200ms ease-out, background-color 150ms ease-out;
+  opacity: 0.6;
+}
+
+.blog-demos .swipe-arrow:hover {
+  opacity: 1;
+  background-color: var(--color-off-white);
+}
+
+.blog-demos .swipe-arrow:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.blog-demos .swipe-arrow.left {
+  left: 1.5rem;
+}
+
+.blog-demos .swipe-arrow.right {
+  right: 1.5rem;
+}
+
+/* Breadcrumb navigation */
+.blog-demos .breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.blog-demos .breadcrumb-item {
+  color: var(--text-300);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.blog-demos .breadcrumb-item:hover {
+  color: var(--text-100);
+}
+
+.blog-demos .breadcrumb-item.active {
+  color: var(--text-100);
+  font-weight: 500;
+}
+
+.blog-demos .breadcrumb-separator {
+  color: var(--text-400);
+  font-size: 0.875rem;
+  user-select: none;
+}
+
+/* Refresh button */
+.blog-demos .refresh-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--color-white);
+  border: 1px solid var(--border-toolbar);
+  border-radius: 8px;
+  color: var(--text-200);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.blog-demos .refresh-button:hover {
+  background-color: var(--color-off-white);
+  color: var(--text-100);
+}
+
+/* Page header */
+.blog-demos .depth-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+/* Section wrapper with external arrow */
+.blog-demos .swipe-section-wrapper {
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px 1fr 80px; /* Left spacer, content, arrow */
+  align-items: stretch;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  transition: background-color 200ms ease-out;
+}
+
+/* Entire wrapper turns green on hover */
+.blog-demos .swipe-section-wrapper:hover .swipe-section {
+  background-color: var(--color-light-green);
+}
+
+.blog-demos .swipe-section-wrapper:hover .swipe-section-title {
+  color: var(--color-olive-dark);
+}
+
+.blog-demos .swipe-section-wrapper:hover .message-content {
+  color: var(--color-olive-dark);
+}
+
+.blog-demos .swipe-section-wrapper:hover .section-expand-arrow-external {
+  background-color: #CFDEAB; /* Olive green from globals.css */
+}
+
+.blog-demos .swipe-section-wrapper:hover .section-expand-arrow-external svg {
+  color: var(--color-olive-dark);
+  transform: translateX(24px); /* Move arrow 8px to the right on hover */
+}
+
+/* Disable hover effects when button is disabled (loading state) */
+.blog-demos .swipe-section-wrapper:hover .section-expand-arrow-external:disabled ~ .swipe-section,
+.blog-demos .swipe-section-wrapper:has(.section-expand-arrow-external:disabled):hover .swipe-section {
+  background-color: var(--color-white);
+}
+
+.blog-demos .swipe-section-wrapper:has(.section-expand-arrow-external:disabled):hover .swipe-section-title {
+  color: var(--color-black);
+}
+
+.blog-demos .swipe-section-wrapper:has(.section-expand-arrow-external:disabled):hover .message-content {
+  color: var(--color-black);
+}
+
+.blog-demos .swipe-section-wrapper:has(.section-expand-arrow-external:disabled):hover .section-expand-arrow-external {
+  background-color: var(--color-white);
+}
+
+.blog-demos .swipe-section-wrapper:has(.section-expand-arrow-external:disabled):hover .section-expand-arrow-external svg {
+  color: #e0e0e0;
+  transform: none; /* Don't move arrow when disabled */
+}
+
+/* Editable section - centered in middle column */
+.blog-demos .swipe-section {
+  grid-column: 2; /* Middle column */
+  background-color: var(--color-white);
+  border-radius: 12px 0 0 12px; /* Rounded on left side only */
+  padding: 0.75rem 1rem;
+  transition: background-color 200ms ease-out;
+}
+
+/* No special styling for streaming - same as regular sections */
+.blog-demos .swipe-section.streaming {
+  background-color: var(--color-white);
+}
+
+/* Section title container */
+.blog-demos .swipe-section-title-container {
+  margin-bottom: 0.5rem;
+}
+
+/* Section title */
+.blog-demos .swipe-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-black);
+  margin: 0;
+  transition: color 200ms ease-out;
+}
+
+/* Message content */
+.blog-demos .swipe-section .message-content {
+  color: var(--color-black);
+  transition: color 200ms ease-out;
+}
+
+/* Section expand arrow button - REALLY BIG, connected to right side of section */
+.blog-demos .section-expand-arrow-external {
+  grid-column: 3; /* Right column */
+  flex-shrink: 0;
+  background-color: var(--color-white);
+  border: none; /* No border */
+  cursor: pointer;
+  border-radius: 0 12px 12px 0; /* Rounded on right side only */
+  transition: all 200ms ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 64px;
+}
+
+.blog-demos .section-expand-arrow-external svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2;
+  color: #e0e0e0; /* Very light grey when not hovered */
+  transition: color 200ms ease-out, transform 200ms ease-out;
+}
+
+.blog-demos .section-expand-arrow-external:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
