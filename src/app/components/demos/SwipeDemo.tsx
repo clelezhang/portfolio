@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import SwipeDeeper from '../SwipeDeeper';
 import { Exploration, ExploreSegment } from '@/app/lib/types';
 
@@ -80,8 +80,134 @@ const DEMO_EXPLORATION: Exploration = {
   updatedAt: Date.now(),
 };
 
-export default function SwipeDemo() {
+interface SwipeDemoProps {
+  newTopic?: string;
+  onTopicProcessed?: () => void;
+}
+
+export default function SwipeDemo({ newTopic, onTopicProcessed }: SwipeDemoProps = {}) {
   const [exploration, setExploration] = useState<Exploration>(DEMO_EXPLORATION);
+
+  // Handle new topic
+  React.useEffect(() => {
+    if (newTopic && newTopic !== exploration.rootTopic) {
+      // Start generating real content for the topic
+      const generateExploration = async () => {
+        try {
+          const response = await fetch('/api/blog-demos/explore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'generateInitial',
+              topic: newTopic,
+            }),
+          });
+
+          if (!response.ok || !response.body) {
+            throw new Error('Failed to generate exploration');
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedContent = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  // Parse final content into segments
+                  const segments = parseMarkdownIntoSegments(accumulatedContent);
+                  const newExploration: Exploration = {
+                    id: `swipe-${Date.now()}`,
+                    rootTopic: newTopic,
+                    title: newTopic,
+                    fullContent: accumulatedContent,
+                    segments,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                  };
+                  setExploration(newExploration);
+                  onTopicProcessed?.();
+                  break;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) {
+                    accumulatedContent = parsed.content;
+                    // Update with streaming content
+                    const segments = parseMarkdownIntoSegments(accumulatedContent);
+                    const streamingExploration: Exploration = {
+                      id: `swipe-${Date.now()}`,
+                      rootTopic: newTopic,
+                      title: newTopic,
+                      fullContent: accumulatedContent,
+                      segments,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    };
+                    setExploration(streamingExploration);
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error generating exploration:', error);
+          // Fallback to simple placeholder
+          const newExploration: Exploration = {
+            id: `swipe-${Date.now()}`,
+            rootTopic: newTopic,
+            title: newTopic,
+            fullContent: `## ${newTopic}\n\nGenerating content...`,
+            segments: [{
+              id: 'loading',
+              title: newTopic,
+              description: 'Introduction',
+              content: 'Generating content...',
+              depth: 0,
+              isExpanded: false,
+            }],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          setExploration(newExploration);
+          onTopicProcessed?.();
+        }
+      };
+
+      generateExploration();
+    }
+  }, [newTopic, exploration.rootTopic, onTopicProcessed]);
+
+  // Helper function to parse markdown into segments
+  const parseMarkdownIntoSegments = (markdown: string): ExploreSegment[] => {
+    const sections = markdown.split(/(?=^## )/m).filter(Boolean);
+    return sections.map((section, index) => {
+      const lines = section.trim().split('\n');
+      const titleLine = lines[0];
+      const title = titleLine.replace(/^##\s*/, '').trim();
+      const content = lines.slice(1).join('\n').trim();
+
+      return {
+        id: `segment-${index + 1}`,
+        title,
+        description: content.substring(0, 50) + '...',
+        content,
+        depth: 0,
+        isExpanded: false,
+      };
+    });
+  };
 
   return (
     <div className="demo-container" style={{ height: '600px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>

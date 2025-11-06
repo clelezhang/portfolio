@@ -9,7 +9,7 @@ const DEMO_MESSAGES: Message[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'how could i franchise a boba shop',
+    content: 'how can i franchise a boba shop',
     timestamp: Date.now() - 600000,
   },
   {
