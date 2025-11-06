@@ -842,7 +842,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     };
   }, [handleQueueItemClick, onQueueItemClick]);
 
-  const handleQueuePlay = async (itemId: string) => {
+  const handleQueuePlay = useCallback(async (itemId: string) => {
     const item = queueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
     if (!item) return;
 
@@ -855,19 +855,22 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
       }
       return q;
     });
-    
+
     setQueueItems(updatedItems);
 
     // If item has content, send it as a message
     if (item.content) {
       const userMessage = createMessage('user', item.content);
-      const updatedMessages = [...messages, userMessage];
-      setMessages(updatedMessages);
-      
-      // Pass the topic directly since we know which item is being played
-      await runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, userMessage];
+
+        // Pass the topic directly since we know which item is being played
+        runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
+
+        return updatedMessages;
+      });
     }
-  };
+  }, [queueItems, setQueueItems, runMessageWithMessagesAndTopic]);
 
   const handleQueueEdit = (itemId: string, newTitle: string) => {
     const updatedItems = queueItems.map((item: import('@/app/lib/types').QueueItem) => 
@@ -899,6 +902,24 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
       }
     }
   }, [isGenerating, autoplay, queueMode, currentQueueItemId, queueItems]);
+
+  // Listen for queue item trigger events (for auto-playing demos)
+  useEffect(() => {
+    if (!queueMode) return;
+
+    const handleTriggerQueueItem = (event: Event) => {
+      const customEvent = event as CustomEvent<{ queueItemId: string }>;
+      const { queueItemId } = customEvent.detail;
+      handleQueuePlay(queueItemId);
+    };
+
+    const eventName = `triggerQueueItem-${demoId}`;
+    window.addEventListener(eventName, handleTriggerQueueItem);
+
+    return () => {
+      window.removeEventListener(eventName, handleTriggerQueueItem);
+    };
+  }, [demoId, queueMode, handleQueuePlay]);
 
   return (
       <>

@@ -9,56 +9,100 @@ const DEMO_MESSAGES: Message[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'I want to learn about climate change, renewable energy, and carbon capture',
+    content: 'how to bake apple pie',
+    timestamp: Date.now() - 300000,
+  },
+  {
+    id: 'msg-2',
+    role: 'assistant',
+    content: `## Pie Crust Techniques
+
+- Keep ingredients cold - use chilled butter and ice water
+- Don't overwork the dough to avoid tough crust
+- Roll from center outward on floured surface
+- Transfer carefully to prevent tearing
+- Crimp edges decoratively to seal
+- Brush top with egg wash for golden color
+- Cut steam vents in top crust
+- Consider blind baking bottom crust 10-15 minutes to prevent sogginess
+- Use pie weights or beans when blind baking`,
+    timestamp: Date.now() - 240000,
+  },
+  {
+    id: 'msg-3',
+    role: 'user',
+    content: 'tell me about apple selection and preparation',
     timestamp: Date.now() - 180000,
+  },
+  {
+    id: 'msg-4',
+    role: 'assistant',
+    content: `## Apple Selection and Preparation
+
+- Choose firm, tart apples like Granny Smith, Honeycrisp, or Braeburn
+- Mix 2-3 varieties for complex flavor
+- Peel, core, and slice apples 1/4-inch thick
+- Toss with lemon juice to prevent browning
+- Mix with sugar, cinnamon, nutmeg, and 2-3 tablespoons flour or cornstarch
+- Let mixture sit 10-15 minutes to release juices before filling crust`,
+    timestamp: Date.now() - 120000,
   },
 ];
 
 const DEMO_QUEUE: QueueItem[] = [
   {
     id: 'queue-1',
-    title: 'Climate change basics',
-    content: 'tell me about climate change basics',
+    title: 'Pie Crust Techniques',
+    content: 'tell me about pie crust techniques',
     status: 'past',
     order: 0,
   },
   {
     id: 'queue-2',
-    title: 'Renewable energy sources',
-    content: 'tell me about renewable energy sources',
-    status: 'now',
+    title: 'Apple Selection and Preparation',
+    content: 'tell me about apple selection and preparation',
+    status: 'past',
     order: 1,
   },
   {
     id: 'queue-3',
-    title: 'Carbon capture technology',
-    content: 'tell me about carbon capture technology',
-    status: 'upcoming',
+    title: 'Filling Ingredients and Spices',
+    content: 'tell me about filling ingredients and spices',
+    status: 'now',
     order: 2,
   },
   {
     id: 'queue-4',
-    title: 'Future climate solutions',
-    content: 'tell me about future climate solutions',
+    title: 'Baking Temperature and Time',
+    content: 'tell me about baking temperature and time',
     status: 'upcoming',
     order: 3,
+  },
+  {
+    id: 'queue-5',
+    title: 'Assembly and Finishing Steps',
+    content: 'tell me about assembly and finishing steps',
+    status: 'upcoming',
+    order: 4,
   },
 ];
 
 export default function QueueDemo() {
   const [messages, setMessages] = useState<Message[]>(DEMO_MESSAGES);
   const [queueItems, setQueueItems] = useState<QueueItem[]>(DEMO_QUEUE);
-  
+  const [hasTriggered, setHasTriggered] = useState(false);
+
   // Animation state (simplified from layout.tsx)
   const [selectedDotPosition, setSelectedDotPosition] = useState({ top: 0, opacity: 1 });
   const [hoverDotPosition, setHoverDotPosition] = useState({ top: 0, opacity: 0 });
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [selectedIndexItemId, setSelectedIndexItemId] = useState<string>('demo-chat-queue-queue-2'); // Start with NOW item selected
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   const indexButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const chatAnimConfig = {
     dotDuration: 250,
@@ -123,8 +167,39 @@ export default function QueueDemo() {
     }
   }, [queueItems]);
 
+  // Auto-trigger queue message when scrolled into view
+  useEffect(() => {
+    if (hasTriggered) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasTriggered) {
+            setHasTriggered(true);
+            // Wait a moment for the demo to fully load, then trigger the queue
+            setTimeout(() => {
+              const event = new CustomEvent('triggerQueueItem-queue-demo', {
+                detail: { queueItemId: 'queue-3' }
+              });
+              window.dispatchEvent(event);
+            }, 800);
+          }
+        });
+      },
+      {
+        threshold: 0.3, // Trigger when 30% visible
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasTriggered]);
+
   return (
-    <div className="demo-container" style={{ height: '600px', display: 'flex', position: 'relative', '--dot-duration': `${chatAnimConfig.dotDuration}ms`, '--dot-spring': chatAnimConfig.dotSpring } as React.CSSProperties}>
+    <div ref={containerRef} className="demo-container" style={{ height: '600px', display: 'flex', position: 'relative', '--dot-duration': `${chatAnimConfig.dotDuration}ms`, '--dot-spring': chatAnimConfig.dotSpring } as React.CSSProperties}>
       {/* Sidebar - EXACT structure from chat/layout.tsx */}
       <div className="sidebar">
         <div className="chat-list">
@@ -156,7 +231,7 @@ export default function QueueDemo() {
               onMouseEnter={() => !isAnimating && setHoveredItemId('demo-chat')}
               onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
             >
-              <span className="chat-title">Climate Topics</span>
+              <span className="chat-title">Apple Pie Baking</span>
             </button>
             
             {/* Queue items */}

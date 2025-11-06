@@ -7,7 +7,10 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Lazy-load Exa client to avoid build-time errors
+function getExaClient() {
+  return new Exa(process.env.EXA_API_KEY);
+}
 
 // Detect if a topic is time-sensitive and needs web search
 async function isTimeSensitiveTopic(topic: string): Promise<boolean> {
@@ -36,6 +39,7 @@ async function isTimeSensitiveTopic(topic: string): Promise<boolean> {
 // Search Exa for recent web content
 async function searchExaForTopic(topic: string): Promise<string> {
   try {
+    const exa = getExaClient();
     const searchResponse = await exa.searchAndContents(topic, {
       type: 'auto',
       numResults: 5,
