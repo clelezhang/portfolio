@@ -250,7 +250,7 @@ export default function EditableChatCanvas({
     }));
   };
 
-  const handleAddCommentToThread = (messageId: string, threadId: string, content: string) => {
+  const handleAddCommentToThread = (messageId: string, threadId: string, content: string, searchMode: 'on' | 'auto' | 'off') => {
     const newComment: import('@/app/lib/types').Comment = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -259,29 +259,29 @@ export default function EditableChatCanvas({
     };
 
     const compositeKey = `${messageId}-${threadId}`;
-    
+
     // Check if this is a draft thread
     const draftThread = draftThreads.get(compositeKey);
     let updatedMessages: Message[];
-    
+
     if (draftThread) {
       // This is the first comment - promote draft to real thread
       const newThread: import('@/app/lib/types').CommentThread = {
         id: threadId,
         comments: [newComment],
       };
-      
-      updatedMessages = messages.map(msg => 
-        msg.id === messageId 
-          ? { 
-              ...msg, 
-              commentThreads: [...(msg.commentThreads || []), newThread] 
+
+      updatedMessages = messages.map(msg =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              commentThreads: [...(msg.commentThreads || []), newThread]
             }
           : msg
       );
-      
+
       setMessages(updatedMessages);
-      
+
       // Remove from drafts
       setDraftThreads(prev => {
         const newMap = new Map(prev);
@@ -303,16 +303,33 @@ export default function EditableChatCanvas({
         }
         return msg;
       });
-      
+
       setMessages(updatedMessages);
     }
 
+    console.log('✅ Comment added to thread', threadId);
+
     // Trigger AI response immediately with updated messages
-    handleAIRespondToThread(messageId, threadId, updatedMessages);
-    console.log('✅ Triggered AI response for thread', threadId);
+    handleAIRespondToThread(messageId, threadId, updatedMessages, searchMode);
   };
 
-  const handleAIRespondToThread = async (messageId: string, threadId: string, messagesArray: Message[]) => {
+  const handleAIRespondWrapper = (threadId: string, searchMode?: 'on' | 'auto' | 'off') => {
+    // Find which message contains this thread
+    const messageId = messages.find(msg =>
+      msg.commentThreads?.some(t => t.id === threadId)
+    )?.id;
+
+    if (messageId) {
+      handleAIRespondToThread(messageId, threadId, messages, searchMode || 'auto');
+    }
+  };
+
+  const handleAIRespondToThread = async (
+    messageId: string,
+    threadId: string,
+    messagesArray: Message[],
+    searchMode: 'on' | 'auto' | 'off' = 'auto'
+  ) => {
     const message = messagesArray.find(msg => msg.id === messageId);
     if (!message) {
       console.log('❌ AI Response: Message not found', messageId);
@@ -329,7 +346,20 @@ export default function EditableChatCanvas({
       return;
     }
 
-    console.log('✅ AI Response: Starting for thread', threadId, 'with', thread.comments.length, 'comments');
+    console.log('✅ AI Response: Starting for thread', threadId, 'with', thread.comments.length, 'comments', 'searchMode:', searchMode);
+
+    // Set isGenerating flag on the thread
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.commentThreads) {
+        return {
+          ...msg,
+          commentThreads: msg.commentThreads.map(t =>
+            t.id === threadId ? { ...t, isGenerating: true } : t
+          ),
+        };
+      }
+      return msg;
+    }));
 
     try {
       // Extract highlighted text from markdown
@@ -356,6 +386,7 @@ Your response (keep it brief):`;
           messages: [
             { role: 'user', content: context },
           ],
+          searchMode: searchMode,
         }),
       });
 
@@ -366,12 +397,13 @@ Your response (keep it brief):`;
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedContent = '';
+      let sources: import('@/app/lib/types').Source[] | undefined;
 
       if (!reader) return;
 
       // Create a temporary AI comment that we'll update as we stream
       const aiCommentId = crypto.randomUUID();
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -385,7 +417,7 @@ Your response (keep it brief):`;
               const data = JSON.parse(line.slice(6));
               if (data.content) {
                 accumulatedContent += data.content;
-                
+
                 // Update the comment in real-time
                 setMessages(prev => prev.map(msg => {
                   if (msg.id === messageId && msg.commentThreads) {
@@ -400,16 +432,44 @@ Your response (keep it brief):`;
                             role: 'assistant',
                             content: accumulatedContent,
                             timestamp: Date.now(),
+                            sources: sources, // Include sources if available
                           };
-                          
+
                           if (existingCommentIndex >= 0) {
                             // Update existing comment
                             const newComments = [...t.comments];
                             newComments[existingCommentIndex] = updatedComment;
-                            return { ...t, comments: newComments };
+                            return { ...t, comments: newComments, isGenerating: false };
                           } else {
-                            // Add new comment
-                            return { ...t, comments: [...t.comments, updatedComment] };
+                            // Add new comment and clear isGenerating
+                            return { ...t, comments: [...t.comments, updatedComment], isGenerating: false };
+                          }
+                        }
+                        return t;
+                      }),
+                    };
+                  }
+                  return msg;
+                }));
+              } else if (data.sources) {
+                // Capture sources when they arrive
+                sources = data.sources;
+
+                // Update the comment with sources
+                setMessages(prev => prev.map(msg => {
+                  if (msg.id === messageId && msg.commentThreads) {
+                    return {
+                      ...msg,
+                      commentThreads: msg.commentThreads.map(t => {
+                        if (t.id === threadId) {
+                          const existingCommentIndex = t.comments.findIndex(c => c.id === aiCommentId);
+                          if (existingCommentIndex >= 0) {
+                            const newComments = [...t.comments];
+                            newComments[existingCommentIndex] = {
+                              ...newComments[existingCommentIndex],
+                              sources: sources,
+                            };
+                            return { ...t, comments: newComments };
                           }
                         }
                         return t;
@@ -428,6 +488,19 @@ Your response (keep it brief):`;
       }
     } catch (error) {
       console.error('Error getting AI response:', error);
+
+      // Clear isGenerating flag on error
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId && msg.commentThreads) {
+          return {
+            ...msg,
+            commentThreads: msg.commentThreads.map(t =>
+              t.id === threadId ? { ...t, isGenerating: false } : t
+            ),
+          };
+        }
+        return msg;
+      }));
     }
   };
 
@@ -861,7 +934,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
                     onRun={message.role === 'user' ? runMessage : undefined}
                     onComment={handleComment}
                     onAddCommentToThread={handleAddCommentToThread}
-                    onAIRespondToThread={(messageId, threadId) => handleAIRespondToThread(messageId, threadId, messages)}
+                    onAIRespondToThread={(messageId, threadId, searchMode) => handleAIRespondToThread(messageId, threadId, messages, searchMode)}
                     onCancelDraft={handleCancelDraft}
                     draftThreads={messageDraftThreads}
                     isGenerating={isGenerating && generatingMessageId === message.id}

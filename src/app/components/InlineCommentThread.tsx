@@ -5,17 +5,18 @@ import { CommentThread } from '@/app/lib/types';
 import { ArrowUp, Search, Plus, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import { parseCitationsToHTML } from './CitationChip';
 import './EditableChatCanvas.css';
 
 interface InlineCommentThreadProps {
   thread: CommentThread;
-  onAddComment: (threadId: string, content: string) => void;
-  onAIRespond: (threadId: string) => void;
+  onAddComment: (threadId: string, content: string, searchMode: 'on' | 'auto' | 'off') => void;
+  onAIRespond: (threadId: string, searchMode?: 'on' | 'auto' | 'off') => void;
   onCancelDraft?: (threadId: string) => void; // Called when draft thread is abandoned
 }
 
-export default function InlineCommentThread({ 
-  thread, 
+export default function InlineCommentThread({
+  thread,
   onAddComment,
   onAIRespond,
   onCancelDraft
@@ -25,6 +26,9 @@ export default function InlineCommentThread({
   const [showSearchSuccess, setShowSearchSuccess] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDraftThread = thread.comments.length === 0;
+
+  // Use the thread's isGenerating flag
+  const isGenerating = thread.isGenerating || false;
 
   // Auto-resize textarea
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function InlineCommentThread({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newComment.trim()) {
-      onAddComment(thread.id, newComment);
+      onAddComment(thread.id, newComment, searchMode);
       setNewComment('');
     }
   };
@@ -196,31 +200,31 @@ export default function InlineCommentThread({
           <div key={comment.id} className="pt-4 px-4 pb-2 flex gap-3">
             {/* Profile photo with connecting line */}
             <div className="relative flex-shrink-0">
-              <div 
+              <div
                 className="w-6 h-6 rounded-full relative"
-                style={{ 
+                style={{
                   backgroundColor: comment.role === 'user' ? 'var(--color-olive-dark)' : 'var(--color-olive-light)'
                 }}
               />
-              {/* Vertical line connecting to next comment */}
-              {index < thread.comments.length - 1 && (
-                <div 
-                  className="absolute left-1/2 -translate-x-1/2"
-                  style={{
-                    width: '1.5px',
-                    top: '28px', // Height of avatar
-                    bottom: '-20px', // Extend to next comment
-                    backgroundColor: 'var(--border-toolbar)'
-                  }}
-                />
-              )}
-            </div>
+                {/* Vertical line connecting to next comment */}
+                {index < thread.comments.length - 1 && (
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2"
+                    style={{
+                      width: '1.5px',
+                      top: '28px', // Height of avatar
+                      bottom: '-20px', // Extend to next comment
+                      backgroundColor: 'var(--border-toolbar)'
+                    }}
+                  />
+                )}
+              </div>
             
             {/* Comment content */}
             <div className="flex-1">
-              <div 
-                className="prose prose-sm max-w-none" 
-                style={{ 
+              <div
+                className="prose prose-sm max-w-none"
+                style={{
                   fontSize: 'var(--font-size-message)',
                   lineHeight: 'var(--line-height-message)',
                   color: comment.role === 'user' ? 'var(--color-black)' : 'var(--color-gray)'
@@ -234,8 +238,36 @@ export default function InlineCommentThread({
                     b: ({ children }) => <strong style={{ fontWeight: 'var(--font-weight-semibold)' }}>{children}</strong>,
                     em: ({ children }) => <em className="italic">{children}</em>,
                     code: ({ children }) => <code className="bg-bg-300 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+                    a: ({ href, children, className, ...props }: React.ComponentPropsWithoutRef<'a'>) => {
+                      // Preserve citation classes (citation-chip and citation-link)
+                      if (className?.includes('citation')) {
+                        return (
+                          <a
+                            href={href}
+                            className={className}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            {...props}
+                          >
+                            {children}
+                          </a>
+                        );
+                      }
+                      // Regular markdown links
+                      return (
+                        <a
+                          href={href}
+                          className="citation-link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
                     ul: ({ children }) => (
-                      <ul style={{ 
+                      <ul style={{
                         paddingLeft: 'var(--list-padding-left)',
                         marginTop: 'var(--list-margin-top)',
                         marginBottom: 'var(--list-margin-bottom)',
@@ -246,7 +278,7 @@ export default function InlineCommentThread({
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol style={{ 
+                      <ol style={{
                         paddingLeft: 'var(--list-padding-left)',
                         marginTop: 'var(--list-margin-top)',
                         marginBottom: 'var(--list-margin-bottom)',
@@ -263,12 +295,38 @@ export default function InlineCommentThread({
                     ),
                   }}
                 >
-                  {comment.content}
+                  {parseCitationsToHTML(comment.content, comment.sources)}
                 </ReactMarkdown>
               </div>
             </div>
           </div>
         ))}
+
+        {/* Show generating indicator after comments */}
+        {isGenerating && (
+          <div className="pt-4 px-4 pb-2 flex gap-3">
+            <div className="relative flex-shrink-0">
+              <div
+                className="w-6 h-6 rounded-full relative loader-pulse"
+                style={{
+                  backgroundColor: 'var(--color-olive-light)'
+                }}
+              />
+            </div>
+            <div className="flex-1">
+              <div
+                className="prose prose-sm max-w-none"
+                style={{
+                  fontSize: 'var(--font-size-message)',
+                  lineHeight: 'var(--line-height-message)',
+                  color: 'var(--color-gray)'
+                }}
+              >
+                <p className="mb-2 last:mb-0">...</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Input field - inside container for existing threads */}
         {renderInput()}
