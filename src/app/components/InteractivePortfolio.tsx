@@ -870,8 +870,8 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
              </div>
             
             {/* Main Envelope Body */}
-            <div 
-              className="envelope-main-body"
+            <div
+              className="envelope-main-body portfolio-chat"
             >
             {/* Left Panel */}
                  <div className="envelope-left-panel" />
