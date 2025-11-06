@@ -180,7 +180,6 @@ export default function DemoSection({
         borderRadius: '12px',
         overflow: 'hidden',
         border: '1px solid var(--border-subtle)',
-        marginBottom: '4rem',
       }}
     >
       <Suspense

@@ -72,16 +72,16 @@ export default function TiptapEditor({
         },
       }),
       Markdown.configure({
-        html: true, // Allow HTML in markdown (for <mark> tags)
-        tightLists: true, // No <p> inside <li>
+        html: true,
+        tightLists: true,
         bulletListMarker: '-',
         linkify: false,
-        breaks: true, // Preserve line breaks
+        breaks: true,
         transformPastedText: true,
         transformCopiedText: false,
       }),
     ],
-    content, // Pass markdown directly
+    content,
     autofocus: false,
     editorProps: {
       attributes: {

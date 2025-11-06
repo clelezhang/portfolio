@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Miss_Fajardose } from "next/font/google";
+import { Geist, Geist_Mono, Miss_Fajardose, Caveat } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -77,6 +77,14 @@ const missFajardose = Miss_Fajardose({
   preload: false, // Only used in footer
 });
 
+const caveat = Caveat({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-caveat",
+  preload: false, // Only used in blog
+});
+
 export const metadata: Metadata = {
   // Basic metadata
   title: {
@@ -152,7 +160,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${untitledSans.variable} ${compagnon.variable} ${missFajardose.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${untitledSans.variable} ${compagnon.variable} ${missFajardose.variable} ${caveat.variable} antialiased`}
         suppressHydrationWarning
       >
         <script

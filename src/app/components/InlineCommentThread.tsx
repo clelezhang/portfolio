@@ -206,8 +206,8 @@ export default function InlineCommentThread({
                   backgroundColor: comment.role === 'user' ? 'var(--color-olive-dark)' : 'var(--color-olive-light)'
                 }}
               />
-                {/* Vertical line connecting to next comment */}
-                {index < thread.comments.length - 1 && (
+                {/* Vertical line connecting to next comment or loading state */}
+                {(index < thread.comments.length - 1 || isGenerating) && (
                   <div
                     className="absolute left-1/2 -translate-x-1/2"
                     style={{
@@ -312,18 +312,6 @@ export default function InlineCommentThread({
                   backgroundColor: 'var(--color-olive-light)'
                 }}
               />
-            </div>
-            <div className="flex-1">
-              <div
-                className="prose prose-sm max-w-none"
-                style={{
-                  fontSize: 'var(--font-size-message)',
-                  lineHeight: 'var(--line-height-message)',
-                  color: 'var(--color-gray)'
-                }}
-              >
-                <p className="mb-2 last:mb-0">...</p>
-              </div>
             </div>
           </div>
         )}

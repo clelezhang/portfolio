@@ -335,7 +335,7 @@
 /* Section title */
 .blog-demos .swipe-section-title {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-black);
   margin: 0;
   transition: color 200ms ease-out;

@@ -27,6 +27,7 @@
     "framer-motion": "^12.23.12",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.536.0",
+    "markdown-it": "13.0.2",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -57,5 +58,8 @@
     "sharp-ico": "^0.1.5",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "markdown-it": "13.0.2"
   }
 }

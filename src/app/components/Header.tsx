@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import LeleIcon from './icons/LeleIcon';
 import HeartIcon from './icons/HeartIcon';
@@ -11,18 +12,26 @@ import MusicPlayer from './MusicPlayer';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const handleEmailCopy = () => {
     navigator.clipboard.writeText('clzhang@berkeley.edu');
   };
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+    // If we're on the home page, scroll to the section
+    if (pathname === '/') {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    } else {
+      // If we're on another page, navigate to home with hash
+      router.push(`/#${sectionId}`);
     }
   };
 
@@ -50,7 +59,13 @@ export default function Header() {
           
           {/* Center: Logo */}
           <div className="absolute left-1/2 transform -translate-x-1/2">
-            <LeleIcon className="text-accentgray" />
+            <button
+              onClick={() => router.push('/')}
+              className="cursor-pointer bg-transparent border-none"
+              aria-label="Go to home"
+            >
+              <LeleIcon className="text-accentgray" />
+            </button>
           </div>
           
           {/* Right pills */}
@@ -68,7 +83,13 @@ export default function Header() {
         {/* Mobile header - always visible */}
         <div className="fixed w-full left-0 top-0 flex justify-between items-center p-4 z-[90]">
           {/* Left: Logo */}
-          <LeleIcon className="text-accentgray" />
+          <button
+            onClick={() => router.push('/')}
+            className="cursor-pointer bg-transparent border-none"
+            aria-label="Go to home"
+          >
+            <LeleIcon className="text-accentgray" />
+          </button>
           
           {/* Right: Social icons */}
           <div className="flex items-center gap-3">

@@ -219,10 +219,11 @@ export default function MessageComponent({
             <div className="w-6 h-6 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-olive-dark)' }} />
             
             <div className="flex-1 min-w-0">
-              <div style={{ 
-                fontSize: 'var(--font-size-message)', 
+              <div style={{
+                fontSize: 'var(--font-size-message)',
                 lineHeight: 'var(--line-height-message)',
-                color: 'var(--color-black)'
+                color: 'var(--color-black)',
+                letterSpacing: 'var(--letter-spacing-tight)'
               }}>
               {isEditing ? (
               <TiptapEditor
@@ -296,12 +297,13 @@ export default function MessageComponent({
   return (
     <div className="mb-12 mt-6 group">
       <div className="flex-1 min-w-0">
-        <div 
+        <div
           className="relative"
-          style={{ 
+          style={{
             color: 'var(--color-black)',
             fontSize: 'var(--font-size-message)',
-            lineHeight: 'var(--line-height-message)'
+            lineHeight: 'var(--line-height-message)',
+            letterSpacing: 'var(--letter-spacing-tight)'
           }}
         >
           {isEditing ? (
