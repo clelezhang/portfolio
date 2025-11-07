@@ -113,10 +113,30 @@ export default function EditableChatCanvas({
   useEffect(() => {
     // Only scroll if we added a new message (length increased)
     if (messages.length > prevMessageCountRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      const scrollContainer = messagesEndRef.current?.closest('.messages-container');
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
     prevMessageCountRef.current = messages.length;
   }, [messages]);
+
+  // Auto-scroll during message generation/streaming
+  useEffect(() => {
+    if (isGenerating && generatingMessageId) {
+      const scrollContainer = messagesEndRef.current?.closest('.messages-container');
+      if (scrollContainer) {
+        // Scroll to bottom as content streams in
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [messages, isGenerating, generatingMessageId]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -133,10 +153,23 @@ export default function EditableChatCanvas({
       const messageContainer = messageContainerRefs.current.get(messageId);
 
       if (messageContainer) {
-        messageContainer.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
+        // Find the scrollable parent (.messages-container)
+        const scrollContainer = messageContainer.closest('.messages-container');
+        if (scrollContainer) {
+          // Calculate the position relative to the scroll container
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const messageRect = messageContainer.getBoundingClientRect();
+          const scrollTop = scrollContainer.scrollTop;
+
+          // Calculate target scroll position (align message to top of container)
+          const targetScrollTop = scrollTop + (messageRect.top - containerRect.top);
+
+          // Smooth scroll to target position
+          scrollContainer.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+        }
       }
     };
 
