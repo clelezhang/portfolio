@@ -1,5 +1,10 @@
 /* Chat Canvas Styles */
 
+.blog-demos .demo-container,
+.blog-demos .demo-container * {
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 .blog-demos .chat-canvas {
   position: relative;
   display: flex;
