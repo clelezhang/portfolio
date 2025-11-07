@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
 import Header from '@/app/components/Header';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Play } from 'lucide-react';
 import './blog-demos.css';
 
 // Dynamically import demos for code splitting
@@ -196,6 +196,8 @@ const ExplorationInput = ({ buttonText, onSubmit }: { buttonText: string; onSubm
 export default function ChatExplorationsPage() {
   const [digDeeperTopic, setDigDeeperTopic] = useState<string | undefined>();
   const [swipeTopic, setSwipeTopic] = useState<string | undefined>();
+  const [triggerQueueDemo, setTriggerQueueDemo] = useState<boolean>(false);
+  const queueDemoRef = useRef<HTMLDivElement>(null);
 
   const handleDigDeeperSubmit = (topic: string) => {
     setDigDeeperTopic(topic);
@@ -203,6 +205,15 @@ export default function ChatExplorationsPage() {
 
   const handleSwipeSubmit = (topic: string) => {
     setSwipeTopic(topic);
+  };
+
+  const handlePlayQueueDemo = () => {
+    // Scroll to demo first
+    queueDemoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Trigger demo after a short delay to ensure it's in view
+    setTimeout(() => {
+      setTriggerQueueDemo(true);
+    }, 500);
   };
 
   return (
@@ -332,14 +343,47 @@ export default function ChatExplorationsPage() {
           </section>
         </TextContainer>
 
-        <DemoSection
-          name="queue"
-          previewGif="/demos/queue.gif"
-          previewImage="/demos/queue.jpg"
-          loadOnScroll
-        >
-          <QueueDemo />
-        </DemoSection>
+        <div style={{ paddingBottom: '1rem', maxWidth: '600px', margin: '0 auto' }}>
+          <button
+            onClick={handlePlayQueueDemo}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#C6C7D24D',
+              color: '#2F3557',
+              border: 'none',
+              borderRadius: '.75rem',
+              cursor: 'pointer',
+              fontSize: '.85rem',
+              fontWeight: 400,
+              fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
+              transition: 'background-color 150ms ease-out',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8B9C44D'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C6C7D24D'}
+          >
+            <span>play queue demo</span>
+            <Play size={16} fill="#2F3557" strokeWidth={0} />
+
+          </button>
+        </div>
+
+        <div ref={queueDemoRef}>
+          <DemoSection
+            name="queue"
+            previewGif="/demos/queue.gif"
+            previewImage="/demos/queue.jpg"
+            loadOnScroll
+          >
+            <QueueDemo
+              triggerDemo={triggerQueueDemo}
+              onDemoTriggered={() => setTriggerQueueDemo(false)}
+            />
+          </DemoSection>
+        </div>
 
         <TextContainer>
           <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>

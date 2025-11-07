@@ -156,17 +156,19 @@ const DEMO_INDEX: ConversationIndexType = {
 
 export default function IndexDemo() {
   const [messages, setMessages] = useState<Message[]>(DEMO_MESSAGES);
-  
+
   // Animation state (simplified from layout.tsx)
   const [selectedDotPosition, setSelectedDotPosition] = useState({ top: 0, opacity: 1 });
   const [hoverDotPosition, setHoverDotPosition] = useState({ top: 0, opacity: 0 });
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [selectedIndexItemId, setSelectedIndexItemId] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
-  
+  const [isUserNavigating, setIsUserNavigating] = useState(false); // Track if user is clicking to navigate
+
   const indexButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userNavigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const chatAnimConfig = {
     dotDuration: 250,
@@ -226,11 +228,83 @@ export default function IndexDemo() {
   const scrollToMessage = (messageId: string, sectionId: string) => {
     lockAnimation();
     setSelectedIndexItemId(sectionId);
+
+    // Set user navigation flag to prevent auto-tracking for 2 seconds
+    setIsUserNavigating(true);
+    if (userNavigationTimeoutRef.current) {
+      clearTimeout(userNavigationTimeoutRef.current);
+    }
+    userNavigationTimeoutRef.current = setTimeout(() => {
+      setIsUserNavigating(false);
+    }, 2000);
+
     const event = new CustomEvent(`scrollToMessage-index-demo`, {
       detail: { messageId }
     });
     window.dispatchEvent(event);
   };
+
+  // Auto-track visible sections based on scroll position
+  useEffect(() => {
+    // Create a map of messageId -> sectionId for quick lookup
+    const messageToSectionMap = new Map<string, string>();
+    DEMO_INDEX.sections.forEach((section) => {
+      messageToSectionMap.set(section.startMessageId, `demo-chat-section-${section.id}`);
+    });
+
+    // Create IntersectionObserver to track visible messages
+    const observerOptions = {
+      root: document.querySelector('.demo-container .main-content'),
+      rootMargin: '-20% 0px -50% 0px', // Trigger when message is in upper portion of viewport
+      threshold: 0,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      if (isUserNavigating) return; // Don't auto-track during user navigation
+
+      // Find the topmost visible message that has a section
+      let topmostEntry: IntersectionObserverEntry | null = null;
+      let topmostY = Infinity;
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const messageId = entry.target.id.replace('message-', '');
+          const sectionId = messageToSectionMap.get(messageId);
+
+          if (sectionId) {
+            const rect = entry.boundingClientRect;
+            if (rect.top < topmostY) {
+              topmostY = rect.top;
+              topmostEntry = entry;
+            }
+          }
+        }
+      });
+
+      if (topmostEntry) {
+        const messageId = topmostEntry.target.id.replace('message-', '');
+        const sectionId = messageToSectionMap.get(messageId);
+        if (sectionId && sectionId !== selectedIndexItemId) {
+          setSelectedIndexItemId(sectionId);
+        }
+      }
+    }, observerOptions);
+
+    // Observe all messages that have corresponding index sections
+    const messageElements: Element[] = [];
+    DEMO_INDEX.sections.forEach((section) => {
+      const messageElement = document.querySelector(`#message-${section.startMessageId}`);
+      if (messageElement) {
+        observer.observe(messageElement);
+        messageElements.push(messageElement);
+      }
+    });
+
+    return () => {
+      messageElements.forEach((el) => observer.unobserve(el));
+      observer.disconnect();
+    };
+  }, [isUserNavigating, selectedIndexItemId]);
 
   return (
     <div className="demo-container" style={{ height: '600px', display: 'flex', position: 'relative', '--dot-duration': `${chatAnimConfig.dotDuration}ms`, '--dot-spring': chatAnimConfig.dotSpring } as React.CSSProperties}>

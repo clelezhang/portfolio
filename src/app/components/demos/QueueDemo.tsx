@@ -87,7 +87,12 @@ const DEMO_QUEUE: QueueItem[] = [
   },
 ];
 
-export default function QueueDemo() {
+interface QueueDemoProps {
+  triggerDemo?: boolean;
+  onDemoTriggered?: () => void;
+}
+
+export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoProps = {}) {
   const [messages, setMessages] = useState<Message[]>(DEMO_MESSAGES);
   const [queueItems, setQueueItems] = useState<QueueItem[]>(DEMO_QUEUE);
   const [hasTriggered, setHasTriggered] = useState(false);
@@ -167,9 +172,24 @@ export default function QueueDemo() {
     }
   }, [queueItems]);
 
-  // Auto-trigger queue message when scrolled into view
+  // Handle external trigger
   useEffect(() => {
-    if (hasTriggered) return;
+    if (triggerDemo && !hasTriggered) {
+      setHasTriggered(true);
+      // Trigger the queue animation
+      setTimeout(() => {
+        const event = new CustomEvent('triggerQueueItem-queue-demo', {
+          detail: { queueItemId: 'queue-3' }
+        });
+        window.dispatchEvent(event);
+      }, 300);
+      onDemoTriggered?.();
+    }
+  }, [triggerDemo, hasTriggered, onDemoTriggered]);
+
+  // Auto-trigger queue message when scrolled into view (disabled when using external trigger)
+  useEffect(() => {
+    if (hasTriggered || triggerDemo !== undefined) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -196,7 +216,7 @@ export default function QueueDemo() {
     }
 
     return () => observer.disconnect();
-  }, [hasTriggered]);
+  }, [hasTriggered, triggerDemo]);
 
   return (
     <div ref={containerRef} className="demo-container" style={{ height: '600px', display: 'flex', position: 'relative', '--dot-duration': `${chatAnimConfig.dotDuration}ms`, '--dot-spring': chatAnimConfig.dotSpring } as React.CSSProperties}>
