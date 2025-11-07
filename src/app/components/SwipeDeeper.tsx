@@ -189,16 +189,18 @@ export default function SwipeDeeper({
                 const sections = parseSections(accumulatedContent, 0);
                 const updatedExploration = {
                   ...exploration,
-                  rootTopic,
+                  rootTopic: topic,
+                  title: topic,
                   fullContent: accumulatedContent,
                   segments: sections,
+                  depthCache: {}, // Clear cache on new topic
                 };
                 setExploration(updatedExploration);
                 onExplorationChange(updatedExploration);
 
                 const initialPage: SwipeDepthPage = {
                   depth: 0,
-                  parentPath: [updatedExploration.title || rootTopic],
+                  parentPath: [topic],
                   sections,
                 };
                 setDepthPages([initialPage]);
