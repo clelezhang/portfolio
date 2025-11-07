@@ -13,6 +13,8 @@ interface ExploreCanvasProps {
   explorationId: string;
   initialRecommendations?: Array<{ title: string; description: string }>;
   demoId?: string; // Unique ID for this demo instance to avoid conflicts
+  triggerTopic?: string; // Topic to trigger generation externally
+  onTopicProcessed?: () => void; // Callback when topic generation starts
 }
 
 // Generate stable ID from title and depth
@@ -281,12 +283,14 @@ function SectionButton({
   );
 }
 
-export default function ExploreCanvas({ 
-  initialExploration, 
+export default function ExploreCanvas({
+  initialExploration,
   onExplorationChange,
   explorationId,
   initialRecommendations = [],
-  demoId = 'default'
+  demoId = 'default',
+  triggerTopic,
+  onTopicProcessed
 }: ExploreCanvasProps) {
   const [exploration, setExploration] = useState<Exploration>(initialExploration);
   const [topicInput, setTopicInput] = useState(initialExploration.rootTopic || '');
@@ -318,16 +322,24 @@ export default function ExploreCanvas({
     }
   }, [topicInput]);
 
+  // Handle external topic trigger
+  useEffect(() => {
+    if (triggerTopic) {
+      handleGenerateInitial(triggerTopic);
+      onTopicProcessed?.();
+    }
+  }, [triggerTopic]);
+
   // Debounced save
   useEffect(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
-    
+
     saveTimeoutRef.current = setTimeout(() => {
       onExplorationChange(exploration);
     }, 500);
-    
+
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
