@@ -277,6 +277,14 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
                         indexButtonRefs.current.delete(queueItemId);
                       }
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger this queue item
+                      const event = new CustomEvent('triggerQueueItem-queue-demo', {
+                        detail: { queueItemId: item.id }
+                      });
+                      window.dispatchEvent(event);
+                    }}
                     onMouseEnter={() => !isAnimating && setHoveredItemId(queueItemId)}
                     onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
                     className={`index-item-btn ${isSelected ? 'selected' : ''}`}
@@ -285,13 +293,13 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
                   </button>
                 );
               })}
-              
+
               {/* UP NEXT items */}
               {queueItems.filter(item => item.status === 'upcoming').map((item) => {
                 const queueItemId = `demo-chat-queue-${item.id}`;
-                
+
                 return (
-                  <div
+                  <button
                     key={item.id}
                     ref={(el) => {
                       if (el) {
@@ -300,12 +308,20 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
                         indexButtonRefs.current.delete(queueItemId);
                       }
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger this queue item
+                      const event = new CustomEvent('triggerQueueItem-queue-demo', {
+                        detail: { queueItemId: item.id }
+                      });
+                      window.dispatchEvent(event);
+                    }}
                     className="index-item-btn upcoming"
                     onMouseEnter={() => !isAnimating && setHoveredItemId(queueItemId)}
                     onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
                   >
                     <span className="index-item-title">{item.title}</span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
