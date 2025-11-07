@@ -11,6 +11,8 @@ interface SwipeDeeperProps {
   initialExploration: Exploration;
   onExplorationChange: (exploration: Exploration) => void;
   explorationId: string;
+  triggerTopic?: string; // Topic to trigger generation externally
+  onTopicProcessed?: () => void; // Callback when topic generation starts
 }
 
 // Parse markdown sections from content
@@ -64,6 +66,8 @@ export default function SwipeDeeper({
   initialExploration,
   onExplorationChange,
   explorationId,
+  triggerTopic,
+  onTopicProcessed
 }: SwipeDeeperProps) {
   const [exploration, setExploration] = useState<Exploration>(initialExploration);
   const [rootTopic, setRootTopic] = useState(initialExploration.rootTopic || '');
@@ -137,10 +141,13 @@ export default function SwipeDeeper({
   };
 
   // Generate initial exploration
-  const handleGenerateInitial = async () => {
-    if (!rootTopic.trim() || isGenerating) return;
+  const handleGenerateInitial = async (customTopic?: string) => {
+    const topic = customTopic || rootTopic;
+    if (!topic.trim() || isGenerating) return;
 
     setIsGenerating(true);
+    setStreamingPageIndex(0); // Set streaming for the first page
+    setStreamingContent('');
     abortControllerRef.current = new AbortController();
 
     try {
@@ -149,7 +156,7 @@ export default function SwipeDeeper({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'generateInitial',
-          topic: rootTopic,
+          topic: topic,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -195,6 +202,8 @@ export default function SwipeDeeper({
                   sections,
                 };
                 setDepthPages([initialPage]);
+                setStreamingPageIndex(null);
+                setStreamingContent('');
                 setIsGenerating(false);
               }
               continue;
@@ -205,6 +214,8 @@ export default function SwipeDeeper({
 
               if (parsed.content) {
                 accumulatedContent += parsed.content;
+                // Update streaming content in real-time
+                setStreamingContent(accumulatedContent);
               }
 
               if (parsed.title && !exploration.title) {
@@ -251,6 +262,40 @@ export default function SwipeDeeper({
       setIsGenerating(false);
     }
   };
+
+  // Handle external topic trigger
+  useEffect(() => {
+    if (triggerTopic) {
+      // Create a placeholder page with the new topic title immediately
+      const placeholderPage: SwipeDepthPage = {
+        depth: 0,
+        parentPath: [triggerTopic],
+        sections: [],
+      };
+
+      setDepthPages([placeholderPage]);
+      setCurrentDepthIndex(0);
+      setStreamingPageIndex(0);
+      setStreamingContent('');
+      setExpandingSegmentId(null);
+      setRootTopic(triggerTopic);
+
+      // Update exploration with new topic
+      const resetExploration = {
+        ...exploration,
+        rootTopic: triggerTopic,
+        title: triggerTopic,
+        fullContent: '',
+        segments: [],
+        depthCache: {},
+      };
+      setExploration(resetExploration);
+
+      // Pass the topic directly to avoid stale state
+      handleGenerateInitial(triggerTopic);
+      onTopicProcessed?.();
+    }
+  }, [triggerTopic, onTopicProcessed]);
 
   // Handle section content update
   const handleSectionUpdate = (segmentId: string, newContent: string) => {
@@ -690,7 +735,7 @@ export default function SwipeDeeper({
               autoFocus
             />
             <button
-              onClick={handleGenerateInitial}
+              onClick={() => handleGenerateInitial()}
               disabled={isGenerating || !rootTopic.trim()}
               className="send-button"
               style={{
