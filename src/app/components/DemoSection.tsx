@@ -186,25 +186,28 @@ export default function DemoSection({
         border: '1px solid var(--border-subtle)',
         filter: isFocused ? 'none' : 'grayscale(1)',
         opacity: isFocused ? 1 : 0.4,
-        pointerEvents: 'auto',
         cursor: !isFocused ? 'pointer' : 'default',
-        transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
+        transition: 'filter 150ms ease-in-out, opacity 150ms ease-in-out',
+        willChange: 'filter, opacity',
+        position: 'relative',
       }}
     >
-      <Suspense
-        fallback={
-          <div
-            style={{
-              width: '100%',
-              height: '600px',
-              background: 'var(--color-off-white)',
-              animation: 'pulse 1.5s ease-in-out infinite',
-            }}
-          />
-        }
-      >
-        {children}
-      </Suspense>
+      <div style={{ pointerEvents: isFocused ? 'auto' : 'none' }}>
+        <Suspense
+          fallback={
+            <div
+              style={{
+                width: '100%',
+                height: '600px',
+                background: 'var(--color-off-white)',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}
+            />
+          }
+        >
+          {children}
+        </Suspense>
+      </div>
     </div>
   );
 }

@@ -222,7 +222,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
       ))}
 
       {/* Focus/Unfocus toggle */}
-      <div>
+      <div style={{ position: 'relative' }}>
         <button
           onClick={onToggleFocus}
           onMouseEnter={() => setHoveredItem('toggle')}
@@ -231,7 +231,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
           style={{
             color: 'var(--color-accentgray)',
             fontSize: '0.8rem',
-                        padding: '0.3rem .75rem',
+            padding: '0.3rem .75rem',
             fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -253,6 +253,24 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
             focus demos
           </span>
         </button>
+
+        {/* Tooltip */}
+        {hoveredItem === 'toggle' && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              padding: '0.25rem 0.5rem',
+              color: 'var(--color-gray-400)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-caveat)',
+              pointerEvents: 'none',
+              opacity: hoveredItem === 'toggle' ? 1 : 0,
+            }}
+          >
+            {isFocused ? 'this disables the demos' : 'bring demos into focus'}
+          </div>
+        )}
       </div>
     </div>
   );
