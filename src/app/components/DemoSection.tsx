@@ -10,6 +10,8 @@ interface DemoSectionProps {
   children: React.ReactNode;
   loadOnScroll?: boolean;
   enableMobile?: boolean; // New prop to enable interactive demo on mobile
+  isFocused?: boolean; // New prop to control focus state
+  onFocusRequest?: () => void; // Callback when unfocused demo is clicked
 }
 
 /**
@@ -39,10 +41,20 @@ export default function DemoSection({
   children,
   loadOnScroll = true,
   enableMobile = false, // Default to false to keep GIFs unless explicitly enabled
+  isFocused = true, // Default to focused
+  onFocusRequest,
 }: DemoSectionProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isFocused && onFocusRequest) {
+      e.preventDefault();
+      e.stopPropagation();
+      onFocusRequest();
+    }
+  };
 
   // Detect mobile on mount
   useEffect(() => {
@@ -88,12 +100,19 @@ export default function DemoSection({
       <div
         ref={containerRef}
         className="demo-section mobile"
+        data-demo-name={name}
+        onClick={handleClick}
         style={{
           width: '100%',
           borderRadius: '12px',
           overflow: 'hidden',
           border: '1px solid var(--border-subtle)',
           marginBottom: '2rem',
+          filter: isFocused ? 'none' : 'grayscale(1)',
+          opacity: isFocused ? 1 : 0.4,
+          pointerEvents: 'auto',
+          cursor: !isFocused ? 'pointer' : 'default',
+          transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
         }}
       >
         <img
@@ -126,6 +145,7 @@ export default function DemoSection({
       <div
         ref={containerRef}
         className="demo-section preview"
+        data-demo-name={name}
         style={{
           width: '100%',
           minHeight: '400px',
@@ -134,9 +154,19 @@ export default function DemoSection({
           border: '1px solid var(--border-subtle)',
           marginBottom: '2rem',
           position: 'relative',
-          cursor: loadOnScroll ? 'default' : 'pointer',
+          cursor: !isFocused ? 'pointer' : (loadOnScroll ? 'default' : 'pointer'),
+          filter: isFocused ? 'none' : 'grayscale(1)',
+          opacity: isFocused ? 1 : 0.4,
+          pointerEvents: 'auto',
+          transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
         }}
-        onClick={() => !loadOnScroll && setIsLoaded(true)}
+        onClick={(e) => {
+          if (!isFocused) {
+            handleClick(e);
+          } else if (!loadOnScroll) {
+            setIsLoaded(true);
+          }
+        }}
       >
         <img
           src={previewGif || previewImage}
@@ -175,11 +205,18 @@ export default function DemoSection({
     <div
       ref={containerRef}
       className="demo-section interactive"
+      data-demo-name={name}
+      onClick={handleClick}
       style={{
         width: '100%',
         borderRadius: '12px',
         overflow: 'hidden',
         border: '1px solid var(--border-subtle)',
+        filter: isFocused ? 'none' : 'grayscale(1)',
+        opacity: isFocused ? 1 : 0.4,
+        pointerEvents: 'auto',
+        cursor: !isFocused ? 'pointer' : 'default',
+        transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
       }}
     >
       <Suspense
@@ -187,16 +224,11 @@ export default function DemoSection({
           <div
             style={{
               width: '100%',
-              minHeight: '400px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              height: '600px',
               background: 'var(--color-off-white)',
-              color: 'var(--color-gray)',
+              animation: 'pulse 1.5s ease-in-out infinite',
             }}
-          >
-            Loading demo...
-          </div>
+          />
         }
       >
         {children}
