@@ -112,18 +112,20 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile music player - always at bottom */}
-        <div className="fixed bottom-0 right-0 z-[80] p-4">
-          <div className="flex justify-between items-end">
-            <MusicPlayer className="flex-1 mr-4 w-[180px]" />
-                <ExpandCollapseButton
-                isExpanded={isMenuOpen}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex-shrink-0"
-                size={40}
-              />
+        {/* Mobile music player - always at bottom (hidden on chat-explorations page) */}
+        {pathname !== '/chat-explorations' && (
+          <div className="fixed bottom-0 right-0 z-[80] p-4">
+            <div className="flex justify-between items-end">
+              <MusicPlayer className="flex-1 mr-4 w-[180px]" />
+                  <ExpandCollapseButton
+                  isExpanded={isMenuOpen}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex-shrink-0"
+                  size={40}
+                />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Mobile expanded menu */}
         <AnimatePresence>

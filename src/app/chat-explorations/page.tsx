@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
 import Header from '@/app/components/Header';
@@ -110,6 +110,154 @@ const styles = {
   }
 } as const;
 
+// Side navigation component
+const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFocus: () => void }) => {
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isWideScreen, setIsWideScreen] = useState(false);
+
+  // Detect screen width
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsWideScreen(window.innerWidth >= 1280);
+    };
+
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
+
+  const navItems = [
+    { id: 'comments', label: 'a. comment for depth', section: 'comments' },
+    { id: 'editing', label: 'b. editing', section: 'editing' },
+    { id: 'index', label: 'c. a more powerful index', section: 'index' },
+    { id: 'queue', label: 'd. index becomes queue', section: 'queue' },
+    { id: 'threads', label: 'a. threads', section: 'dig-deeper' },
+    { id: 'swipe', label: 'b. swipe deeper', section: 'swipe-deeper' },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.querySelector(`[data-demo-name="${sectionId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Floating button for narrow screens
+  if (!isWideScreen) {
+    return (
+      <div style={{
+        position: 'fixed',
+        bottom: '1rem',
+        left: '1rem',
+        zIndex: 1000,
+      }}>
+        <button
+          onClick={onToggleFocus}
+          onMouseEnter={() => setHoveredItem('floating-toggle')}
+          onMouseLeave={() => setHoveredItem(null)}
+          className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-150 cursor-pointer border-none"
+          style={{
+            color: 'var(--color-gray)',
+            fontSize: '0.8rem',
+            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+          }}
+        >
+          <span style={{ display: 'inline-block', position: 'relative' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                maxWidth: isFocused ? '2rem' : '0',
+                overflow: 'hidden',
+                transition: 'max-width 150ms ease-in-out',
+                verticalAlign: 'bottom',
+              }}
+            >
+              un
+            </span>
+            focus demos
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // Full side nav for wide screens
+  return (
+    <div style={{
+      position: 'fixed',
+      left: '1rem',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.2rem',
+    }}>
+      {/* Nav items */}
+      {navItems.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => scrollToSection(item.section)}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+          style={{
+            backgroundColor: hoveredItem === item.id ? '#C6C7D24D' : 'transparent',
+            color: 'var(--color-accentgray)',
+            border: 'none',
+            borderRadius: '999px',
+            padding: '0.3rem .75rem',
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'background-color 150ms ease-out',
+            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {item.label}
+        </button>
+      ))}
+
+      {/* Focus/Unfocus toggle */}
+      <div>
+        <button
+          onClick={onToggleFocus}
+          onMouseEnter={() => setHoveredItem('toggle')}
+          onMouseLeave={() => setHoveredItem(null)}
+          className="rounded-full hover:bg-glass transition-all duration-150 cursor-pointer border-none"
+          style={{
+            color: 'var(--color-accentgray)',
+            fontSize: '0.8rem',
+                        padding: '0.3rem .75rem',
+            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ display: 'inline-block', position: 'relative' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                maxWidth: isFocused ? '2rem' : '0',
+                overflow: 'hidden',
+                transition: 'max-width 150ms ease-in-out',
+                verticalAlign: 'bottom',
+              }}
+            >
+              un
+            </span>
+            focus demos
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Input component for explorations
 const ExplorationInput = ({ buttonText, onSubmit }: { buttonText: string; onSubmit: (topic: string) => void }) => {
   const [newTopicInput, setNewTopicInput] = useState('');
@@ -197,6 +345,7 @@ export default function ChatExplorationsPage() {
   const [digDeeperTopic, setDigDeeperTopic] = useState<string | undefined>();
   const [swipeTopic, setSwipeTopic] = useState<string | undefined>();
   const [triggerQueueDemo, setTriggerQueueDemo] = useState<boolean>(false);
+  const [isDemosFocused, setIsDemosFocused] = useState<boolean>(true);
   const queueDemoRef = useRef<HTMLDivElement>(null);
 
   const handleDigDeeperSubmit = (topic: string) => {
@@ -219,7 +368,14 @@ export default function ChatExplorationsPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       <Header />
-      <div className="blog-demos" style={{ maxWidth: '1080px', margin: '0 auto', padding: '12rem 2rem 3rem 2rem' }}>
+      <SideNav isFocused={isDemosFocused} onToggleFocus={() => setIsDemosFocused(!isDemosFocused)} />
+      <div
+        className="blog-demos"
+        style={{
+          maxWidth: '1080px',
+          margin: '0 auto',
+          padding: '12rem 2rem 3rem 2rem'
+        }}>
         <article>
         <TextContainer>
           <header style={{ marginBottom: '2.5rem' }}>
@@ -279,6 +435,8 @@ export default function ChatExplorationsPage() {
           previewImage="/demos/comments.jpg"
           loadOnScroll
           enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={() => setIsDemosFocused(true)}
         >
           <CommentsDemo />
         </DemoSection>
@@ -304,6 +462,8 @@ export default function ChatExplorationsPage() {
           previewImage="/demos/editing.jpg"
           loadOnScroll
           enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={() => setIsDemosFocused(true)}
         >
           <EditingDemo />
         </DemoSection>
@@ -327,6 +487,8 @@ export default function ChatExplorationsPage() {
           previewGif="/demos/index.gif"
           previewImage="/demos/index.jpg"
           loadOnScroll
+          isFocused={isDemosFocused}
+          onFocusRequest={() => setIsDemosFocused(true)}
         >
           <IndexDemo />
         </DemoSection>
@@ -377,6 +539,8 @@ export default function ChatExplorationsPage() {
             previewGif="/demos/queue.gif"
             previewImage="/demos/queue.jpg"
             loadOnScroll
+            isFocused={isDemosFocused}
+            onFocusRequest={() => setIsDemosFocused(true)}
           >
             <QueueDemo
               triggerDemo={triggerQueueDemo}
@@ -409,6 +573,8 @@ export default function ChatExplorationsPage() {
           previewImage="/demos/explore.jpg"
           loadOnScroll
           enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={() => setIsDemosFocused(true)}
         >
           <DigDeeperDemo
             newTopic={digDeeperTopic}
@@ -444,6 +610,8 @@ export default function ChatExplorationsPage() {
           previewImage="/demos/hopscotch.jpg"
           loadOnScroll
           enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={() => setIsDemosFocused(true)}
         >
           <SwipeDemo
             newTopic={swipeTopic}
