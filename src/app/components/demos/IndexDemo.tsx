@@ -281,7 +281,7 @@ export default function IndexDemo() {
         }
       });
 
-      if (topmostEntry) {
+      if (topmostEntry !== null) {
         const messageId = topmostEntry.target.id.replace('message-', '');
         const sectionId = messageToSectionMap.get(messageId);
         if (sectionId && sectionId !== selectedIndexItemId) {

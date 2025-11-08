@@ -20,15 +20,7 @@ Next.js offers powerful built-in features including:
 
 ## Why Use Next.js?
 
-Developers choose Next.js because it dramatically reduces development time through zero-config setup, provides excellent SEO optimization out-of-the-box, and delivers superior performance through automatic optimizations. It also simplifies deployment with seamless integration to Vercel (its creator) and other hosting platforms, making it ideal for startups and enterprises alike.
-
-## Use Cases
-
-Next.js is perfect for building e-commerce sites, content platforms, SaaS applications, progressive web apps (PWAs), and real-time collaborative tools. Its flexibility allows it to power everything from simple landing pages to complex applications requiring authentication, databases, and real-time features.
-
-## Getting Started
-
-To start with Next.js, you can run npx create-next-app@latest in your terminal to bootstrap a new project instantly. The framework includes excellent documentation, a vibrant community, and numerous learning resources, making it accessible for beginners while powerful enough for experienced developers.`;
+Developers choose Next.js because it dramatically reduces development time through zero-config setup, provides excellent SEO optimization out-of-the-box, and delivers superior performance through automatic optimizations. It also simplifies deployment with seamless integration to Vercel (its creator) and other hosting platforms, making it ideal for startups and enterprises alike.`;
 
 const DEMO_SEGMENTS: ExploreSegment[] = [
   {
@@ -58,22 +50,6 @@ const DEMO_SEGMENTS: ExploreSegment[] = [
     title: 'Why Use Next.js?',
     description: '',
     content: 'Developers choose Next.js because it dramatically reduces development time through zero-config setup, provides excellent SEO optimization out-of-the-box, and delivers superior performance through automatic optimizations. It also simplifies deployment with seamless integration to Vercel (its creator) and other hosting platforms, making it ideal for startups and enterprises alike.',
-    depth: 0,
-    isExpanded: false,
-  },
-  {
-    id: 'section-4',
-    title: 'Use Cases',
-    description: '',
-    content: 'Next.js is perfect for building e-commerce sites, content platforms, SaaS applications, progressive web apps (PWAs), and real-time collaborative tools. Its flexibility allows it to power everything from simple landing pages to complex applications requiring authentication, databases, and real-time features.',
-    depth: 0,
-    isExpanded: false,
-  },
-  {
-    id: 'section-5',
-    title: 'Getting Started',
-    description: '',
-    content: 'To start with Next.js, you can run npx create-next-app@latest in your terminal to bootstrap a new project instantly. The framework includes excellent documentation, a vibrant community, and numerous learning resources, making it accessible for beginners while powerful enough for experienced developers.',
     depth: 0,
     isExpanded: false,
   },

@@ -148,7 +148,7 @@ export default function DemoSection({
         data-demo-name={name}
         style={{
           width: '100%',
-          height: '600px',
+          height: isMobile ? '500px' : '600px',
           borderRadius: '12px',
           overflow: 'hidden',
           border: '1px solid var(--border-subtle)',
@@ -198,14 +198,29 @@ export default function DemoSection({
             <div
               style={{
                 width: '100%',
-                height: '600px',
+                height: isMobile ? '500px' : '600px',
                 background: 'var(--color-off-white)',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}
             />
           }
         >
-          {children}
+          <div style={{
+            height: isMobile ? '500px' : '600px',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              transform: isMobile ? 'scale(0.833)' : 'none',
+              transformOrigin: 'top left',
+              width: isMobile ? '120%' : '100%',
+              height: isMobile ? '120%' : '100%',
+            }}>
+              {children}
+            </div>
+          </div>
         </Suspense>
       </div>
     </div>

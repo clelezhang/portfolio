@@ -156,7 +156,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
           onClick={onToggleFocus}
           onMouseEnter={() => setHoveredItem('floating-toggle')}
           onMouseLeave={() => setHoveredItem(null)}
-          className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-150 cursor-pointer border-none"
+          className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-200 cursor-pointer border-none"
           style={{
             color: 'var(--color-gray)',
             fontSize: '0.8rem',
@@ -171,7 +171,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
                 display: 'inline-block',
                 maxWidth: isFocused ? '2rem' : '0',
                 overflow: 'hidden',
-                transition: 'max-width 150ms ease-in-out',
+                transition: 'max-width 200ms ease-in-out',
                 verticalAlign: 'bottom',
               }}
             >
@@ -212,7 +212,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
             fontSize: '0.8rem',
             cursor: 'pointer',
             textAlign: 'left',
-            transition: 'background-color 150ms ease-out',
+            transition: 'background-color 200ms ease-out',
             fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
             whiteSpace: 'nowrap',
           }}
@@ -227,7 +227,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
           onClick={onToggleFocus}
           onMouseEnter={() => setHoveredItem('toggle')}
           onMouseLeave={() => setHoveredItem(null)}
-          className="rounded-full hover:bg-glass transition-all duration-150 cursor-pointer border-none"
+          className="rounded-full hover:bg-glass transition-all duration-200 cursor-pointer border-none"
           style={{
             color: 'var(--color-accentgray)',
             fontSize: '0.8rem',
@@ -244,7 +244,7 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
                 display: 'inline-block',
                 maxWidth: isFocused ? '2rem' : '0',
                 overflow: 'hidden',
-                transition: 'max-width 150ms ease-in-out',
+                transition: 'max-width 200ms ease-in-out',
                 verticalAlign: 'bottom',
               }}
             >
@@ -349,7 +349,7 @@ const ExplorationInput = ({ buttonText, onSubmit }: { buttonText: string; onSubm
               fontSize: '0.75rem',
               fontWeight: 500,
               fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-              transition: 'background-color 150ms ease-out',
+              transition: 'background-color 200ms ease-out',
             }}
           >
             <span>{buttonText}</span>
@@ -392,7 +392,7 @@ export default function ChatExplorationsPage() {
         style={{
           maxWidth: '1080px',
           margin: '0 auto',
-          padding: '12rem 2rem 3rem 2rem'
+          padding: '12rem 1rem 3rem 1rem'
         }}>
         <article>
         <TextContainer>
