@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
 import Header from '@/app/components/Header';
-import { ArrowUp, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import './blog-demos.css';
 
 // Dynamically import demos for code splitting

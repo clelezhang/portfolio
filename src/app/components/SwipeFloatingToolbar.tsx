@@ -16,7 +16,6 @@ export default function SwipeFloatingToolbar({
   isVisible,
   position,
   onExpandSelection,
-  onHighlight,
   isExpanding = false,
 }: SwipeFloatingToolbarProps) {
   const [mounted, setMounted] = useState(false);

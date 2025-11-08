@@ -20,11 +20,10 @@ interface FloatingToolbarProps {
   animationConfig?: AnimationConfig;
 }
 
-export default function FloatingToolbar({ 
-  isVisible, 
-  position, 
-  onFormat, 
-  onAIAssist, 
+export default function FloatingToolbar({
+  isVisible,
+  position,
+  onFormat,
   onComment,
   animationConfig = {
     duration: 130,

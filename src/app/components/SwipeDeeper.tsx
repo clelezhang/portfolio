@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Exploration, ExploreSegment, SwipeDepthPage } from '@/app/lib/types';
 import EditableSwipeSection from './EditableSwipeSection';
-import { ArrowUp, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import './SwipeDeeper.css';
 import './EditableChatCanvas.css';
 
@@ -65,7 +65,6 @@ function parseSections(content: string, depth: number = 0): ExploreSegment[] {
 export default function SwipeDeeper({
   initialExploration,
   onExplorationChange,
-  explorationId,
   triggerTopic,
   onTopicProcessed
 }: SwipeDeeperProps) {
@@ -87,7 +86,6 @@ export default function SwipeDeeper({
   const [expandingSegmentId, setExpandingSegmentId] = useState<string | null>(null);
   const [streamingPageIndex, setStreamingPageIndex] = useState<number | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
-  const [snapTo, setSnapTo] = useState<number | null>(null); // Track snapping separately
 
   const containerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -297,7 +295,8 @@ export default function SwipeDeeper({
       handleGenerateInitial(triggerTopic);
       onTopicProcessed?.();
     }
-  }, [triggerTopic, onTopicProcessed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerTopic]);
 
   // Handle section content update
   const handleSectionUpdate = (segmentId: string, newContent: string) => {
@@ -683,6 +682,7 @@ export default function SwipeDeeper({
   };
 
   // Handle refresh (restart exploration)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRefresh = () => {
     if (confirm('Discard current exploration and start over?')) {
       setDepthPages([]);

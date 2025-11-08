@@ -116,6 +116,7 @@ function SectionButton({
       }, 500);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justFinished]);
 
   const titleSize = {
@@ -301,7 +302,7 @@ export default function ExploreCanvas({
   const [streamingSegments, setStreamingSegments] = useState<Map<string, string>>(new Map()); // Track streaming content per segment
   const [justFinishedTitles, setJustFinishedTitles] = useState<Set<string>>(new Set()); // Track section titles that just finished streaming
   const [completedSectionTitles, setCompletedSectionTitles] = useState<Set<string>>(new Set()); // Track which section titles are complete
-  const [recommendedTopics, setRecommendedTopics] = useState<Array<{ title: string; description: string }>>(initialRecommendations);
+  const [recommendedTopics] = useState<Array<{ title: string; description: string }>>(initialRecommendations);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -328,6 +329,7 @@ export default function ExploreCanvas({
       handleGenerateInitial(triggerTopic);
       onTopicProcessed?.();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerTopic]);
 
   // Debounced save

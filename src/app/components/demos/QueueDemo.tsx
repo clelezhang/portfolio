@@ -129,16 +129,7 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
     const relativeTop = rect.top - listRect.top + listContainer.scrollTop + (rect.height / 2);
     setter({ top: relativeTop, opacity: 1 });
   }, []);
-  
-  // Lock hover events during animations
-  const lockAnimation = () => {
-    setIsAnimating(true);
-    if (animationTimeoutRef.current) {
-      clearTimeout(animationTimeoutRef.current);
-    }
-    animationTimeoutRef.current = setTimeout(() => setIsAnimating(false), 250);
-  };
-  
+
   // Update selected dot position when selection changes
   useEffect(() => {
     const itemId = selectedIndexItemId || 'demo-chat';

@@ -77,7 +77,6 @@ function parseSections(content: string, depth: number = 0): ExploreSegment[] {
 export default function Hopscotch({
   initialExploration,
   onExplorationChange,
-  explorationId,
 }: HopscotchProps) {
   const [exploration, setExploration] = useState<Exploration>(initialExploration);
   const [rootTopic, setRootTopic] = useState(initialExploration.rootTopic || '');

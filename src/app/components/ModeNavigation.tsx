@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type Mode = 'chat' | 'explore' | 'swipe' | 'hopscotch';
 
@@ -10,7 +10,6 @@ interface ModeNavigationProps {
 
 export default function ModeNavigation({ currentMode }: ModeNavigationProps) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const modes: { key: Mode; label: string; path: string }[] = [
     { key: 'chat', label: 'CHAT', path: '/chat/new' },

@@ -128,7 +128,7 @@ export default function EditableSwipeSection({
           if (pos) {
             editor.commands.setTextSelection(pos.pos);
           }
-        } catch (error) {
+        } catch {
           const endPos = editor.state.doc.content.size;
           editor.commands.setTextSelection(endPos);
         }
