@@ -357,7 +357,14 @@ export default function ExploreCanvas({
     setStreamingContent('');
     setCompletedSectionTitles(new Set());
     previousSectionsRef.current = [];
-    
+
+    // Update title immediately when generation starts
+    setExploration(prev => ({
+      ...prev,
+      title: topic,
+      rootTopic: topic,
+    }));
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     
