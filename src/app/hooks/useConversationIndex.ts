@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ConversationIndex, IndexSection } from '@/app/lib/types';
+import { ConversationIndex } from '@/app/lib/types';
 
 interface UseConversationIndexResult {
   index: ConversationIndex | null;

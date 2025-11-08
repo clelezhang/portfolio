@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, ComponentType, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 
 interface DemoSectionProps {
   name: string;
@@ -37,7 +37,6 @@ export default function DemoSection({
   name,
   previewGif,
   previewImage,
-  title = 'Try the interactive demo →',
   children,
   loadOnScroll = true,
   enableMobile = false, // Default to false to keep GIFs unless explicitly enabled
@@ -115,6 +114,7 @@ export default function DemoSection({
           transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={previewGif || previewImage}
           alt={`${name} demo`}

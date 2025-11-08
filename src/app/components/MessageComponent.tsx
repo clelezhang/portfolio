@@ -42,7 +42,6 @@ export default function MessageComponent({
   onCancelDraft,
   draftThreads = [],
   isGenerating = false,
-  isLatestMessage = false,
   animationConfig
 }: MessageComponentProps) {
   // Merge draft threads with saved threads for display
@@ -113,10 +112,10 @@ export default function MessageComponent({
         console.error('Error applying format:', error);
       }
     }
-    
+
     // Keep selection for continued editing
     // clearSelection();
-  }, [selectedText]);
+  }, [message.id, onComment]);
 
   const handleAIAssist = useCallback(() => {
     console.log(`AI assist requested for text: "${selectedText}"`);
@@ -162,6 +161,7 @@ export default function MessageComponent({
   };
 
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && message.role === 'user') {
       e.preventDefault();

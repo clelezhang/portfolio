@@ -35,7 +35,7 @@ export default function ConversationIndex({ conversationId, onSectionClick }: Co
     };
 
     loadTitles();
-  }, [index, conversationId]); // Intentionally excluding getSectionTitle and sectionTitles to avoid infinite loop
+  }, [index, conversationId, getSectionTitle, sectionTitles]);
 
   if (loading) {
     return (

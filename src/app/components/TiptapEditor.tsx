@@ -145,7 +145,7 @@ export default function TiptapEditor({
             y: startCoords.top,
             text,
           });
-        } catch (e) {
+        } catch {
           // If coordinate calculation fails, show toolbar with fallback position
           onSelectionUpdate({
             from,
@@ -235,7 +235,7 @@ export default function TiptapEditor({
                 y: startCoords.top,
                 text,
               });
-            } catch (e) {
+            } catch {
               onSelectionUpdate({
                 from,
                 to,

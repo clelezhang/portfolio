@@ -263,7 +263,7 @@ export default function IndexDemo() {
       if (isUserNavigating) return; // Don't auto-track during user navigation
 
       // Find the topmost visible message that has a section
-      let topmostEntry: IntersectionObserverEntry | null = null;
+      let topmostEntry = null as IntersectionObserverEntry | null;
       let topmostY = Infinity;
 
       entries.forEach((entry) => {
@@ -281,8 +281,9 @@ export default function IndexDemo() {
         }
       });
 
-      if (topmostEntry !== null) {
-        const messageId = topmostEntry.target.id.replace('message-', '');
+      if (topmostEntry) {
+        const target = topmostEntry.target as HTMLElement;
+        const messageId = target.id.replace('message-', '');
         const sectionId = messageToSectionMap.get(messageId);
         if (sectionId && sectionId !== selectedIndexItemId) {
           setSelectedIndexItemId(sectionId);

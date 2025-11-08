@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { QueueItem } from '@/app/lib/types';
 import { Play, Edit2, X, SkipForward } from 'lucide-react';
 

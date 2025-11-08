@@ -441,7 +441,7 @@
   flex: 1;
   overflow-y: auto;
   padding-top: 3rem;
-  padding-bottom: 4rem;
+  padding-bottom: 8rem;
   background: var(--color-white);
 }
 

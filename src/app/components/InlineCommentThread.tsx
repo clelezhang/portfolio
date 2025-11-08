@@ -18,7 +18,6 @@ interface InlineCommentThreadProps {
 export default function InlineCommentThread({
   thread,
   onAddComment,
-  onAIRespond,
   onCancelDraft
 }: InlineCommentThreadProps) {
   const [newComment, setNewComment] = useState('');
