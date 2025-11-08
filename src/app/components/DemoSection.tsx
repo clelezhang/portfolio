@@ -139,7 +139,7 @@ export default function DemoSection({
     );
   }
 
-  // Desktop: Show preview until loaded
+  // Desktop: Show loader until loaded
   if (!isLoaded && (previewGif || previewImage)) {
     return (
       <div
@@ -148,12 +148,13 @@ export default function DemoSection({
         data-demo-name={name}
         style={{
           width: '100%',
-          minHeight: '400px',
+          height: '600px',
           borderRadius: '12px',
           overflow: 'hidden',
           border: '1px solid var(--border-subtle)',
           marginBottom: '2rem',
-          position: 'relative',
+          background: 'var(--color-off-white',
+          animation: 'pulse 1.5s ease-in-out infinite',
           cursor: !isFocused ? 'pointer' : (loadOnScroll ? 'default' : 'pointer'),
           filter: isFocused ? 'none' : 'grayscale(1)',
           opacity: isFocused ? 1 : 0.4,
@@ -167,36 +168,7 @@ export default function DemoSection({
             setIsLoaded(true);
           }
         }}
-      >
-        <img
-          src={previewGif || previewImage}
-          alt={`${name} demo preview`}
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-          }}
-        />
-        {!loadOnScroll && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              padding: '1rem 2rem',
-              background: 'var(--color-olive-dark)',
-              color: 'var(--color-white)',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}
-          >
-            {title}
-          </div>
-        )}
-      </div>
+      />
     );
   }
 
