@@ -9,27 +9,27 @@ import './blog-demos.css';
 
 // Dynamically import demos for code splitting
 const CommentsDemo = dynamic(() => import('@/app/components/demos/CommentsDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 const EditingDemo = dynamic(() => import('@/app/components/demos/EditingDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 const IndexDemo = dynamic(() => import('@/app/components/demos/IndexDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 const QueueDemo = dynamic(() => import('@/app/components/demos/QueueDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 const SwipeDemo = dynamic(() => import('@/app/components/demos/SwipeDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 const DigDeeperDemo = dynamic(() => import('@/app/components/demos/DigDeeperDemo'), {
-  loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>,
+  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
 
 // Text wrapper component to constrain text width
