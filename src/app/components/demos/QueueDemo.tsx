@@ -165,18 +165,26 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
 
   // Handle external trigger
   useEffect(() => {
-    if (triggerDemo && !hasTriggered) {
+    if (triggerDemo) {
+      // Reset demo state to initial values whenever triggered
+      setMessages(DEMO_MESSAGES);
+      setQueueItems(DEMO_QUEUE);
+      setSelectedIndexItemId('demo-chat-queue-queue-2');
       setHasTriggered(true);
+
       // Trigger the queue animation
       setTimeout(() => {
         const event = new CustomEvent('triggerQueueItem-queue-demo', {
           detail: { queueItemId: 'queue-3' }
         });
         window.dispatchEvent(event);
+        // Call callback after triggering
+        if (onDemoTriggered) {
+          onDemoTriggered();
+        }
       }, 300);
-      onDemoTriggered?.();
     }
-  }, [triggerDemo, hasTriggered, onDemoTriggered]);
+  }, [triggerDemo, onDemoTriggered]);
 
   // Auto-trigger queue message when scrolled into view (disabled when using external trigger)
   useEffect(() => {
