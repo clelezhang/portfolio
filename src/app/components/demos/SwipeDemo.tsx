@@ -23,21 +23,6 @@ const DEMO_SEGMENTS: ExploreSegment[] = [
   },
   {
     id: 'segment-3',
-    title: 'Love as a Choice and Action',
-    description: 'Daily practice of showing up',
-    content: `Beyond chemistry and emotion, love is actively chosen and maintained through consistent effort, communication, and intentional behaviors. Real love requires:
-
-- Regular emotional connection and vulnerability
-- Acts of service and consideration
-- Conflict resolution and forgiveness
-- Supporting growth and shared goals
-
-Love isn't just a feeling—it's a daily practice of showing up for someone.`,
-    depth: 0,
-    isExpanded: false,
-  },
-  {
-    id: 'segment-4',
     title: "Love's Evolution Over Time",
     description: 'From passion to companionship',
     content: `Passionate love (intense, obsessive) typically transitions to companionate love (deep friendship, stability, commitment) as relationships mature. This shift isn't a sign of failing love but rather its deepening and stabilization. The initial "butterflies" fade, but they're replaced by profound security, reliability, and genuine partnership that often feels more meaningful than the beginning stages.`,
@@ -54,17 +39,6 @@ Love involves a complex interplay of neurochemicals and hormones that create pow
 ## The Psychological Components
 
 Love combines multiple psychological elements including attraction, commitment, and intimacy—what psychologists call the "triangular theory" of love. Our attachment styles (formed in childhood), personal values, and emotional needs all influence who we fall for and how we love. Love also involves vulnerability, trust-building, and the willingness to prioritize another person's wellbeing alongside your own.
-
-## Love as a Choice and Action
-
-Beyond chemistry and emotion, love is actively chosen and maintained through consistent effort, communication, and intentional behaviors. Real love requires:
-
-- Regular emotional connection and vulnerability
-- Acts of service and consideration
-- Conflict resolution and forgiveness
-- Supporting growth and shared goals
-
-Love isn't just a feeling—it's a daily practice of showing up for someone.
 
 ## Love's Evolution Over Time
 

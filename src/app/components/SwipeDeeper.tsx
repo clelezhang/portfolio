@@ -712,7 +712,7 @@ export default function SwipeDeeper({
       {/* Initial topic input (shown when no exploration yet) */}
       {depthPages.length === 0 && (
         <div className="max-w-3xl mx-auto px-4 py-20">
-          <div className="mb-8">
+          <div className="mb-8=4">
             <h1 className="text-3xl font-semibold mb-2" style={{ color: 'var(--color-black)' }}>
               Swipe Deeper
             </h1>

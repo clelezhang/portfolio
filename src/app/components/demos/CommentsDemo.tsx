@@ -20,30 +20,7 @@ const DEMO_MESSAGES: Message[] = [
 
 **PCB (circuit board) underneath** - if matcha reaches the electrical contacts/switches while powered, it can cause short circuits and immediate damage
 
-**Active power** - the biggest risk is if the keyboard is currently plugged in/on when liquid hits the electronics
-
-## What to do right now:
-
-1. Unplug immediately (or turn off if wireless)
-2. Flip keyboard upside down to drain liquid away from internals
-3. Wipe visible matcha from the surface/between keys
-4. Don't turn it back on for at least 24-48 hours
-
-## Matcha-specific issues:
-
-The fine powder can leave residue that gums up key switches
-
-The milk/sugar (if it's a latte) is worse than plain matcha - sticky residue attracts dust and can corrode over time
-
-The moisture is the immediate threat, but the residue is a long-term problem
-
-## Context matters:
-
-**If it's mechanical/external keyboard:** Usually more forgiving - you can sometimes remove keycaps and clean properly
-
-**If it's a laptop keyboard:** More concerning because liquid can seep into the laptop itself and damage the motherboard
-
-How much got on it, and is it a laptop or external keyboard?`,
+**Active power** - the biggest risk is if the keyboard is currently plugged in/on when liquid hits the electronics`,
     timestamp: Date.now() - 60000,
   },
 ];
