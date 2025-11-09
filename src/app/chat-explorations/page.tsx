@@ -363,7 +363,20 @@ export default function ChatExplorationsPage() {
   const [swipeTopic, setSwipeTopic] = useState<string | undefined>();
   const [triggerQueueDemo, setTriggerQueueDemo] = useState<boolean>(false);
   const [isDemosFocused, setIsDemosFocused] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState(false);
   const queueDemoRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleDigDeeperSubmit = (topic: string) => {
     setDigDeeperTopic(topic);
@@ -501,8 +514,7 @@ export default function ChatExplorationsPage() {
 
         <DemoSection
           name="index"
-          previewGif="/demos/index.gif"
-          previewImage="/demos/index.jpg"
+          previewVideo="/demos/index.mp4"
           loadOnScroll
           isFocused={isDemosFocused}
           onFocusRequest={() => setIsDemosFocused(true)}
@@ -522,6 +534,7 @@ export default function ChatExplorationsPage() {
           </section>
         </TextContainer>
 
+        {!isMobile && (
         <div style={{ paddingBottom: '1rem', maxWidth: '600px', margin: '0 auto' }}>
           <button
             onClick={handlePlayQueueDemo}
@@ -549,12 +562,12 @@ export default function ChatExplorationsPage() {
 
           </button>
         </div>
+        )}
 
         <div ref={queueDemoRef}>
           <DemoSection
             name="queue"
-            previewGif="/demos/queue.gif"
-            previewImage="/demos/queue.jpg"
+            previewVideo="/demos/queue.mp4"
             loadOnScroll
             isFocused={isDemosFocused}
             onFocusRequest={() => setIsDemosFocused(true)}
