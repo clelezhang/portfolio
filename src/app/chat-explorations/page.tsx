@@ -201,10 +201,9 @@ const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFoc
         <button
           key={item.id}
           onClick={() => scrollToSection(item.section)}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
+          className="nav-pill-button"
           style={{
-            backgroundColor: hoveredItem === item.id ? '#C6C7D24D' : 'transparent',
+            backgroundColor: 'transparent',
             color: 'var(--color-accentgray)',
             border: 'none',
             borderRadius: '999px',

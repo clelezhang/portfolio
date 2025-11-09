@@ -48,11 +48,17 @@ export async function generateClaudeResponse(
   // Build system message components
   const systemParts: string[] = [];
 
+  // Add core formatting instructions (always present)
+  systemParts.push(`FORMATTING RULES:
+- ALWAYS use proper markdown for lists: use "- " (dash + space) for bullet points, NOT bullet characters (•)
+- Use proper markdown for **bold**, *italic*, and other formatting
+- Keep formatting simple and clean`);
+
   // Add queue mode instructions if enabled
   if (queueMode && queueTopic) {
     systemParts.push(`Focus ONLY on: "${queueTopic}"
 
-Keep this response SHORT and to-the-point (aim for 10-125 words max). Cover just the essentials for "${queueTopic}" without going into excessive detail. Other aspects will be covered in separate responses.`);
+Keep this response SHORT and to-the-point (aim for 10-50 words max). Cover just the essentials for "${queueTopic}" without going into excessive detail. Other aspects will be covered in separate responses.`);
   }
 
   // Add bookmarks if any exist

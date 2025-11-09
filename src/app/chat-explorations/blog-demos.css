@@ -324,3 +324,8 @@
 .blog-demos *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Nav pill button hover effect - using CSS to avoid React re-render flicker */
+.nav-pill-button:hover {
+  background-color: #C6C7D24D !important;
+}

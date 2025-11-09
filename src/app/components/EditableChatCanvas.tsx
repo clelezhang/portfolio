@@ -5,7 +5,7 @@ import { Message } from '@/app/lib/types';
 import MessageComponent from './MessageComponent';
 import ChatAnimationSettings from './ChatAnimationSettings';
 import { DEFAULT_CHAT_ANIMATION_CONFIG, ChatAnimationConfig } from '@/app/lib/animationConfig';
-import { ArrowUp, Search, Plus, Check, Play, Pause } from 'lucide-react';
+import { ArrowUp, Search, Plus, Check } from 'lucide-react';
 import './EditableChatCanvas.css';
 
 function createMessage(role: 'user' | 'assistant', content: string): Message {
@@ -57,7 +57,6 @@ export default function EditableChatCanvas({
   const [chatAnimConfig, setChatAnimConfig] = useState<ChatAnimationConfig>(DEFAULT_CHAT_ANIMATION_CONFIG);
   const [searchMode, setSearchMode] = useState<'on' | 'auto' | 'off'>('auto');
   const [showSearchSuccess, setShowSearchSuccess] = useState(false);
-  const [autoplay, setAutoplay] = useState(false);
   
   // Use external queue items if provided, otherwise use local state
   const queueItems = externalQueueItems;
@@ -71,6 +70,8 @@ export default function EditableChatCanvas({
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const messageContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const abortControllerRef = useRef<AbortController | null>(null);
+  const queueItemsRef = useRef<import('@/app/lib/types').QueueItem[]>(queueItems);
+  const isGeneratingRef = useRef<boolean>(false);
 
   // Animation config for FloatingToolbar
   const animationConfig: AnimationConfig = {
@@ -79,6 +80,16 @@ export default function EditableChatCanvas({
     scale: 0.90,
     enabled: true,
   };
+
+  // Keep queueItemsRef in sync with queueItems
+  useEffect(() => {
+    queueItemsRef.current = queueItems;
+  }, [queueItems]);
+
+  // Keep isGeneratingRef in sync with isGenerating
+  useEffect(() => {
+    isGeneratingRef.current = isGenerating;
+  }, [isGenerating]);
 
   // Sync with initialMessages when they change (e.g., different conversation loaded)
   useEffect(() => {
@@ -816,7 +827,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
   // Queue handlers
   const handleQueueSkip = () => {
     if (!currentQueueItemId) return;
-    
+
     // Move current item to past and next upcoming to now
     const nextItem = queueItems.find((item: import('@/app/lib/types').QueueItem) => item.status === 'upcoming');
 
@@ -828,11 +839,11 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
       }
       return item;
     });
-    
+
     setQueueItems(updatedItems);
-    
-    // If autoplay is on, process the next item
-    if (autoplay && nextItem) {
+
+    // Automatically process the next item in queue mode
+    if (nextItem) {
       handleQueuePlay(nextItem.id);
     }
   };
@@ -880,11 +891,22 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
   }, [handleQueueItemClick, onQueueItemClick]);
 
   const handleQueuePlay = useCallback(async (itemId: string) => {
-    const item = queueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
-    if (!item) return;
+    // Don't allow playing if already generating (check ref for immediate value)
+    if (isGeneratingRef.current) return;
+
+    // Set ref immediately to prevent double calls
+    isGeneratingRef.current = true;
+
+    // Use ref to get current queueItems to avoid stale closures
+    const currentQueueItems = queueItemsRef.current;
+    const item = currentQueueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
+    if (!item) {
+      isGeneratingRef.current = false;
+      return;
+    }
 
     // Move this item to 'now' status
-    const updatedItems = queueItems.map((q: import('@/app/lib/types').QueueItem) => {
+    const updatedItems = currentQueueItems.map((q: import('@/app/lib/types').QueueItem) => {
       if (q.id === itemId) {
         return { ...q, status: 'now' as const };
       } else if (q.status === 'now') {
@@ -907,8 +929,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
         return updatedMessages;
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueItems]);
+  }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleQueueEdit = (itemId: string, newTitle: string) => {
@@ -931,7 +952,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
 
   // Auto-continue to next queue item when generation completes
   useEffect(() => {
-    if (!isGenerating && autoplay && queueMode && currentQueueItemId) {
+    if (!isGenerating && queueMode && currentQueueItemId) {
       // Check if there are more items in queue
       const nextItem = queueItems.find(item => item.status === 'upcoming');
       if (nextItem) {
@@ -942,8 +963,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
         return () => clearTimeout(timer);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGenerating, autoplay, queueMode, currentQueueItemId]);
+  }, [isGenerating, queueMode, currentQueueItemId, queueItems]);
 
   // Listen for queue item trigger events (for auto-playing demos)
   useEffect(() => {
@@ -952,6 +972,12 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     const handleTriggerQueueItem = (event: Event) => {
       const customEvent = event as CustomEvent<{ queueItemId: string }>;
       const { queueItemId } = customEvent.detail;
+
+      // Don't allow playing new items while generating
+      if (isGenerating) {
+        return;
+      }
+
       handleQueuePlay(queueItemId);
     };
 
@@ -961,7 +987,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     return () => {
       window.removeEventListener(eventName, handleTriggerQueueItem);
     };
-  }, [demoId, queueMode, handleQueuePlay]);
+  }, [demoId, queueMode, handleQueuePlay, isGenerating]);
 
   return (
       <>
@@ -1075,25 +1101,6 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
                       </label>
                     </div>
                   </div>
-
-                  {/* Autoplay Toggle (only visible in queue mode) */}
-                  {queueMode && (
-                    <button
-                      onClick={() => setAutoplay(!autoplay)}
-                      className="autoplay-toggle-button"
-                      title={autoplay ? 'Autoplay on' : 'Autoplay off'}
-                    >
-                      <div className="autoplay-switch">
-                        <div className={`autoplay-slider ${autoplay ? 'active' : ''}`}>
-                          {autoplay ? (
-                            <Play className="w-3 h-3" strokeWidth={1.5} fill="currentColor" style={{ color: 'var(--color-white)' }} />
-                          ) : (
-                            <Pause className="w-3 h-3" strokeWidth={0} fill="currentColor" style={{ color: 'var(--color-gray)' }} />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  )}
                 </div>
                 
                 {/* Send/Stop Button */}
