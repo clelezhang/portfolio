@@ -154,7 +154,7 @@ export default function ContentWithComments({
 }: ContentWithCommentsProps) {
   // Handle undefined or null content
   const safeContent = content ?? '';
-  
+
   // Create a map of thread ID to thread for easy lookup
   const threadMap = React.useMemo(() => {
     const map = new Map<string, CommentThread>();

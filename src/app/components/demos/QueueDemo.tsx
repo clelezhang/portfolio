@@ -5,70 +5,29 @@ import EditableChatCanvas from '../EditableChatCanvas';
 import { Message, QueueItem } from '@/app/lib/types';
 import '@/app/components/EditableChatCanvas.css';
 
-const DEMO_MESSAGES: Message[] = [
-  {
-    id: 'msg-1',
-    role: 'user',
-    content: 'how to bake apple pie',
-    timestamp: Date.now() - 300000,
-  },
-  {
-    id: 'msg-2',
-    role: 'assistant',
-    content: `## Pie Crust Techniques
-
-- Keep ingredients cold - use chilled butter and ice water
-- Don't overwork the dough to avoid tough crust
-- Roll from center outward on floured surface
-- Transfer carefully to prevent tearing
-- Crimp edges decoratively to seal
-- Brush top with egg wash for golden color
-- Cut steam vents in top crust
-- Consider blind baking bottom crust 10-15 minutes to prevent sogginess
-- Use pie weights or beans when blind baking`,
-    timestamp: Date.now() - 240000,
-  },
-  {
-    id: 'msg-3',
-    role: 'user',
-    content: 'tell me about apple selection and preparation',
-    timestamp: Date.now() - 180000,
-  },
-  {
-    id: 'msg-4',
-    role: 'assistant',
-    content: `## Apple Selection and Preparation
-
-- Choose firm, tart apples like Granny Smith, Honeycrisp, or Braeburn
-- Mix 2-3 varieties for complex flavor
-- Peel, core, and slice apples 1/4-inch thick
-- Toss with lemon juice to prevent browning
-- Mix with sugar, cinnamon, nutmeg, and 2-3 tablespoons flour or cornstarch
-- Let mixture sit 10-15 minutes to release juices before filling crust`,
-    timestamp: Date.now() - 120000,
-  },
-];
+// Initial messages - empty until queue items are played
+const DEMO_MESSAGES: Message[] = [];
 
 const DEMO_QUEUE: QueueItem[] = [
   {
     id: 'queue-1',
     title: 'Pie Crust Techniques',
     content: 'tell me about pie crust techniques',
-    status: 'past',
+    status: 'upcoming',
     order: 0,
   },
   {
     id: 'queue-2',
     title: 'Apple Selection and Preparation',
     content: 'tell me about apple selection and preparation',
-    status: 'past',
+    status: 'upcoming',
     order: 1,
   },
   {
     id: 'queue-3',
     title: 'Filling Ingredients and Spices',
     content: 'tell me about filling ingredients and spices',
-    status: 'now',
+    status: 'upcoming',
     order: 2,
   },
   {
@@ -101,7 +60,7 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
   const [selectedDotPosition, setSelectedDotPosition] = useState({ top: 0, opacity: 1 });
   const [hoverDotPosition, setHoverDotPosition] = useState({ top: 0, opacity: 0 });
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [selectedIndexItemId, setSelectedIndexItemId] = useState<string>('demo-chat-queue-queue-2'); // Start with NOW item selected
+  const [selectedIndexItemId, setSelectedIndexItemId] = useState<string | null>(null); // No selection until demo starts
   const [isAnimating, setIsAnimating] = useState(false);
 
   const indexButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -169,13 +128,13 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
       // Reset demo state to initial values whenever triggered
       setMessages(DEMO_MESSAGES);
       setQueueItems(DEMO_QUEUE);
-      setSelectedIndexItemId('demo-chat-queue-queue-2');
+      setSelectedIndexItemId(null);
       setHasTriggered(true);
 
-      // Trigger the queue animation
+      // Trigger the queue animation - start with first item
       setTimeout(() => {
         const event = new CustomEvent('triggerQueueItem-queue-demo', {
-          detail: { queueItemId: 'queue-3' }
+          detail: { queueItemId: 'queue-1' }
         });
         window.dispatchEvent(event);
         // Call callback after triggering
@@ -198,7 +157,7 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
             // Wait a moment for the demo to fully load, then trigger the queue
             setTimeout(() => {
               const event = new CustomEvent('triggerQueueItem-queue-demo', {
-                detail: { queueItemId: 'queue-3' }
+                detail: { queueItemId: 'queue-1' }
               });
               window.dispatchEvent(event);
             }, 800);
