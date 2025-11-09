@@ -6,6 +6,7 @@ interface DemoSectionProps {
   name: string;
   previewGif?: string;
   previewImage?: string;
+  previewVideo?: string; // New prop for video preview
   title?: string;
   children: React.ReactNode;
   loadOnScroll?: boolean;
@@ -37,6 +38,7 @@ export default function DemoSection({
   name,
   previewGif,
   previewImage,
+  previewVideo,
   children,
   loadOnScroll = true,
   enableMobile = false, // Default to false to keep GIFs unless explicitly enabled
@@ -93,8 +95,8 @@ export default function DemoSection({
     return () => observer.disconnect();
   }, [loadOnScroll, isLoaded, isMobile, enableMobile]);
 
-  // On mobile, show GIF unless enableMobile is true
-  if (isMobile && !enableMobile && (previewGif || previewImage)) {
+  // On mobile, show video unless enableMobile is true
+  if (isMobile && !enableMobile && previewVideo) {
     return (
       <div
         ref={containerRef}
@@ -103,7 +105,7 @@ export default function DemoSection({
         onClick={handleClick}
         style={{
           width: '100%',
-          borderRadius: '12px',
+          borderRadius: '8px',
           overflow: 'hidden',
           border: '1px solid var(--border-subtle)',
           marginBottom: '2rem',
@@ -112,29 +114,25 @@ export default function DemoSection({
           pointerEvents: 'auto',
           cursor: !isFocused ? 'pointer' : 'default',
           transition: 'filter 500ms ease-in-out, opacity 500ms ease-in-out',
+          backgroundColor: 'transparent',
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={previewGif || previewImage}
-          alt={`${name} demo`}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           style={{
             width: '100%',
             height: 'auto',
             display: 'block',
-          }}
-        />
-        <div
-          style={{
-            padding: '1rem',
-            background: 'var(--color-off-white)',
-            fontSize: '0.875rem',
-            color: 'var(--color-gray)',
-            textAlign: 'center',
+            verticalAlign: 'middle',
+            backgroundColor: 'transparent',
+            transform: 'scale(1.01)',
           }}
         >
-          💻 <strong>Desktop required</strong> for the interactive version
-        </div>
+          <source src={previewVideo} type="video/mp4" />
+        </video>
       </div>
     );
   }
@@ -149,7 +147,7 @@ export default function DemoSection({
         style={{
           width: '100%',
           height: isMobile ? '500px' : '600px',
-          borderRadius: '12px',
+          borderRadius: '8px',
           overflow: 'hidden',
           border: '1px solid var(--border-subtle)',
           marginBottom: '2rem',
@@ -181,7 +179,7 @@ export default function DemoSection({
       onClick={handleClick}
       style={{
         width: '100%',
-        borderRadius: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
         border: '1px solid var(--border-subtle)',
         filter: isFocused ? 'none' : 'grayscale(1)',
