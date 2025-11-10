@@ -380,7 +380,8 @@ export default function ExploreCanvas({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate response');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate response' }));
+        throw new Error(errorData.error || 'Failed to generate response');
       }
 
       const reader = response.body?.getReader();
@@ -584,9 +585,12 @@ export default function ExploreCanvas({
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Expand section failed:', response.status, errorText);
-        throw new Error(`Failed to expand section: ${response.status} ${errorText}`);
+        const errorData = await response.json().catch(async () => {
+          const errorText = await response.text();
+          return { error: `Failed to expand section: ${response.status} ${errorText}` };
+        });
+        console.error('Expand section failed:', response.status, errorData.error);
+        throw new Error(errorData.error || 'Failed to expand section');
       }
 
       // Read the streamed response and update UI progressively

@@ -121,7 +121,8 @@ export default function Hopscotch({
       });
 
       if (!response.ok || !response.body) {
-        throw new Error('Failed to generate exploration');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate exploration' }));
+        throw new Error(errorData.error || 'Failed to generate exploration');
       }
 
       const reader = response.body.getReader();
