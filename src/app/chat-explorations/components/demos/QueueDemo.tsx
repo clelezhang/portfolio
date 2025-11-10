@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import EditableChatCanvas from '../EditableChatCanvas';
+import EditableChatCanvas from '../blog-demos/EditableChatCanvas';
 import { Message, QueueItem } from '@/app/lib/types';
-import '@/app/components/EditableChatCanvas.css';
+import '../blog-demos/EditableChatCanvas.css';
 
 // Initial messages - empty until queue items are played
 const DEMO_MESSAGES: Message[] = [];
@@ -61,11 +61,9 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
   const [hoverDotPosition, setHoverDotPosition] = useState({ top: 0, opacity: 0 });
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [selectedIndexItemId, setSelectedIndexItemId] = useState<string | null>(null); // No selection until demo starts
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const indexButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chatButtonRef = useRef<HTMLButtonElement>(null);
-  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const chatAnimConfig = {

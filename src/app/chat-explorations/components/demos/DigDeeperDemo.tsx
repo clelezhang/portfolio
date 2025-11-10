@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import ExploreCanvas from '../ExploreCanvas';
+import ExploreCanvas from '../blog-demos/ExploreCanvas';
 import { Exploration, ExploreSegment } from '@/app/lib/types';
 
 const FULL_CONTENT = `## Core Definition

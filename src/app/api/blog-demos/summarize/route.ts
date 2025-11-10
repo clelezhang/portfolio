@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, createRateLimitHeaders } from '@/app/lib/rate-limit';
+import { generateVisitorId } from '@/app/lib/security';
+import { BLOG_DEMO_RATE_LIMITS } from '@/app/lib/blog-demo-rate-limits';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const visitorId = await generateVisitorId(request);
+    const rateLimitResult = await checkRateLimit(
+      visitorId,
+      BLOG_DEMO_RATE_LIMITS.summarize
+    );
+
+    const rateLimitHeaders = createRateLimitHeaders(rateLimitResult);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: "you've run out of messages" },
+        { status: 429, headers: rateLimitHeaders }
+      );
+    }
+
     const { content, preserveBookmarks = true }: { content: string; preserveBookmarks?: boolean } = await request.json();
 
     if (!content) {
