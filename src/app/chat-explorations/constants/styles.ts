@@ -41,13 +41,13 @@ export const styles = {
     fontFamily: 'var(--font-caveat)',
     letterSpacing: '-0.02em',
     fontWeight: 500,
-    fontSize: '1.55rem',
+    fontSize: '1.75rem',
     marginBottom: '.25rem',
     textTransform: 'lowercase' as const
   },
   h3: {
     fontFamily: 'var(--font-caveat)',
-    fontSize: '1.6rem',
+    fontSize: '1.5rem',
     fontWeight: 500,
     marginBottom: '.25rem',
     color: 'var(--color-accentgray)',
@@ -64,11 +64,10 @@ export const styles = {
     textTransform: 'lowercase' as const
   },
   p: {
-    ...baseText,
-    marginBottom: '1rem'
+    ...baseBodyWithLineHeight,
+    marginBottom: '0.5rem'
   },
   pTight: createParagraphStyle('tight'),
-  pWithLineHeight: createParagraphStyle('withLineHeight'),
   pLarge: createParagraphStyle('large'),
   pSpaced: createParagraphStyle('spaced'),
   pFinal: createParagraphStyle('final'),
