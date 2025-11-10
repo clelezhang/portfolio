@@ -115,7 +115,7 @@ export default function MessageComponent({
 
     // Keep selection for continued editing
     // clearSelection();
-  }, [message.id, onComment]);
+  }, []);
 
   const handleAIAssist = useCallback(() => {
     console.log(`AI assist requested for text: "${selectedText}"`);
