@@ -1058,10 +1058,10 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
                 <div className="input-actions-left">
                   {/* Search Button with Menu - using checkbox hack */}
                   <div className="search-container">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id={`search-menu-toggle-${demoId}`}
-                      className="search-menu-checkbox" 
+                      className="search-menu-checkbox"
                     />
                     
                     <label htmlFor={`search-menu-toggle-${demoId}`} className="search-button">

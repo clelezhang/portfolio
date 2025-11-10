@@ -653,13 +653,8 @@
   bottom: 0;
   background: transparent;
   display: none;
-  z-index: 10;
+  z-index: 100;
   cursor: default;
-}
-
-/* Inside demo containers, use absolute positioning */
-.blog-demos .demo-container .search-menu-overlay {
-  position: absolute;
 }
 
 .blog-demos .search-menu-checkbox:checked ~ .search-menu-overlay {
@@ -681,7 +676,7 @@
   border: 1px solid var(--border-subtle);
   background: var(--color-white);
   box-shadow: var(--shadow-subtle);
-  z-index: 11;
+  z-index: 101;
   gap: 2px;
   opacity: 0;
   transform: scale(0.90) translateY(-4px);
