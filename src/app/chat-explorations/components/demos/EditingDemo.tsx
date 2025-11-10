@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import EditableChatCanvas from '../EditableChatCanvas';
+import EditableChatCanvas from '../blog-demos/EditableChatCanvas';
 import { Message } from '@/app/lib/types';
 
 const DEMO_MESSAGES: Message[] = [

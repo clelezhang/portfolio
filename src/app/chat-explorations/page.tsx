@@ -25,42 +25,42 @@ const DemoLoadingFallback = () => (
 
 // Dynamically import demos for code splitting
 const CommentsDemo = dynamic(
-  () => import('@/app/components/demos/CommentsDemo'),
+  () => import('./components/demos/CommentsDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 const EditingDemo = dynamic(
-  () => import('@/app/components/demos/EditingDemo'),
+  () => import('./components/demos/EditingDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 const IndexDemo = dynamic(
-  () => import('@/app/components/demos/IndexDemo'),
+  () => import('./components/demos/IndexDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 const QueueDemo = dynamic(
-  () => import('@/app/components/demos/QueueDemo'),
+  () => import('./components/demos/QueueDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 const SwipeDemo = dynamic(
-  () => import('@/app/components/demos/SwipeDemo'),
+  () => import('./components/demos/SwipeDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 const DigDeeperDemo = dynamic(
-  () => import('@/app/components/demos/DigDeeperDemo'),
+  () => import('./components/demos/DigDeeperDemo'),
   { loading: () => <DemoLoadingFallback /> }
 );
 
 // Prefetch functions for each demo
-const prefetchCommentsDemo = () => import('@/app/components/demos/CommentsDemo');
-const prefetchEditingDemo = () => import('@/app/components/demos/EditingDemo');
-const prefetchIndexDemo = () => import('@/app/components/demos/IndexDemo');
-const prefetchQueueDemo = () => import('@/app/components/demos/QueueDemo');
-const prefetchSwipeDemo = () => import('@/app/components/demos/SwipeDemo');
-const prefetchDigDeeperDemo = () => import('@/app/components/demos/DigDeeperDemo');
+const prefetchCommentsDemo = () => import('./components/demos/CommentsDemo');
+const prefetchEditingDemo = () => import('./components/demos/EditingDemo');
+const prefetchIndexDemo = () => import('./components/demos/IndexDemo');
+const prefetchQueueDemo = () => import('./components/demos/QueueDemo');
+const prefetchSwipeDemo = () => import('./components/demos/SwipeDemo');
+const prefetchDigDeeperDemo = () => import('./components/demos/DigDeeperDemo');
 
 function ChatExplorationsContent() {
   const [digDeeperTopic, setDigDeeperTopic] = useState<string | undefined>();

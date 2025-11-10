@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import EditableChatCanvas from '../EditableChatCanvas';
+import EditableChatCanvas from '../blog-demos/EditableChatCanvas';
 import { Message, ConversationIndex as ConversationIndexType } from '@/app/lib/types';
-import '@/app/components/EditableChatCanvas.css';
+import '../blog-demos/EditableChatCanvas.css';
 
 const DEMO_MESSAGES: Message[] = [
   {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import SwipeDeeper from '../SwipeDeeper';
+import SwipeDeeper from '../blog-demos/SwipeDeeper';
 import { Exploration, ExploreSegment } from '@/app/lib/types';
 
 const DEMO_SEGMENTS: ExploreSegment[] = [
