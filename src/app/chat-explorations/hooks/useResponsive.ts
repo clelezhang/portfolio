@@ -9,7 +9,8 @@ import { useEffect, useState } from 'react';
  */
 export function useResponsive() {
   const [isMobile, setIsMobile] = useState(false);
-  const [isWideScreen, setIsWideScreen] = useState(false);
+  const [isWideScreen, setIsWideScreen] = useState(true); // Default to true to prevent flash
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     const mobileQuery = window.matchMedia('(max-width: 767px)');
@@ -18,6 +19,7 @@ export function useResponsive() {
     const update = () => {
       setIsMobile(mobileQuery.matches);
       setIsWideScreen(wideQuery.matches);
+      setIsMounted(true);
     };
 
     update();
@@ -30,5 +32,5 @@ export function useResponsive() {
     };
   }, []);
 
-  return { isMobile, isWideScreen };
+  return { isMobile, isWideScreen, isMounted };
 }

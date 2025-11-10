@@ -19,7 +19,7 @@ interface SideNavProps {
 
 export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const { isWideScreen } = useResponsive();
+  const { isWideScreen, isMounted } = useResponsive();
 
   const scrollToSection = useCallback((sectionId: string) => {
     const element = document.querySelector(`[data-demo-name="${sectionId}"]`);
@@ -30,6 +30,11 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
 
   const handleMouseEnter = useCallback((item: string) => setHoveredItem(item), []);
   const handleMouseLeave = useCallback(() => setHoveredItem(null), []);
+
+  // Don't render until mounted to prevent flash
+  if (!isMounted) {
+    return null;
+  }
 
   // Floating button for narrow screens
   if (!isWideScreen) {
