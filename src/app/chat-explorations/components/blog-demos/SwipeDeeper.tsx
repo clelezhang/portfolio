@@ -160,7 +160,8 @@ export default function SwipeDeeper({
       });
 
       if (!response.ok || !response.body) {
-        throw new Error('Failed to generate exploration');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate exploration' }));
+        throw new Error(errorData.error || 'Failed to generate exploration');
       }
 
       const reader = response.body.getReader();
@@ -406,7 +407,8 @@ export default function SwipeDeeper({
 
       if (!response.ok || !response.body) {
         console.error('[SwipeDeeper] Response not ok:', response.status);
-        throw new Error('Failed to expand section');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to expand section' }));
+        throw new Error(errorData.error || 'Failed to expand section');
       }
 
       const reader = response.body.getReader();
@@ -587,7 +589,8 @@ export default function SwipeDeeper({
 
       if (!response.ok || !response.body) {
         console.error('[SwipeDeeper] Response not ok:', response.status);
-        throw new Error('Failed to expand selection');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to expand selection' }));
+        throw new Error(errorData.error || 'Failed to expand selection');
       }
 
       const reader = response.body.getReader();

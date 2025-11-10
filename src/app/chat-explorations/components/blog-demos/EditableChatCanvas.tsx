@@ -435,7 +435,8 @@ Your response (keep it brief):`;
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to get AI response' }));
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
       const reader = response.body?.getReader();
@@ -585,7 +586,8 @@ Your response (keep it brief):`;
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to get response' }));
+        throw new Error(errorData.error || 'Failed to get response');
       }
 
       const reader = response.body?.getReader();
@@ -641,9 +643,23 @@ Your response (keep it brief):`;
         // Keep the partial content that was generated
       } else {
         console.error('Error generating response:', error);
+
+        // Determine error message based on error type
+        let errorMessage = 'Sorry, I encountered an error while generating a response.';
+        if (error instanceof Error) {
+          // Check if it's a network error
+          if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Connection failed. Please check your internet.';
+          } else if (error.message.includes("you've run out of messages")) {
+            errorMessage = "you've run out of messages";
+          } else {
+            errorMessage = error.message;
+          }
+        }
+
         setMessages(prev => prev.map(msg =>
           msg.id === assistantMessage.id
-            ? { ...msg, content: 'Sorry, I encountered an error while generating a response.' }
+            ? { ...msg, content: errorMessage }
             : msg
         ));
       }
@@ -758,7 +774,8 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to break message into topics');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to break message into topics' }));
+        throw new Error(errorData.error || 'Failed to break message into topics');
       }
 
       const reader = response.body?.getReader();
