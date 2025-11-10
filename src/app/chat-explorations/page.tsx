@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
 import Header from '@/app/components/Header';
 import { Play } from 'lucide-react';
+import { SideNav } from './components/SideNav';
+import { ExplorationInput } from './components/ExplorationInput';
+import { TextContainer } from './components/TextContainer';
+import { useResponsive } from './hooks/useResponsive';
 import './blog-demos.css';
 
 // Dynamically import demos for code splitting
@@ -31,13 +35,6 @@ const SwipeDemo = dynamic(() => import('@/app/components/demos/SwipeDemo'), {
 const DigDeeperDemo = dynamic(() => import('@/app/components/demos/DigDeeperDemo'), {
   loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
 });
-
-// Text wrapper component to constrain text width
-const TextContainer = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-    {children}
-  </div>
-);
 
 // Base style tokens
 const baseText = {
@@ -110,273 +107,14 @@ const styles = {
   }
 } as const;
 
-// Side navigation component
-const SideNav = ({ isFocused, onToggleFocus }: { isFocused: boolean; onToggleFocus: () => void }) => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [isWideScreen, setIsWideScreen] = useState(false);
-
-  // Detect screen width
-  useEffect(() => {
-    const checkWidth = () => {
-      setIsWideScreen(window.innerWidth >= 1280);
-    };
-
-    checkWidth();
-    window.addEventListener('resize', checkWidth);
-
-    return () => window.removeEventListener('resize', checkWidth);
-  }, []);
-
-  const navItems = [
-    { id: 'comments', label: 'a. comment for depth', section: 'comments' },
-    { id: 'editing', label: 'b. editing', section: 'editing' },
-    { id: 'index', label: 'c. a more powerful index', section: 'index' },
-    { id: 'queue', label: 'd. index becomes queue', section: 'queue' },
-    { id: 'threads', label: 'a. threads', section: 'dig-deeper' },
-    { id: 'swipe', label: 'b. swipe deeper', section: 'swipe-deeper' },
-  ];
-
-  const scrollToSection = (sectionId: string) => {
-    const element = document.querySelector(`[data-demo-name="${sectionId}"]`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  };
-
-  // Floating button for narrow screens
-  if (!isWideScreen) {
-    return (
-      <div style={{
-        position: 'fixed',
-        bottom: '1rem',
-        left: '1rem',
-        zIndex: 1000,
-      }}>
-        <button
-          onClick={onToggleFocus}
-          onMouseEnter={() => setHoveredItem('floating-toggle')}
-          onMouseLeave={() => setHoveredItem(null)}
-          className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-200 cursor-pointer border-none"
-          style={{
-            color: 'var(--color-gray)',
-            fontSize: '0.8rem',
-            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-          }}
-        >
-          <span style={{ display: 'inline-block', position: 'relative' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                maxWidth: isFocused ? '2rem' : '0',
-                overflow: 'hidden',
-                transition: 'max-width 200ms ease-in-out',
-                verticalAlign: 'bottom',
-              }}
-            >
-              un
-            </span>
-            focus demos
-          </span>
-        </button>
-      </div>
-    );
-  }
-
-  // Full side nav for wide screens
-  return (
-    <div style={{
-      position: 'fixed',
-      left: '1rem',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.2rem',
-    }}>
-      {/* Nav items */}
-      {navItems.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => scrollToSection(item.section)}
-          className="nav-pill-button"
-          style={{
-            backgroundColor: 'transparent',
-            color: 'var(--color-accentgray)',
-            border: 'none',
-            borderRadius: '999px',
-            padding: '0.3rem .75rem',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            textAlign: 'left',
-            transition: 'background-color 200ms ease-out',
-            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {item.label}
-        </button>
-      ))}
-
-      {/* Focus/Unfocus toggle */}
-      <div style={{ position: 'relative' }}>
-        <button
-          onClick={onToggleFocus}
-          onMouseEnter={() => setHoveredItem('toggle')}
-          onMouseLeave={() => setHoveredItem(null)}
-          className="rounded-full hover:bg-glass transition-all duration-200 cursor-pointer border-none"
-          style={{
-            color: 'var(--color-accentgray)',
-            fontSize: '0.8rem',
-            padding: '0.3rem .75rem',
-            fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ display: 'inline-block', position: 'relative' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                maxWidth: isFocused ? '2rem' : '0',
-                overflow: 'hidden',
-                transition: 'max-width 200ms ease-in-out',
-                verticalAlign: 'bottom',
-              }}
-            >
-              un
-            </span>
-            focus demos
-          </span>
-        </button>
-
-        {/* Tooltip */}
-        {hoveredItem === 'toggle' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              padding: '0.25rem 0.5rem',
-              color: 'var(--color-gray-400)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-caveat)',
-              pointerEvents: 'none',
-              opacity: hoveredItem === 'toggle' ? 1 : 0,
-            }}
-          >
-            {isFocused ? 'this disables the demos' : 'bring demos into focus'}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Input component for explorations
-const ExplorationInput = ({ buttonText, onSubmit }: { buttonText: string; onSubmit: (topic: string) => void }) => {
-  const [newTopicInput, setNewTopicInput] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleNewTopic = () => {
-    if (!newTopicInput.trim()) return;
-    onSubmit(newTopicInput.trim());
-    setNewTopicInput('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleNewTopic();
-    }
-  };
-
-  const handleContainerClick = () => {
-    inputRef.current?.focus();
-  };
-
-  return (
-    <div style={{
-      paddingTop: '.75rem',
-      maxWidth: '600px',
-      margin: '0 auto',
-    }}>
-        <div
-          onClick={handleContainerClick}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.25rem 0.25rem 0.25rem 1rem',
-            backgroundColor: '#C6C7D24D',
-            borderRadius: '.75rem',
-            cursor: 'text',
-          }}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={newTopicInput}
-            onChange={(e) => setNewTopicInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Explore more?"
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              fontSize: '.85rem',
-              color: '#2F3557',
-              fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-            }}
-          />
-          <button
-            onClick={handleNewTopic}
-            disabled={!newTopicInput.trim()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: newTopicInput.trim() ? '#2f35578c' : '#2e345633',
-              color: 'white',
-              border: 'none',
-              borderRadius: '.5rem',
-              cursor: newTopicInput.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-              transition: 'background-color 200ms ease-out',
-            }}
-          >
-            <span>{buttonText}</span>
-          </button>
-        </div>
-    </div>
-  );
-};
-
 export default function ChatExplorationsPage() {
   const [digDeeperTopic, setDigDeeperTopic] = useState<string | undefined>();
   const [swipeTopic, setSwipeTopic] = useState<string | undefined>();
   const [triggerQueueDemo, setTriggerQueueDemo] = useState<boolean>(false);
   const [isDemosFocused, setIsDemosFocused] = useState<boolean>(true);
-  const [isMobile, setIsMobile] = useState(false);
   const queueDemoRef = useRef<HTMLDivElement>(null);
 
-  // Detect mobile on mount
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const { isMobile } = useResponsive();
 
   const handleDigDeeperSubmit = (topic: string) => {
     setDigDeeperTopic(topic);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import { useResponsive } from '@/app/chat-explorations/hooks/useResponsive';
 
 interface DemoSectionProps {
   name: string;
@@ -46,8 +47,8 @@ export default function DemoSection({
   onFocusRequest,
 }: DemoSectionProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = useResponsive();
 
   const handleClick = (e: React.MouseEvent) => {
     if (!isFocused && onFocusRequest) {
@@ -56,18 +57,6 @@ export default function DemoSection({
       onFocusRequest();
     }
   };
-
-  // Detect mobile on mount
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Set up intersection observer for lazy loading
   useEffect(() => {
