@@ -162,7 +162,7 @@ function ChatExplorationsContent() {
             </p>
             <p style={styles.p}>
               AI can generate so much useful information to explore (yay!) but it&apos;s too much for my human brain to keep up with, at once (boo).
-            I&apos;ve been fiddling with different solutions to this for a while. I didn&apos;t want the degraded quality that comes with responses that parrot your tone. I thought this could be fixed with Git-style branching or a canvas, but I&apos;ve found that takes a lot of work to navigate. I wanted depth and breadth without the work of physically moving around a canvas and zooming in and out.
+            I&apos;ve been fiddling with different solutions to this for a while. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ color: 'var(--color-accentgray)' }}>[1]</span></a>. I thought this could be fixed with Git-style branching or a canvas, but I&apos;ve found that takes a lot of work to navigate. I wanted depth and breadth without the work of physically moving around a canvas and zooming in and out.
             </p>
             <p style={styles.pTight}>
             I prototyped a few ways to make chat more navigable, so that it can be a better home for our thoughts.
@@ -206,10 +206,10 @@ function ChatExplorationsContent() {
             <h3 style={{ ...styles.h3, marginBottom: '1rem' }}>
               B. Editing
             </h3>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
               You can click on any message to edit it.
             </p>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
               I quickly realized I didn&apos;t really like editing chat messages beyond small tweaks (because I am lazy). I&apos;d rather have Claude make larger edits.
               I would be really interested in seeing an editor built around co-writing with AI & voice, or focused on writing with AI & voice from first principles. If only there was more time to explore!
               </p>
@@ -233,10 +233,10 @@ function ChatExplorationsContent() {
             <h3 style={styles.h3}>
               C. A more powerful index
             </h3>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
               Indexes are the age old answer to navigation. The index updates as you scroll, highlighting the current section. Click any section to jump to it.
             </p>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
               While this is more of a nice touch than a core interaction difference, I had to include it because it feels nice to have this little grounding element.
             </p>
           </section>
@@ -312,14 +312,14 @@ function ChatExplorationsContent() {
               Two paths diverge
             </h2>
             <p style={styles.pLarge}>
-              While the above features enhance linear chat, I also prototyped two different navigation patterns, inspired by Eddy Chung and Matthew Siu&apos;s exploration interactions.
+              While the above features enhance linear chat, I also prototyped two different navigation patterns, inspired by <a href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Eddie Jiao <span style={{ color: 'var(--color-accentgray)' }}>[2]</span></a> and <a href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Matthew Siu&apos;s <span style={{ color: 'var(--color-accentgray)' }}>[3]</span></a> exploration interactions.
             </p>
 
             <h3 style={styles.h3}>
               A. Threads
             </h3>
             <p style={styles.pSpaced}>
-            With threads, you can click on any section to expand it. While this is nice and navigable, it also has the clunkiness of going through a long reddit thread.
+            I wanted to explore a more confined kind of navigation, where people are encouraged to go down rabbitholes. Here, you start with a few segments that can be expanded on infinitely, each with their own thread. You can click on any section to expand it. I found this to be easy to navigate, but also fairly clunky.
             </p>
           </section>
         </TextContainer>
@@ -349,13 +349,13 @@ function ChatExplorationsContent() {
             <h3 style={styles.h3}>
               B. Swipe deeper
             </h3>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
             My friend commented that he felt encouraged to bounce around when using threads, which nudged me to try a more focused, mobile-friendly interaction.
             </p>
-            <p style={styles.pWithLineHeight}>
+            <p style={styles.p}>
               With swipe deeper, you can swipe horizontally to explore topics in depth. Click the arrow on any section (or swipe if you&apos;re on mobile) to dig deeper, or select text and click the &ldquo;?&rdquo; button  to explore that specific concept.
             </p>
-            <p style={{ ...styles.pWithLineHeight, marginBottom: '1.5rem' }}>
+            <p style={{ ...styles.p, marginBottom: '1.5rem' }}>
               Play around with this! I&apos;m not sure what the rightful home for this interaction is, but I really love how simple this one feels.
             </p>
           </section>
@@ -386,13 +386,46 @@ function ChatExplorationsContent() {
           <h2 style={styles.h2}>
               Closing thoughts
             </h2>
-          <p style={styles.pWithLineHeight}>
-            I&apos;m not claiming these are definitive improvements to chat, as I have no clue what constraints the people making chat experiences are grappling with every day, but I hope this serves as a little spark of wonder in dreaming about how much potential there is for chat to grow in as a home for and co-creator to your thoughts. At least, that&apos;s what this did for me :).
-          </p>
-          <p style={{ ...styles.pWithLineHeight, marginBottom: '1.5rem' }}>
+          <p style={styles.pLarge}>
             If you try these patterns, I&apos;m curious if they felt grounding and helpful, or if they felt like a distraction. I&apos;d love to hear from you!
           </p>
-          <p style={styles.pSpaced}>
+          <p style={styles.p}>
+            My explorations were quite limited, and I am very curious about the potential there is for chat to grow in as a home for and co-creator to your thoughts.
+          </p>
+          <h3 style={{ ...styles.h3, marginTop: '1rem' }}>
+            Voice
+          </h3>
+          <p style={styles.p}>
+            <a href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Wispr <span style={{ color: 'var(--color-accentgray)' }}>[4]</span></a>, <a href="https://net.inc/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Net <span style={{ color: 'var(--color-accentgray)' }}>[5]</span></a>, and chatGPT voice mode have demonstrated the power of voice as input. Speaking, whether for the purposes of dictating or transcribing, is the most seamless input method. Beyond this, I&apos;ve found that much of the value in speaking comes from feeling and considering my own thoughts. 
+          </p>
+          <p style={styles.p}>
+            What&apos;s especially special is that when I bring my half-formed ideas to chat, I gain distinct clarity from the back and forth. Even when chat&apos;s feedback isn&apos;t necessarily correct, the alternate perspectives help me understand the meaning I was searching for.
+          </p>
+          <p style={styles.p}>
+            I am so excited by the potential of interfaces that understand this, and combine this with easy to read visuals and meaningful gestures.
+          </p>
+          <h3 style={{ ...styles.h3, marginTop: '2rem' }}>
+            Chats that die, chats that grow
+          </h3>
+          <p style={styles.p}>
+            While my prototypes were mostly focused on adding more to chat, I&apos;m really excited by the concept of interfaces that are initially ephemeral, that solidify the more you interact with them. 
+          </p>
+          <p style={styles.p}>
+            I&apos;ve asked claude 4-8 times with help planning a party, but most of these are one off chats. Some of them have become more long term, where I went back and forth altering recipes that I needed to reference while baking, and will reference again when I want to remake the recipe. 
+          </p>
+          <p style={styles.p}>
+            What if the one off chats only lived as long as needed, and the longer term ones become chats, or documents. For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure that the user can reference in addition to just floating in a memory soup.
+          </p>
+          <p style={styles.p}>
+            What if our ai tools felt more like the vibrant and faded scaffold of our memory, but more navigable and retrievable?
+          </p>
+          <h3 style={{ ...styles.h3, marginTop: '2rem' }}>
+            Anyways...
+          </h3>
+          <p style={styles.p}>
+            I&apos;m not claiming these are definitive improvements to chat, as I have no clue what constraints the people making chat experiences are grappling with every day, but I hope this serves as a little spark of wonder in dreaming about how much potential there is for chat to grow in as a home for and co-creator to your thoughts. At least, that&apos;s what this did for me :).
+          </p>
+          <p style={{ ...styles.pSpaced, marginTop: '1.5rem' }}>
             - Thanks for reading, Lele
           </p>
           </section>
@@ -401,9 +434,73 @@ function ChatExplorationsContent() {
           <h2 style={styles.h2}>
               References
             </h2>
-            <p style={styles.pFinal}>
-            Fill in later...
-            </p>
+            <div style={styles.pFinal}>
+              <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span>{' '}
+                <a
+                  href="https://openai.com/index/sycophancy-in-gpt-4o/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  OpenAI - Sycophancy in GPT-4o
+                </a>
+              </p>
+              <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span>{' '}
+                <a
+                  href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  Eddie Jiao - Infinite news canvas
+                </a>
+              </p>
+              <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span>{' '}
+                <a
+                  href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  Matthew Siu - Traveling gpt3 interface
+                </a>
+              </p>
+              <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span>{' '}
+                <a
+                  href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  Wispr - Voice input tool
+                </a>
+              </p>
+              <p style={{ ...styles.p, marginBottom: '5rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span>{' '}
+                <a
+                  href="https://net.inc/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  Net -  Mobile-first email app
+                </a>
+              </p>
+            </div>
           </section>
           </TextContainer>
         </article>
