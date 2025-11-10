@@ -152,7 +152,7 @@ function ChatExplorationsContent() {
               I used to want to journal more. I always felt so guilty, when the end of the week, month, year rolled by, and I didn&apos;t take the time to reflect.
             </p>
             <p style={styles.p}>
-              I wanted to journal more so badly that I made a journal, and asked all my friends how they journaled.
+              I wanted to journal more so badly that I made <a href="https://info.writewithprl.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>a journal <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span></a>, and asked all my friends how they journaled.
             </p>
             <p style={styles.p}>
               I found out that everyone wanted to journal more, but not everyone needed to. Most of my friends didn&apos;t journal, but they processed the stresses of school, relationships, and work by talking. I&apos;d been thinking about thinking wrong. I wasn&apos;t failing by not journaling, it just wasn&apos;t the right modality for me.
@@ -162,7 +162,7 @@ function ChatExplorationsContent() {
             </p>
             <p style={styles.p}>
               AI can generate so much useful information to explore (yay!) but it&apos;s too much for my human brain to keep up with, at once (boo).
-            I&apos;ve been fiddling with different solutions to this for a while. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span></a>. I thought this could be fixed with Git-style branching or a canvas, but I&apos;ve found that takes a lot of work to navigate. I wanted depth and breadth without the work of physically moving around a canvas and zooming in and out.
+            I&apos;ve been fiddling with different solutions to this for a while. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a>. I thought this could be fixed with Git-style branching or a canvas, but I&apos;ve found that takes a lot of work to navigate. I wanted depth and breadth without the work of physically moving around a canvas and zooming in and out.
             </p>
             <p style={styles.pTight}>
             I prototyped a few ways to make chat more navigable, so that it can be a better home for our thoughts.
@@ -312,7 +312,7 @@ function ChatExplorationsContent() {
               Two paths diverge
             </h2>
             <p style={styles.pLarge}>
-              While the above features enhance linear chat, I also prototyped two different navigation patterns, inspired by <a href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Eddie Jiao <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a> and <a href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Matthew Siu&apos;s <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span></a> exploration interactions.
+              While the above features enhance linear chat, I also prototyped two different navigation patterns, inspired by <a href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Eddie Jiao <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span></a> and <a href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Matthew Siu&apos;s <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span></a> exploration interactions.
             </p>
 
             <h3 style={styles.h3}>
@@ -396,7 +396,7 @@ function ChatExplorationsContent() {
             Voice
           </h3>
           <p style={styles.p}>
-            <a href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Wispr <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span></a>, <a href="https://net.inc/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Net <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span></a>, and chatGPT voice mode have demonstrated the power of voice as input. Speaking, whether for the purposes of dictating or transcribing, is the most seamless input method. Beyond this, I&apos;ve found that much of the value in speaking comes from feeling and considering my own thoughts. 
+            <a href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Wispr <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span></a>, <a href="https://net.inc/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Net <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[6]</span></a>, and chatGPT voice mode have demonstrated the power of voice as input. Speaking, whether for the purposes of dictating or transcribing, is the most seamless input method. Beyond this, I&apos;ve found that much of the value in speaking comes from feeling and considering my own thoughts. 
           </p>
           <p style={styles.p}>
             What&apos;s especially special is that when I bring my half-formed ideas to chat, I gain distinct clarity from the back and forth. Even when chat&apos;s feedback isn&apos;t necessarily correct, the alternate perspectives help me understand the meaning I was searching for.
@@ -438,6 +438,19 @@ function ChatExplorationsContent() {
               <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
                 <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span>{' '}
                 <a
+                  href="https://info.writewithprl.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}
+                >
+                  Pearl - AI journal that reflects with you
+                </a>
+              </p>
+              <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span>{' '}
+                <a
                   href="https://openai.com/index/sycophancy-in-gpt-4o/"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -449,7 +462,7 @@ function ChatExplorationsContent() {
                 </a>
               </p>
               <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
-                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span>{' '}
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span>{' '}
                 <a
                   href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20"
                   target="_blank"
@@ -462,7 +475,7 @@ function ChatExplorationsContent() {
                 </a>
               </p>
               <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
-                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span>{' '}
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span>{' '}
                 <a
                   href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20"
                   target="_blank"
@@ -475,7 +488,7 @@ function ChatExplorationsContent() {
                 </a>
               </p>
               <p style={{ ...styles.p, marginBottom: '0.25rem' }}>
-                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span>{' '}
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span>{' '}
                 <a
                   href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp"
                   target="_blank"
@@ -488,7 +501,7 @@ function ChatExplorationsContent() {
                 </a>
               </p>
               <p style={{ ...styles.p, marginBottom: '5rem' }}>
-                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span>{' '}
+                <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[6]</span>{' '}
                 <a
                   href="https://net.inc/"
                   target="_blank"
