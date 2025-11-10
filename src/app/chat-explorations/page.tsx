@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
 import Header from '@/app/components/Header';
@@ -9,105 +9,60 @@ import { SideNav } from './components/SideNav';
 import { ExplorationInput } from './components/ExplorationInput';
 import { TextContainer } from './components/TextContainer';
 import { useResponsive } from './hooks/useResponsive';
+import { DemoFocusProvider } from './contexts/DemoFocusContext';
+import { styles, LAYOUT } from './constants/styles';
 import './blog-demos.css';
 
+// Loading fallback for all demos
+const DemoLoadingFallback = () => (
+  <div style={{
+    width: '100%',
+    height: '600px',
+    background: 'var(--color-off-white)',
+    animation: 'pulse 1.5s ease-in-out infinite'
+  }} />
+);
+
 // Dynamically import demos for code splitting
-const CommentsDemo = dynamic(() => import('@/app/components/demos/CommentsDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const CommentsDemo = dynamic(
+  () => import('@/app/components/demos/CommentsDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-const EditingDemo = dynamic(() => import('@/app/components/demos/EditingDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const EditingDemo = dynamic(
+  () => import('@/app/components/demos/EditingDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-const IndexDemo = dynamic(() => import('@/app/components/demos/IndexDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const IndexDemo = dynamic(
+  () => import('@/app/components/demos/IndexDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-const QueueDemo = dynamic(() => import('@/app/components/demos/QueueDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const QueueDemo = dynamic(
+  () => import('@/app/components/demos/QueueDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-const SwipeDemo = dynamic(() => import('@/app/components/demos/SwipeDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const SwipeDemo = dynamic(
+  () => import('@/app/components/demos/SwipeDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-const DigDeeperDemo = dynamic(() => import('@/app/components/demos/DigDeeperDemo'), {
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#FBFBFA', animation: 'pulse 1.5s ease-in-out infinite' }} />,
-});
+const DigDeeperDemo = dynamic(
+  () => import('@/app/components/demos/DigDeeperDemo'),
+  { loading: () => <DemoLoadingFallback /> }
+);
 
-// Base style tokens
-const baseText = {
-  color: 'var(--color-black)',
-  letterSpacing: '-0.02em'
-} as const;
+// Prefetch functions for each demo
+const prefetchCommentsDemo = () => import('@/app/components/demos/CommentsDemo');
+const prefetchEditingDemo = () => import('@/app/components/demos/EditingDemo');
+const prefetchIndexDemo = () => import('@/app/components/demos/IndexDemo');
+const prefetchQueueDemo = () => import('@/app/components/demos/QueueDemo');
+const prefetchSwipeDemo = () => import('@/app/components/demos/SwipeDemo');
+const prefetchDigDeeperDemo = () => import('@/app/components/demos/DigDeeperDemo');
 
-const baseBodyWithLineHeight = {
-  ...baseText,
-  lineHeight: 1.5
-} as const;
-
-// Consolidated style objects
-const styles = {
-  h1: {
-    ...baseText,
-    fontSize: '1.25rem',
-    fontWeight: 400,
-  },
-  h2: {
-    ...baseText,
-    fontFamily: 'var(--font-caveat)',
-    letterSpacing: '-0.02em',
-    fontWeight: 500,
-    fontSize: '1.55rem',
-    marginBottom: '.25rem',
-    textTransform: 'lowercase'
-  },
-  h3: {
-    fontFamily: 'var(--font-caveat)',
-    fontSize: '1.6rem',
-    fontWeight: 500,
-    marginBottom: '.25rem',
-    color: 'var(--color-accentgray)',
-    letterSpacing: '-0.02em',
-    textTransform: 'lowercase'
-  },
-  date: {
-    fontFamily: 'var(--font-caveat)',
-    fontSize: '1.5rem',
-    fontWeight: 400,
-    color: 'var(--color-accentgray)',
-    letterSpacing: '-0.02em',
-    lineHeight: 1,
-    textTransform: 'lowercase'
-  },
-  p: {
-    ...baseText,
-    marginBottom: '1rem'
-  },
-  pTight: {
-    ...baseText,
-    marginBottom: '.5rem'
-  },
-  pWithLineHeight: {
-    ...baseBodyWithLineHeight,
-    marginBottom: '0.5rem'
-  },
-  pLarge: {
-    ...baseBodyWithLineHeight,
-    marginBottom: '2rem'
-  },
-  pSpaced: {
-    ...baseBodyWithLineHeight,
-    marginBottom: '1.5rem'
-  },
-  pFinal: {
-    ...baseBodyWithLineHeight,
-    marginBottom: '5rem'
-  }
-} as const;
-
-export default function ChatExplorationsPage() {
+function ChatExplorationsContent() {
   const [digDeeperTopic, setDigDeeperTopic] = useState<string | undefined>();
   const [swipeTopic, setSwipeTopic] = useState<string | undefined>();
   const [triggerQueueDemo, setTriggerQueueDemo] = useState<boolean>(false);
@@ -116,33 +71,70 @@ export default function ChatExplorationsPage() {
 
   const { isMobile } = useResponsive();
 
-  const handleDigDeeperSubmit = (topic: string) => {
+  const handleDigDeeperSubmit = useCallback((topic: string) => {
     setDigDeeperTopic(topic);
-  };
+  }, []);
 
-  const handleSwipeSubmit = (topic: string) => {
+  const handleSwipeSubmit = useCallback((topic: string) => {
     setSwipeTopic(topic);
-  };
+  }, []);
 
-  const handlePlayQueueDemo = () => {
+  const handlePlayQueueDemo = useCallback(() => {
     // Scroll to demo first
     queueDemoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Trigger demo after a short delay to ensure it's in view
-    setTimeout(() => {
-      setTriggerQueueDemo(true);
-    }, 500);
-  };
+    // Trigger demo after scroll completes using requestAnimationFrame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTriggerQueueDemo(true);
+      });
+    });
+  }, []);
+
+  const handleToggleFocus = useCallback(() => {
+    setIsDemosFocused(prev => !prev);
+  }, []);
+
+  const handleFocusRequest = useCallback(() => {
+    setIsDemosFocused(true);
+  }, []);
+
+  // Prefetch demos on idle to improve performance
+  useEffect(() => {
+    // Use requestIdleCallback if available, otherwise setTimeout
+    const prefetchOnIdle = () => {
+      if ('requestIdleCallback' in window) {
+        // Prefetch in order of likely user interaction
+        requestIdleCallback(() => prefetchCommentsDemo(), { timeout: 2000 });
+        requestIdleCallback(() => prefetchEditingDemo(), { timeout: 3000 });
+        requestIdleCallback(() => prefetchIndexDemo(), { timeout: 4000 });
+        requestIdleCallback(() => prefetchQueueDemo(), { timeout: 5000 });
+        requestIdleCallback(() => prefetchDigDeeperDemo(), { timeout: 6000 });
+        requestIdleCallback(() => prefetchSwipeDemo(), { timeout: 7000 });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(prefetchCommentsDemo, 1000);
+        setTimeout(prefetchEditingDemo, 2000);
+        setTimeout(prefetchIndexDemo, 3000);
+        setTimeout(prefetchQueueDemo, 4000);
+        setTimeout(prefetchDigDeeperDemo, 5000);
+        setTimeout(prefetchSwipeDemo, 6000);
+      }
+    };
+
+    // Start prefetching after initial render
+    prefetchOnIdle();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white font-sans">
       <Header />
-      <SideNav isFocused={isDemosFocused} onToggleFocus={() => setIsDemosFocused(!isDemosFocused)} />
+      <SideNav isFocused={isDemosFocused} onToggleFocus={handleToggleFocus} />
       <div
         className="blog-demos"
         style={{
-          maxWidth: '1080px',
+          maxWidth: LAYOUT.MAX_CONTENT_WIDTH,
           margin: '0 auto',
-          padding: '12rem 1rem 3rem 1rem'
+          padding: `${LAYOUT.PAGE_PADDING_TOP} ${LAYOUT.PAGE_PADDING_SIDE} ${LAYOUT.PAGE_PADDING_BOTTOM} ${LAYOUT.PAGE_PADDING_SIDE}`
         }}>
         <article>
         <TextContainer>
@@ -204,7 +196,7 @@ export default function ChatExplorationsPage() {
           loadOnScroll
           enableMobile
           isFocused={isDemosFocused}
-          onFocusRequest={() => setIsDemosFocused(true)}
+          onFocusRequest={handleFocusRequest}
         >
           <CommentsDemo />
         </DemoSection>
@@ -231,7 +223,7 @@ export default function ChatExplorationsPage() {
           loadOnScroll
           enableMobile
           isFocused={isDemosFocused}
-          onFocusRequest={() => setIsDemosFocused(true)}
+          onFocusRequest={handleFocusRequest}
         >
           <EditingDemo />
         </DemoSection>
@@ -255,7 +247,7 @@ export default function ChatExplorationsPage() {
           previewVideo="/demos/index.mp4"
           loadOnScroll
           isFocused={isDemosFocused}
-          onFocusRequest={() => setIsDemosFocused(true)}
+          onFocusRequest={handleFocusRequest}
         >
           <IndexDemo />
         </DemoSection>
@@ -273,16 +265,16 @@ export default function ChatExplorationsPage() {
         </TextContainer>
 
         {!isMobile && (
-        <div style={{ paddingBottom: '1rem', maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ paddingBottom: '1rem', maxWidth: LAYOUT.TEXT_MAX_WIDTH, margin: '0 auto' }}>
           <button
             onClick={handlePlayQueueDemo}
+            className="queue-play-button"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
               padding: '0.75rem 1rem',
-              backgroundColor: '#C6C7D24D',
               color: '#2F3557',
               border: 'none',
               borderRadius: '.75rem',
@@ -290,10 +282,7 @@ export default function ChatExplorationsPage() {
               fontSize: '.85rem',
               fontWeight: 400,
               fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
-              transition: 'background-color 150ms ease-out',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8B9C44D'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C6C7D24D'}
           >
             <span>play queue demo</span>
             <Play size={16} fill="#2F3557" strokeWidth={0} />
@@ -308,7 +297,7 @@ export default function ChatExplorationsPage() {
             previewVideo="/demos/queue.mp4"
             loadOnScroll
             isFocused={isDemosFocused}
-            onFocusRequest={() => setIsDemosFocused(true)}
+            onFocusRequest={handleFocusRequest}
           >
             <QueueDemo
               triggerDemo={triggerQueueDemo}
@@ -342,7 +331,7 @@ export default function ChatExplorationsPage() {
           loadOnScroll
           enableMobile
           isFocused={isDemosFocused}
-          onFocusRequest={() => setIsDemosFocused(true)}
+          onFocusRequest={handleFocusRequest}
         >
           <DigDeeperDemo
             newTopic={digDeeperTopic}
@@ -379,7 +368,7 @@ export default function ChatExplorationsPage() {
           loadOnScroll
           enableMobile
           isFocused={isDemosFocused}
-          onFocusRequest={() => setIsDemosFocused(true)}
+          onFocusRequest={handleFocusRequest}
         >
           <SwipeDemo
             newTopic={swipeTopic}
@@ -420,5 +409,13 @@ export default function ChatExplorationsPage() {
         </article>
       </div>
     </div>
+  );
+}
+
+export default function ChatExplorationsPage() {
+  return (
+    <DemoFocusProvider>
+      <ChatExplorationsContent />
+    </DemoFocusProvider>
   );
 }

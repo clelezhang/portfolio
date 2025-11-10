@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 
 const NAV_ITEMS = [
@@ -21,12 +21,15 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const { isWideScreen } = useResponsive();
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     const element = document.querySelector(`[data-demo-name="${sectionId}"]`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  }, []);
+
+  const handleMouseEnter = useCallback((item: string) => setHoveredItem(item), []);
+  const handleMouseLeave = useCallback(() => setHoveredItem(null), []);
 
   // Floating button for narrow screens
   if (!isWideScreen) {
@@ -39,8 +42,8 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
       }}>
         <button
           onClick={onToggleFocus}
-          onMouseEnter={() => setHoveredItem('floating-toggle')}
-          onMouseLeave={() => setHoveredItem(null)}
+          onMouseEnter={() => handleMouseEnter('floating-toggle')}
+          onMouseLeave={handleMouseLeave}
           className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-200 cursor-pointer border-none"
           style={{
             color: 'var(--color-gray)',
@@ -109,8 +112,8 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
       <div style={{ position: 'relative' }}>
         <button
           onClick={onToggleFocus}
-          onMouseEnter={() => setHoveredItem('toggle')}
-          onMouseLeave={() => setHoveredItem(null)}
+          onMouseEnter={() => handleMouseEnter('toggle')}
+          onMouseLeave={handleMouseLeave}
           className="rounded-full hover:bg-glass transition-all duration-200 cursor-pointer border-none"
           style={{
             color: 'var(--color-accentgray)',

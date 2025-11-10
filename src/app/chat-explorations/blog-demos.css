@@ -329,3 +329,79 @@
 .nav-pill-button:hover {
   background-color: #C6C7D24D !important;
 }
+
+/* Queue play button styles */
+.queue-play-button {
+  background-color: #C6C7D24D;
+  transition: background-color 150ms ease-out;
+}
+
+.queue-play-button:hover {
+  background-color: #B8B9C44D;
+}
+
+/* Demo video styles - scale to eliminate edge gaps */
+.blog-demos .demo-section.mobile video {
+  width: 100%;
+  height: auto;
+  display: block;
+  background-color: transparent;
+  transform: scale(1.01);
+}
+
+/* Exploration input styles */
+.exploration-input-container {
+  padding-top: 0.75rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.exploration-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.25rem 0.25rem 1rem;
+  background-color: #C6C7D24D;
+  border-radius: 0.75rem;
+  cursor: text;
+}
+
+.exploration-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: #2F3557;
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.exploration-input::placeholder {
+  color: #2F3557;
+  opacity: 0.6;
+}
+
+.exploration-submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background-color 200ms ease-out;
+}
+
+.exploration-submit-button:not(:disabled) {
+  background-color: #2f35578c;
+  cursor: pointer;
+}
+
+.exploration-submit-button:disabled {
+  background-color: #2e345633;
+  cursor: not-allowed;
+}

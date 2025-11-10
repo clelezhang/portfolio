@@ -111,14 +111,6 @@ export default function DemoSection({
           loop
           muted
           playsInline
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-            verticalAlign: 'middle',
-            backgroundColor: 'transparent',
-            transform: 'scale(1.01)',
-          }}
         >
           <source src={previewVideo} type="video/mp4" />
         </video>
