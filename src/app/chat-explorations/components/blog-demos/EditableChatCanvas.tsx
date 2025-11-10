@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Message } from '@/app/lib/types';
 import MessageComponent from './MessageComponent';
 import ChatAnimationSettings from './ChatAnimationSettings';
-import { DEFAULT_CHAT_ANIMATION_CONFIG, ChatAnimationConfig } from '@/app/lib/animationConfig';
 import { ArrowUp, Search, Plus, Check } from 'lucide-react';
 import './EditableChatCanvas.css';
 
@@ -54,13 +53,12 @@ export default function EditableChatCanvas({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingMessageId, setGeneratingMessageId] = useState<string | null>(null);
   const [draftThreads, setDraftThreads] = useState<Map<string, import('@/app/lib/types').CommentThread>>(new Map()); // messageId -> draft thread
-  const [chatAnimConfig, setChatAnimConfig] = useState<ChatAnimationConfig>(DEFAULT_CHAT_ANIMATION_CONFIG);
   const [searchMode, setSearchMode] = useState<'on' | 'auto' | 'off'>('auto');
   const [showSearchSuccess, setShowSearchSuccess] = useState(false);
   
   // Use external queue items if provided, otherwise use local state
   const queueItems = externalQueueItems;
-  const setQueueItems = onQueueItemsChange || (() => {});
+  const setQueueItems = useMemo(() => onQueueItemsChange || (() => {}), [onQueueItemsChange]);
   const currentQueueItemId = queueItems.find(item => item.status === 'now')?.id || null;
   
   // Refs
@@ -550,7 +548,7 @@ Your response (keep it brief):`;
     }
   };
 
-  const runMessageWithMessagesAndTopic = async (messageId: string, messagesArray: Message[], topic?: string) => {
+  const runMessageWithMessagesAndTopic = useCallback(async (messageId: string, messagesArray: Message[], topic?: string) => {
     if (isGenerating) return;
 
     setIsGenerating(true);
@@ -654,7 +652,7 @@ Your response (keep it brief):`;
       setGeneratingMessageId(null);
       abortControllerRef.current = null;
     }
-  };
+  }, [isGenerating, setIsGenerating, setGeneratingMessageId, setMessages, queueMode, currentQueueItemId, queueItems, searchMode]);
 
   const stopGeneration = () => {
     if (abortControllerRef.current) {
@@ -825,7 +823,48 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
   };
 
   // Queue handlers
-  const handleQueueSkip = () => {
+  const handleQueuePlay = useCallback(async (itemId: string) => {
+    // Don't allow playing if already generating (check ref for immediate value)
+    if (isGeneratingRef.current) return;
+
+    // Set ref immediately to prevent double calls
+    isGeneratingRef.current = true;
+
+    // Use ref to get current queueItems to avoid stale closures
+    const currentQueueItems = queueItemsRef.current;
+    const item = currentQueueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
+    if (!item) {
+      isGeneratingRef.current = false;
+      return;
+    }
+
+    // Move this item to 'now' status
+    const updatedItems = currentQueueItems.map((q: import('@/app/lib/types').QueueItem) => {
+      if (q.id === itemId) {
+        return { ...q, status: 'now' as const };
+      } else if (q.status === 'now') {
+        return { ...q, status: 'past' as const };
+      }
+      return q;
+    });
+
+    setQueueItems(updatedItems);
+
+    // If item has content, send it as a message
+    if (item.content) {
+      const userMessage = createMessage('user', item.content);
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, userMessage];
+
+        // Pass the topic directly since we know which item is being played
+        runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
+
+        return updatedMessages;
+      });
+    }
+  }, [setQueueItems, runMessageWithMessagesAndTopic]);
+
+  const handleQueueSkip = useCallback(() => {
     if (!currentQueueItemId) return;
 
     // Move current item to past and next upcoming to now
@@ -846,7 +885,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     if (nextItem) {
       handleQueuePlay(nextItem.id);
     }
-  };
+  }, [currentQueueItemId, queueItems, setQueueItems, handleQueuePlay]);
 
   const handleQueueItemClick = useCallback((itemId: string) => {
     const item = queueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
@@ -890,47 +929,6 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     };
   }, [handleQueueItemClick, onQueueItemClick]);
 
-  const handleQueuePlay = useCallback(async (itemId: string) => {
-    // Don't allow playing if already generating (check ref for immediate value)
-    if (isGeneratingRef.current) return;
-
-    // Set ref immediately to prevent double calls
-    isGeneratingRef.current = true;
-
-    // Use ref to get current queueItems to avoid stale closures
-    const currentQueueItems = queueItemsRef.current;
-    const item = currentQueueItems.find((q: import('@/app/lib/types').QueueItem) => q.id === itemId);
-    if (!item) {
-      isGeneratingRef.current = false;
-      return;
-    }
-
-    // Move this item to 'now' status
-    const updatedItems = currentQueueItems.map((q: import('@/app/lib/types').QueueItem) => {
-      if (q.id === itemId) {
-        return { ...q, status: 'now' as const };
-      } else if (q.status === 'now') {
-        return { ...q, status: 'past' as const };
-      }
-      return q;
-    });
-
-    setQueueItems(updatedItems);
-
-    // If item has content, send it as a message
-    if (item.content) {
-      const userMessage = createMessage('user', item.content);
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages, userMessage];
-
-        // Pass the topic directly since we know which item is being played
-        runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
-
-        return updatedMessages;
-      });
-    }
-  }, []);
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleQueueEdit = (itemId: string, newTitle: string) => {
     const updatedItems = queueItems.map((item: import('@/app/lib/types').QueueItem) => 
@@ -963,7 +961,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
         return () => clearTimeout(timer);
       }
     }
-  }, [isGenerating, queueMode, currentQueueItemId, queueItems]);
+  }, [isGenerating, queueMode, currentQueueItemId, queueItems, handleQueueSkip]);
 
   // Listen for queue item trigger events (for auto-playing demos)
   useEffect(() => {
@@ -1135,7 +1133,7 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
         </div>
       
       {/* Chat Animation Settings */}
-      {!hideSettings && <ChatAnimationSettings onChange={setChatAnimConfig} demoId={demoId} />}
+      {!hideSettings && <ChatAnimationSettings onChange={() => {}} demoId={demoId} />}
       </>
   );
 }

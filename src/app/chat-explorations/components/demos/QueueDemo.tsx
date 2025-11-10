@@ -101,15 +101,13 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
   
   // Update hover dot position
   useEffect(() => {
-    if (!isAnimating) {
-      if (hoveredItemId) {
-        const isHoverIndexItem = hoveredItemId.includes('-queue-');
-        updateDotPosition(hoveredItemId, setHoverDotPosition, isHoverIndexItem);
-      } else {
-        setHoverDotPosition((prev) => ({ ...prev, opacity: 0 }));
-      }
+    if (hoveredItemId) {
+      const isHoverIndexItem = hoveredItemId.includes('-queue-');
+      updateDotPosition(hoveredItemId, setHoverDotPosition, isHoverIndexItem);
+    } else {
+      setHoverDotPosition((prev) => ({ ...prev, opacity: 0 }));
     }
-  }, [hoveredItemId, isAnimating, updateDotPosition]);
+  }, [hoveredItemId, updateDotPosition]);
   
   // Update selection when queue items change
   useEffect(() => {
@@ -204,8 +202,8 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
             <button
               ref={chatButtonRef}
               className="chat-button"
-              onMouseEnter={() => !isAnimating && setHoveredItemId('demo-chat')}
-              onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
+              onMouseEnter={() => setHoveredItemId('demo-chat')}
+              onMouseLeave={() => setHoveredItemId(null)}
             >
               <span className="chat-title">Apple Pie Baking</span>
             </button>
@@ -241,8 +239,8 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
                       });
                       window.dispatchEvent(event);
                     }}
-                    onMouseEnter={() => !isAnimating && setHoveredItemId(queueItemId)}
-                    onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
+                    onMouseEnter={() => setHoveredItemId(queueItemId)}
+                    onMouseLeave={() => setHoveredItemId(null)}
                     className={`index-item-btn ${isSelected ? 'selected' : ''}`}
                   >
                     <span className="index-item-title">{item.title}</span>
@@ -273,8 +271,8 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
                       window.dispatchEvent(event);
                     }}
                     className="index-item-btn upcoming"
-                    onMouseEnter={() => !isAnimating && setHoveredItemId(queueItemId)}
-                    onMouseLeave={() => !isAnimating && setHoveredItemId(null)}
+                    onMouseEnter={() => setHoveredItemId(queueItemId)}
+                    onMouseLeave={() => setHoveredItemId(null)}
                   >
                     <span className="index-item-title">{item.title}</span>
                   </button>
