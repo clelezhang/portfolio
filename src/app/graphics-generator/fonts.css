@@ -1,0 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'AS Thermal Regular';
+  src: url('/fonts/AS-Thermal/ASThermalRegular.woff2') format('woff2'),
+       url('/fonts/AS-Thermal/ASThermalRegular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
