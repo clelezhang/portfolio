@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useResponsive } from '../hooks/useResponsive';
 
 const NAV_ITEMS = [
@@ -38,12 +39,16 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
   // Floating button for narrow screens
   if (!isWideScreen) {
     return (
-      <div style={{
-        position: 'fixed',
-        bottom: '1rem',
-        left: '1rem',
-        zIndex: 1000,
-      }}>
+      <motion.div
+        initial={{ opacity: 0, filter: "blur(1px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.1, ease: "easeOut" }}
+        style={{
+          position: 'fixed',
+          bottom: '1rem',
+          left: '1rem',
+          zIndex: 1000,
+        }}>
         <button
           onClick={onToggleFocus}
           onMouseEnter={() => handleMouseEnter('floating-toggle')}
@@ -73,22 +78,26 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
             focus demos
           </span>
         </button>
-      </div>
+      </motion.div>
     );
   }
 
   // Full side nav for wide screens
   return (
-    <div style={{
-      position: 'fixed',
-      left: '1rem',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.2rem',
-    }}>
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(4px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      style={{
+        position: 'fixed',
+        left: '1rem',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.2rem',
+      }}>
       {/* Nav items */}
       {NAV_ITEMS.map((item) => (
         <button
@@ -120,9 +129,10 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
           onClick={onToggleFocus}
           onMouseEnter={() => handleMouseEnter('toggle')}
           onMouseLeave={handleMouseLeave}
-          className="rounded-full hover:bg-glass transition-all duration-200 cursor-pointer border-none"
+          className="nav-pill-button"
           tabIndex={-1}
           style={{
+            backgroundColor: 'transparent',
             color: 'var(--color-accentgray)',
             fontSize: '0.8rem',
             padding: '0.3rem .75rem',
@@ -130,6 +140,10 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textAlign: 'left',
+            border: 'none',
+            borderRadius: '999px',
+            cursor: 'pointer',
+            transition: 'background-color 200ms ease-out',
           }}
         >
           <span style={{ display: 'inline-block', position: 'relative' }}>
@@ -149,23 +163,22 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
         </button>
 
         {/* Tooltip */}
-        {hoveredItem === 'toggle' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              padding: '0.25rem 0.5rem',
-              color: 'var(--color-gray-400)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-caveat)',
-              pointerEvents: 'none',
-              opacity: hoveredItem === 'toggle' ? 1 : 0,
-            }}
-          >
-            {isFocused ? 'this disables the demos' : 'bring demos into focus'}
-          </div>
-        )}
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            padding: '0.25rem 0.5rem',
+            color: 'var(--color-gray-400)',
+            fontSize: '1rem',
+            fontFamily: 'var(--font-caveat)',
+            pointerEvents: 'none',
+            opacity: hoveredItem === 'toggle' ? 1 : 0,
+            transition: 'opacity 200ms ease-out',
+          }}
+        >
+          {isFocused ? 'this disables the demos' : 'bring demos into focus'}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
