@@ -15,8 +15,8 @@ type ParagraphVariant = {
 };
 
 const paragraphVariants: Record<string, ParagraphVariant> = {
-  default: { marginBottom: '1rem' },
-  large: { marginBottom: '2rem' },
+  default: { marginBottom: '2rem' },
+  large: { marginBottom: '3rem' },
   final: { marginBottom: '5rem' },
 } as const;
 
@@ -39,14 +39,14 @@ export const styles = {
     letterSpacing: '-0.02em',
     fontWeight: 500,
     fontSize: '1.75rem',
-    marginBottom: '.25rem',
+    marginBottom: '1rem',
     textTransform: 'lowercase' as const
   },
   h3: {
     fontFamily: 'var(--font-caveat)',
     fontSize: '1.5rem',
     fontWeight: 500,
-    marginBottom: '.25rem',
+    marginBottom: '1rem',
     color: 'var(--color-accentgray)',
     letterSpacing: '-0.02em',
     textTransform: 'lowercase' as const
@@ -62,7 +62,7 @@ export const styles = {
   },
   p: {
     ...baseBodyWithLineHeight,
-    marginBottom: '0.5rem'
+    marginBottom: '1rem'
   },
   pLarge: createParagraphStyle('large'),
   pSpaced: createParagraphStyle('spaced'),

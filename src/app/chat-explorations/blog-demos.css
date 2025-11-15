@@ -406,3 +406,9 @@
   cursor: not-allowed;
 }
 
+/* Remove focus outline from headings */
+.blog-demos h1:focus,
+.blog-demos h2:focus,
+.blog-demos h3:focus {
+  outline: none;
+}

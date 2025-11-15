@@ -175,27 +175,30 @@ function ChatExplorationsContent() {
     prefetchOnIdle();
   }, []);
 
-  // Make demo elements non-tabbable - run periodically to catch lazy-loaded content
+  // Handle circular tab navigation
   useEffect(() => {
-    const makeNonTabbable = () => {
-      const demos = document.querySelectorAll('.demo-section');
-      demos.forEach(demo => {
-        const focusable = demo.querySelectorAll('a, button, input, textarea, select');
-        focusable.forEach(el => {
-          el.setAttribute('tabindex', '-1');
-        });
-      });
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const headings = Array.from(document.querySelectorAll('.blog-demos h1, .blog-demos h2, .blog-demos h3')) as HTMLElement[];
+      const activeElement = document.activeElement as HTMLElement;
+      const currentIndex = headings.indexOf(activeElement);
+
+      if (currentIndex === -1) return;
+
+      if (!e.shiftKey && currentIndex === headings.length - 1) {
+        // Tab on last heading - go to first
+        e.preventDefault();
+        headings[0]?.focus();
+      } else if (e.shiftKey && currentIndex === 0) {
+        // Shift+Tab on first heading - go to last
+        e.preventDefault();
+        headings[headings.length - 1]?.focus();
+      }
     };
 
-    // Initial run
-    const timer = setTimeout(makeNonTabbable, 300);
-    // Periodic check for lazy-loaded content
-    const interval = setInterval(makeNonTabbable, 1000);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -211,7 +214,7 @@ function ChatExplorationsContent() {
         }}>
         <article>
         <TextContainer>
-          <header style={{ marginBottom: '2.5rem' }}>
+          <header style={{ marginBottom: '3rem' }}>
             <h1 style={styles.h1} tabIndex={0}>
               sketches of chat as an interface for thinking
             </h1>
