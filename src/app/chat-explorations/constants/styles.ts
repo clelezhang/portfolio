@@ -16,10 +16,7 @@ type ParagraphVariant = {
 
 const paragraphVariants: Record<string, ParagraphVariant> = {
   default: { marginBottom: '1rem' },
-  tight: { marginBottom: '.5rem' },
-  withLineHeight: { marginBottom: '0.5rem' },
   large: { marginBottom: '2rem' },
-  spaced: { marginBottom: '1.5rem' },
   final: { marginBottom: '5rem' },
 } as const;
 
@@ -67,7 +64,6 @@ export const styles = {
     ...baseBodyWithLineHeight,
     marginBottom: '0.5rem'
   },
-  pTight: createParagraphStyle('tight'),
   pLarge: createParagraphStyle('large'),
   pSpaced: createParagraphStyle('spaced'),
   pFinal: createParagraphStyle('final'),

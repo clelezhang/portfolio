@@ -111,6 +111,7 @@ export default function DemoSection({
           loop
           muted
           playsInline
+          tabIndex={-1}
         >
           <source src={previewVideo} type="video/mp4" />
         </video>
