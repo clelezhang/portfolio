@@ -351,7 +351,7 @@ function ChatExplorationsContent() {
           <h2 style={styles.h2} tabIndex={0}>
               Closing thoughts
             </h2>
-          <p style={styles.pLarge}>
+          <p style={styles.p}>
             I am very curious about the potential there is for chat to grow into a home for and co-creator to your thoughts.¹          
           </p>
           <p style={styles.p}>
@@ -386,7 +386,7 @@ function ChatExplorationsContent() {
             </p>
           </section>
           <section style={{ marginBottom: '2rem' }}>
-            <p style={{ ...styles.p, color: 'var(--color-accentgray)' }}>
+            <p style={styles.p}>
               I did some prototypes around making messages feel more like documents, but this felt more like an offshoot than the central idea I wanted to explore so they live here now.
             </p>
             <h3 style={styles.h3} tabIndex={0}>
@@ -494,7 +494,7 @@ function ChatExplorationsContent() {
         </div>
 
         <TextContainer>
-          <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
+          <section style={{ marginTop: '6rem', marginBottom: '2rem' }}>
           <h2 style={styles.h2} tabIndex={0}>
               References
             </h2>
