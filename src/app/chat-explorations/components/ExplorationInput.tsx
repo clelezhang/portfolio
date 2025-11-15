@@ -42,11 +42,13 @@ export function ExplorationInput({ buttonText, onSubmit }: ExplorationInputProps
           onKeyDown={handleKeyDown}
           placeholder="Explore more?"
           className="exploration-input"
+          tabIndex={-1}
         />
         <button
           onClick={handleNewTopic}
           disabled={!newTopicInput.trim()}
           className="exploration-submit-button"
+          tabIndex={-1}
         >
           <span>{buttonText}</span>
         </button>

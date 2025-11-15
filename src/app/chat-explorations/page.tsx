@@ -23,6 +23,56 @@ const DemoLoadingFallback = () => (
   }} />
 );
 
+// Inline video demo with poster loading state
+const InlineVideoDemo = ({ videoSrc, posterSrc, aspectRatio = '16 / 9' }: { videoSrc: string; posterSrc: string; aspectRatio?: string }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div style={{
+      width: '100%',
+      maxWidth: LAYOUT.TEXT_MAX_WIDTH,
+      margin: '2rem auto',
+      overflow: 'hidden',
+      position: 'relative',
+      aspectRatio,
+    }}>
+      <img
+        src={posterSrc}
+        alt="Loading preview"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '102%',
+          height: '100%',
+          objectFit: 'cover',
+          transform: 'scale(1.02)',
+          marginRight: '-1%',
+          opacity: isLoaded ? 0 : 1,
+          transition: 'opacity 0.3s ease-out',
+          pointerEvents: 'none',
+        }}
+      />
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        onLoadedData={() => setIsLoaded(true)}
+        style={{
+          width: '102%',
+          height: 'auto',
+          display: 'block',
+          transform: 'scale(1.02)',
+          marginRight: '-1%',
+        }}
+      >
+        <source src={videoSrc} type="video/mp4" />
+      </video>
+    </div>
+  );
+};
+
 // Dynamically import demos for code splitting
 const CommentsDemo = dynamic(
   () => import('./components/demos/CommentsDemo'),
@@ -125,6 +175,29 @@ function ChatExplorationsContent() {
     prefetchOnIdle();
   }, []);
 
+  // Make demo elements non-tabbable - run periodically to catch lazy-loaded content
+  useEffect(() => {
+    const makeNonTabbable = () => {
+      const demos = document.querySelectorAll('.demo-section');
+      demos.forEach(demo => {
+        const focusable = demo.querySelectorAll('a, button, input, textarea, select');
+        focusable.forEach(el => {
+          el.setAttribute('tabindex', '-1');
+        });
+      });
+    };
+
+    // Initial run
+    const timer = setTimeout(makeNonTabbable, 300);
+    // Periodic check for lazy-loaded content
+    const interval = setInterval(makeNonTabbable, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-sans">
       <Header />
@@ -139,8 +212,8 @@ function ChatExplorationsContent() {
         <article>
         <TextContainer>
           <header style={{ marginBottom: '2.5rem' }}>
-            <h1 style={styles.h1}>
-              explorations on chat as an interface for thinking
+            <h1 style={styles.h1} tabIndex={0}>
+              sketches of chat as an interface for thinking
             </h1>
             <p style={styles.date}>
               nov 2025
@@ -149,50 +222,187 @@ function ChatExplorationsContent() {
 
           <section style={{ marginBottom: '2.5rem', lineHeight: 1.5 }}>
             <p style={styles.p}>
-              I used to want to journal more. I always felt so guilty, when the end of the week, month, year rolled by, and I didn&apos;t take the time to reflect.
+              I used to want to journal more. The end of every week, month, year marked another failure, another time I didn&apos;t take the time to reflect.
             </p>
             <p style={styles.p}>
-              I wanted to journal more so badly that I made <a href="https://info.writewithprl.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>a journal <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span></a>, and asked all my friends how they journaled.
+              I wanted to journal more so badly that I made <a href="https://info.writewithprl.com/" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>a journal <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[1]</span></a>, and I interviewed every friend I could corner about their journaling habits.
+              It turns out, most of them didn&apos;t journal either. They didn&apos;t need to. When Chloe was stressed about attending school across the country, she told her roommates about it, a little every day.
             </p>
             <p style={styles.p}>
-              I found out that everyone wanted to journal more, but not everyone needed to. Most of my friends didn&apos;t journal, but they processed the stresses of school, relationships, and work by talking. I&apos;d been thinking about thinking wrong. I wasn&apos;t failing by not journaling, it just wasn&apos;t the right modality for me.
+              <span style={{ fontWeight: 500 }}> Dialogue has always been how we think best.</span>
             </p>
             <p style={styles.p}>
-              Dialogue is the most natural medium for our thoughts. With chat, our tools are catching up, but sometimes I get overwhelmed by the length of a response, or by how I want to explore different topics, but can&apos;t. I think a lot of people feel this way too.
+              Journaling was the wrong form factor. With chat, our tools are conversational, but they&apos;re still catching up to how we think. 
+              I believe that there&apos;s still enormous potential for chat interfaces to expand and support our thinking. A small example of this--sometimes I get overwhelmed by the length of a response, or by how I want to explore branching topics, but can&apos;t. 
+              I think a lot of people feel this way too.
             </p>
             <p style={styles.p}>
               AI can generate so much useful information to explore (yay!) but it&apos;s too much for my human brain to keep up with, at once (boo).
-            I&apos;ve been fiddling with different solutions to this for a while. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a>. I thought this could be fixed with Git-style branching or a canvas, but I&apos;ve found that takes a lot of work to navigate. I wanted depth and breadth without the work of physically moving around a canvas and zooming in and out.
-            </p>
-            <p style={styles.pTight}>
-            I prototyped a few ways to make chat more navigable, so that it can be a better home for our thoughts.
+              I&apos;ve been fiddling with different solutions to this. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a>. 
+              This could be &apos;fixed&apos; with Git-style branching or a canvas, but for my daily chats, I wanted depth and breadth without the friction of moving around a canvas or branches.
             </p>
             <p style={styles.p}>
-            Please play around and let me know what you think!
+              Maybe the interface could handle navigation for me, focusing on threads of conversion I want to go deeper in, leaving one-off threads behind.
+              <span style={{ fontWeight: 500 }}> Maybe our ai tools could feel more like our memory--vibrant in some areas, faded in others--a scaffold that feels navigable and retrievable.</span>
             </p>
+            <InlineVideoDemo videoSrc="/demos/demo1.mp4" posterSrc="/demos/demo1-poster.jpg" aspectRatio="2 / 1" />
           </section>
 
-          <section style={{ marginBottom: '1.5rem' }}>
-            <h2 style={styles.h2}>
-              messages becoming documents
+          <section style={{ marginBottom: '2.5rem' }}>
+            <h2 style={styles.h2} tabIndex={0}>
+              breadcrumbs and rabbitholes
             </h2>
-            <p style={styles.p}>
-              What if your chat was a document? The process of editing, annotating, always brings me much closer to a text. I wanted to see if this was true for chats too.
+            <p style={styles.pLarge}>
+              I prototyped two different navigation patterns, inspired by <a href="https://x.com/eddiejiao_obj/status/1925494218052370730?s=20" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Eddie Jiao <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span></a> and <a href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Matthew Siu&apos;s <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span></a> exploration interactions.
             </p>
 
-            <h3 style={styles.h3}>
-              a. comment for depth
+            <h3 style={styles.h3} tabIndex={0}>
+              A. Threads
             </h3>
+            <p style={styles.p}>
+              Threads exposes the branches and rabbit holes of exploration. 
+            </p>
+            <p style={styles.p}>
+            I wanted to explore a more confined kind of navigation, where people are encouraged to go down rabbitholes. Here, you start with a few segments that can be expanded on infinitely, each with their own thread. You can click on any section to expand it. 
+            </p>
             <p style={styles.pSpaced}>
+            I found this to be easy to navigate, but also fairly clunky.
+            </p>
+          </section>
+        </TextContainer>
+        <DemoSection
+          name="dig-deeper"
+          loadOnScroll
+          enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={handleFocusRequest}
+        >
+          <DigDeeperDemo
+            newTopic={digDeeperTopic}
+            onTopicProcessed={() => setDigDeeperTopic(undefined)}
+          />
+        </DemoSection>
+        <ExplorationInput
+          buttonText="new thread"
+          onSubmit={handleDigDeeperSubmit}
+        />
+
+        <TextContainer>
+          <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
+            <h3 style={styles.h3} tabIndex={0}>
+              B. Swipe deeper
+            </h3>
+            <p style={styles.p}>
+            My friend commented that he felt encouraged to bounce around when using threads, which nudged me to try a more focused, mobile-friendly interaction.
+            </p>
+            <p style={{ ...styles.p, marginBottom: '1.5rem' }}>
+              With swipe deeper, you can swipe horizontally to explore topics in depth. Click the arrow on any section (or swipe if you&apos;re on mobile) to dig deeper, or select text and click the &ldquo;?&rdquo; button  to explore that specific concept.
+            </p>
+          </section>
+        </TextContainer>
+
+        <DemoSection
+          name="swipe-deeper"
+          loadOnScroll
+          enableMobile
+          isFocused={isDemosFocused}
+          onFocusRequest={handleFocusRequest}
+        >
+          <SwipeDemo
+            newTopic={swipeTopic}
+            onTopicProcessed={() => setSwipeTopic(undefined)}
+          />
+        </DemoSection>
+
+        <ExplorationInput
+          buttonText="new swipe"
+          onSubmit={handleSwipeSubmit}
+        />
+
+        <TextContainer>
+        <section style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+          <p style={styles.p}>
+            I really loved how focused and simple swipe deeper felt, <span style={{ fontWeight: 500 }}>but it misses the whole point of LLMs--how they open up to expansive, sometimes ridiculous, responses from users. </span>
+            Swipe deeper totally ignores the fundamental importance of dialogue.
+          </p>
+          <p style={styles.p}>
+            <span style={{ fontWeight: 500 }}>What if our chats were ephemeral and expansive like swipe deeper is?</span>
+          </p>
+        </section>
+        <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
+          <h2 style={styles.h2} tabIndex={0}>
+            Chats that die, chats that grow
+          </h2>
+          <p style={styles.p}>
+            Last week, I planned a party. While planning, I created 8 conversations with Claude. 
+            6 of which I have not revisited. 
+            I have returned to 2 chats where we altered brownie and apple cider recipes--I needed to reference them and adjust them while cooking, and will reference them again.
+          </p>
+          <p style={styles.pLarge}>
+            What if your one off chats only lived as long as needed, and the longer term ones were persistent chats, or became documents?
+            For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure² that the user can reference in addition to just floating in a memory soup.
+          </p>
+          <InlineVideoDemo videoSrc="/demos/demo2.mp4" posterSrc="/demos/demo2-poster.jpg" aspectRatio="30 / 21" />
+          </section>
+        <section style={{ marginTop: '4rem', marginBottom: '4rem' }}>
+          <h2 style={styles.h2} tabIndex={0}>
+              Closing thoughts
+            </h2>
+          <p style={styles.pLarge}>
+            I am very curious about the potential there is for chat to grow into a home for and co-creator to your thoughts.¹          
+          </p>
+          <p style={styles.p}>
+            My explorations were quite limited, and I&apos;m not claiming these are definitive improvements to chat, 
+            as I have no clue what constraints the people making chat experiences are grappling with every day, 
+            but I hope this serves as a little spark of wonder in dreaming about how chat could evolve as a living extension of how we think.
+            At least, that&apos;s what this did for me :).
+          </p>
+          <p style={{ ...styles.pSpaced, marginTop: '1.5rem' }}>
+            - Thanks for reading, Lele
+          </p>
+          </section>
+
+          <section style={{ marginBottom: '3rem' }}>
+            <h2 style={styles.h2} tabIndex={0}>
+                Appendix
+              </h2>
+            <h3 style={{ ...styles.h3, marginTop: '1rem' }} data-demo-name="voice" tabIndex={0}>
+              1. Voice & Co-creation
+            </h3>
+            <p style={styles.p}>
+              <span style={{ fontWeight: 500 }}>When I bring my half-formed ideas to chat, I gain distinct clarity from the back and forth. </span>
+              Even when chat&apos;s feedback isn&apos;t necessarily correct, the alternate perspectives help me understand the meaning I was searching for. 
+            </p>
+            <p style={styles.p}>
+              This is amplified by voice. <a href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Wispr <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span></a>, <a href="https://net.inc/" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Net <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[6]</span></a>, 
+              and chatGPT voice mode have demonstrated how transformative speaking as an input method can be. 
+              When inputs are seamless, words aren&apos;t as precious. Voice enables us to think more, truly feel, and hear our thoughts.
+            </p>
+            <p style={styles.pLarge}>
+              I am so excited by the potential of interfaces that understand this, and combine this with easy to read visuals and meaningful gestures.
+            </p>
+          </section>
+          <section style={{ marginBottom: '2rem' }}>
+            <p style={{ ...styles.p, color: 'var(--color-accentgray)' }}>
+              I did some prototypes around making messages feel more like documents, but this felt more like an offshoot than the central idea I wanted to explore so they live here now.
+            </p>
+            <h3 style={styles.h3} tabIndex={0}>
+              2a. messages becoming documents
+            </h3>
+            <p style={styles.p}>
+              <span style={{ fontStyle: 'italic' }}>What if your chat was a document? </span>&nbsp;The process of editing and annotating always brings me much closer to a text. I wanted to see if this was true for chats too.
+            </p>
+            <p style={styles.p}>
               Try selecting some text you&apos;d like to define, and ask for whatever explanation you&apos;d like. I really loved how this didn&apos;t take me out of the chat message, while still being able to learn more.
+            </p>
+              You can also click on any message to edit it.
+            <p style={styles.pSpaced}>
             </p>
           </section>
         </TextContainer>
 
         <DemoSection
           name="comments"
-          previewGif="/demos/comments.gif"
-          previewImage="/demos/comments.jpg"
           loadOnScroll
           enableMobile
           isFocused={isDemosFocused}
@@ -203,35 +413,8 @@ function ChatExplorationsContent() {
 
         <TextContainer>
           <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-            <h3 style={{ ...styles.h3, marginBottom: '1rem' }}>
-              B. Editing
-            </h3>
-            <p style={styles.p}>
-              You can click on any message to edit it.
-            </p>
-            <p style={styles.p}>
-              I quickly realized I didn&apos;t really like editing chat messages beyond small tweaks (because I am lazy). I&apos;d rather have Claude make larger edits.
-              I would be really interested in seeing an editor built around co-writing with AI & voice, or focused on writing with AI & voice from first principles. If only there was more time to explore!
-              </p>
-          </section>
-        </TextContainer>
-
-        <DemoSection
-          name="editing"
-          previewGif="/demos/editing.gif"
-          previewImage="/demos/editing.jpg"
-          loadOnScroll
-          enableMobile
-          isFocused={isDemosFocused}
-          onFocusRequest={handleFocusRequest}
-        >
-          <EditingDemo />
-        </DemoSection>
-
-        <TextContainer>
-          <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-            <h3 style={styles.h3}>
-              C. A more powerful index
+            <h3 style={styles.h3} tabIndex={0}>
+              2b. A more powerful index
             </h3>
             <p style={styles.p}>
               Indexes are the age old answer to navigation. The index updates as you scroll, highlighting the current section. Click any section to jump to it.
@@ -254,8 +437,8 @@ function ChatExplorationsContent() {
 
         <TextContainer>
           <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-          <h3 style={styles.h3}>
-              D. Index becomes queue
+          <h3 style={styles.h3} tabIndex={0}>
+              2c. Index becomes queue
           </h3>
 
           <p style={styles.pSpaced}>
@@ -269,6 +452,7 @@ function ChatExplorationsContent() {
           <button
             onClick={handlePlayQueueDemo}
             className="queue-play-button"
+            tabIndex={-1}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -308,130 +492,7 @@ function ChatExplorationsContent() {
 
         <TextContainer>
           <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-            <h2 style={styles.h2}>
-              Two paths diverge
-            </h2>
-            <p style={styles.pLarge}>
-              While the above features enhance linear chat, I also prototyped two different navigation patterns, inspired by <a href="https://x.com/eddiejiao_obj/status/1945494218052370730?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Eddie Jiao <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[3]</span></a> and <a href="https://x.com/MatthewWSiu/status/1594900264053575684?s=20" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Matthew Siu&apos;s <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[4]</span></a> exploration interactions.
-            </p>
-
-            <h3 style={styles.h3}>
-              A. Threads
-            </h3>
-            <p style={styles.pSpaced}>
-            I wanted to explore a more confined kind of navigation, where people are encouraged to go down rabbitholes. Here, you start with a few segments that can be expanded on infinitely, each with their own thread. You can click on any section to expand it. I found this to be easy to navigate, but also fairly clunky.
-            </p>
-          </section>
-        </TextContainer>
-
-        <DemoSection
-          name="dig-deeper"
-          previewGif="/demos/explore.gif"
-          previewImage="/demos/explore.jpg"
-          loadOnScroll
-          enableMobile
-          isFocused={isDemosFocused}
-          onFocusRequest={handleFocusRequest}
-        >
-          <DigDeeperDemo
-            newTopic={digDeeperTopic}
-            onTopicProcessed={() => setDigDeeperTopic(undefined)}
-          />
-        </DemoSection>
-
-        <ExplorationInput
-          buttonText="new thread"
-          onSubmit={handleDigDeeperSubmit}
-        />
-
-        <TextContainer>
-          <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-            <h3 style={styles.h3}>
-              B. Swipe deeper
-            </h3>
-            <p style={styles.p}>
-            My friend commented that he felt encouraged to bounce around when using threads, which nudged me to try a more focused, mobile-friendly interaction.
-            </p>
-            <p style={styles.p}>
-              With swipe deeper, you can swipe horizontally to explore topics in depth. Click the arrow on any section (or swipe if you&apos;re on mobile) to dig deeper, or select text and click the &ldquo;?&rdquo; button  to explore that specific concept.
-            </p>
-            <p style={{ ...styles.p, marginBottom: '1.5rem' }}>
-              Play around with this! I&apos;m not sure what the rightful home for this interaction is, but I really love how simple this one feels.
-            </p>
-          </section>
-        </TextContainer>
-
-        <DemoSection
-          name="swipe-deeper"
-          previewGif="/demos/hopscotch.gif"
-          previewImage="/demos/hopscotch.jpg"
-          loadOnScroll
-          enableMobile
-          isFocused={isDemosFocused}
-          onFocusRequest={handleFocusRequest}
-        >
-          <SwipeDemo
-            newTopic={swipeTopic}
-            onTopicProcessed={() => setSwipeTopic(undefined)}
-          />
-        </DemoSection>
-
-        <ExplorationInput
-          buttonText="new swipe"
-          onSubmit={handleSwipeSubmit}
-        />
-
-        <TextContainer>
-        <section style={{ marginTop: '4rem', marginBottom: '2rem' }}>
-          <h2 style={styles.h2}>
-              Closing thoughts
-            </h2>
-          <p style={styles.pLarge}>
-            If you try these patterns, I&apos;m curious if they felt grounding and helpful, or if they felt like a distraction. I&apos;d love to hear from you!
-          </p>
-          <p style={styles.p}>
-            My explorations were quite limited, and I am very curious about the potential there is for chat to grow in as a home for and co-creator to your thoughts.
-          </p>
-          <h3 style={{ ...styles.h3, marginTop: '1rem' }}>
-            Voice
-          </h3>
-          <p style={styles.p}>
-            <a href="https://wisprflow.ai/leaders?gad_campaignid=22460289083&gbraid=0AAAAA-Jst42FYXr9HFUFQuHfxHrk5hgyG&dub_id=pPBI9yPvB9GcFrkp" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Wispr <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[5]</span></a>, <a href="https://net.inc/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>Net <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[6]</span></a>, and chatGPT voice mode have demonstrated the power of voice as input. Speaking, whether for the purposes of dictating or transcribing, is the most seamless input method. Beyond this, I&apos;ve found that much of the value in speaking comes from feeling and considering my own thoughts. 
-          </p>
-          <p style={styles.p}>
-            What&apos;s especially special is that when I bring my half-formed ideas to chat, I gain distinct clarity from the back and forth. Even when chat&apos;s feedback isn&apos;t necessarily correct, the alternate perspectives help me understand the meaning I was searching for.
-          </p>
-          <p style={styles.p}>
-            I am so excited by the potential of interfaces that understand this, and combine this with easy to read visuals and meaningful gestures.
-          </p>
-          <h3 style={{ ...styles.h3, marginTop: '2rem' }}>
-            Chats that die, chats that grow
-          </h3>
-          <p style={styles.p}>
-            While my prototypes were mostly focused on adding more to chat, I&apos;m really excited by the concept of interfaces that are initially ephemeral, that solidify the more you interact with them. 
-          </p>
-          <p style={styles.p}>
-            I&apos;ve asked claude 4-8 times with help planning a party, but most of these are one off chats. Some of them have become more long term, where I went back and forth altering recipes that I needed to reference while baking, and will reference again when I want to remake the recipe. 
-          </p>
-          <p style={styles.p}>
-            What if the one off chats only lived as long as needed, and the longer term ones become chats, or documents. For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure that the user can reference in addition to just floating in a memory soup.
-          </p>
-          <p style={styles.p}>
-            What if our ai tools felt more like the vibrant and faded scaffold of our memory, but more navigable and retrievable?
-          </p>
-          <h3 style={{ ...styles.h3, marginTop: '2rem' }}>
-            Anyways...
-          </h3>
-          <p style={styles.p}>
-            I&apos;m not claiming these are definitive improvements to chat, as I have no clue what constraints the people making chat experiences are grappling with every day, but I hope this serves as a little spark of wonder in dreaming about how much potential there is for chat to grow in as a home for and co-creator to your thoughts. At least, that&apos;s what this did for me :).
-          </p>
-          <p style={{ ...styles.pSpaced, marginTop: '1.5rem' }}>
-            - Thanks for reading, Lele
-          </p>
-          </section>
-
-          <section style={{ marginBottom: '2rem' }}>
-          <h2 style={styles.h2}>
+          <h2 style={styles.h2} tabIndex={0}>
               References
             </h2>
             <div style={styles.pFinal}>

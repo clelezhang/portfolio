@@ -4,12 +4,11 @@ import { useState, useCallback } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 
 const NAV_ITEMS = [
-  { id: 'comments', label: 'a. comment for depth', section: 'comments' },
-  { id: 'editing', label: 'b. editing', section: 'editing' },
-  { id: 'index', label: 'c. a more powerful index', section: 'index' },
-  { id: 'queue', label: 'd. index becomes queue', section: 'queue' },
   { id: 'threads', label: 'a. threads', section: 'dig-deeper' },
   { id: 'swipe', label: 'b. swipe deeper', section: 'swipe-deeper' },
+  { id: 'comments', label: '2a. comments, editing', section: 'comments' },
+  { id: 'index', label: '2b. more powerful index', section: 'index' },
+  { id: 'queue', label: '2c. index becomes queue', section: 'queue' },
 ] as const;
 
 interface SideNavProps {
@@ -50,6 +49,7 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
           onMouseEnter={() => handleMouseEnter('floating-toggle')}
           onMouseLeave={handleMouseLeave}
           className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-200 cursor-pointer border-none"
+          tabIndex={-1}
           style={{
             color: 'var(--color-gray)',
             fontSize: '0.8rem',
@@ -95,6 +95,7 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
           key={item.id}
           onClick={() => scrollToSection(item.section)}
           className="nav-pill-button"
+          tabIndex={-1}
           style={{
             backgroundColor: 'transparent',
             color: 'var(--color-accentgray)',
@@ -120,6 +121,7 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
           onMouseEnter={() => handleMouseEnter('toggle')}
           onMouseLeave={handleMouseLeave}
           className="rounded-full hover:bg-glass transition-all duration-200 cursor-pointer border-none"
+          tabIndex={-1}
           style={{
             color: 'var(--color-accentgray)',
             fontSize: '0.8rem',

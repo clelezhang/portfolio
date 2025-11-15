@@ -4,52 +4,52 @@ import React, { useState } from 'react';
 import ExploreCanvas from '../blog-demos/ExploreCanvas';
 import { Exploration, ExploreSegment } from '@/app/lib/types';
 
-const FULL_CONTENT = `## Core Definition
+const FULL_CONTENT = `## Definition and Core Concept
 
-Next.js is a React framework built on top of Node.js that enables developers to build full-stack web applications with both frontend and backend capabilities. It simplifies the process of creating production-ready applications by providing built-in features like server-side rendering (SSR), static site generation (SSG), and API routes without requiring extensive configuration. Think of it as React plus a comprehensive toolkit for scaling applications from simple websites to complex web platforms.
+A fractal is a geometric shape that exhibits self-similarity across different scales - meaning if you zoom in on any portion, you will find patterns that resemble the whole structure. Fractals are infinitely complex mathematical objects with a recursive nature, where the same pattern repeats at progressively smaller or larger levels. Unlike traditional Euclidean geometry, fractals have non-integer dimensions and can appear throughout nature, mathematics, and art.
 
-## Key Features & Capabilities
+## Key Characteristics
 
-Next.js offers powerful built-in features including:
+Fractals possess several defining features:
 
-- App Router or Pages Router for file-based routing
-- Server-Side Rendering (SSR) and Static Generation (SSG) for optimized performance
-- API Routes to build backend endpoints within the same project
-- Image Optimization and automatic code splitting
-- Incremental Static Regeneration (ISR) for dynamic static content
+- Self-similar: Parts mirror the whole structure
+- Recursive: Built through repeated iterations of a rule
+- Infinitely detailed: Never fully smooth, always showing complexity at any zoom level
+- Deterministic or random: Can follow exact mathematical rules or involve randomness
+- Fractional dimension: Often have dimensions between whole numbers (e.g., 1.5 or 2.3)
 
-## Why Use Next.js?
+## Natural Examples
 
-Developers choose Next.js because it dramatically reduces development time through zero-config setup, provides excellent SEO optimization out-of-the-box, and delivers superior performance through automatic optimizations. It also simplifies deployment with seamless integration to Vercel (its creator) and other hosting platforms, making it ideal for startups and enterprises alike.`;
+Fractals appear abundantly in nature, including coastlines (endlessly jagged at any magnification), trees and ferns (branching patterns repeating at each level), snowflakes (symmetrical subdivisions), and mountains (similar slopes at different scales). Even human physiology displays fractal patterns in blood vessels, lungs, and neural networks, where branching structures optimize space and efficiency.`;
 
 const DEMO_SEGMENTS: ExploreSegment[] = [
   {
     id: 'section-1',
-    title: 'Core Definition',
+    title: 'Definition and Core Concept',
     description: '',
-    content: 'Next.js is a React framework built on top of Node.js that enables developers to build full-stack web applications with both frontend and backend capabilities. It simplifies the process of creating production-ready applications by providing built-in features like server-side rendering (SSR), static site generation (SSG), and API routes without requiring extensive configuration. Think of it as React plus a comprehensive toolkit for scaling applications from simple websites to complex web platforms.',
+    content: 'A fractal is a geometric shape that exhibits self-similarity across different scales - meaning if you zoom in on any portion, you will find patterns that resemble the whole structure. Fractals are infinitely complex mathematical objects with a recursive nature, where the same pattern repeats at progressively smaller or larger levels. Unlike traditional Euclidean geometry, fractals have non-integer dimensions and can appear throughout nature, mathematics, and art.',
     depth: 0,
     isExpanded: false,
   },
   {
     id: 'section-2',
-    title: 'Key Features & Capabilities',
+    title: 'Key Characteristics',
     description: '',
-    content: `Next.js offers powerful built-in features including:
+    content: `Fractals possess several defining features:
 
-- App Router or Pages Router for file-based routing
-- Server-Side Rendering (SSR) and Static Generation (SSG) for optimized performance
-- API Routes to build backend endpoints within the same project
-- Image Optimization and automatic code splitting
-- Incremental Static Regeneration (ISR) for dynamic static content`,
+- Self-similar: Parts mirror the whole structure
+- Recursive: Built through repeated iterations of a rule
+- Infinitely detailed: Never fully smooth, always showing complexity at any zoom level
+- Deterministic or random: Can follow exact mathematical rules or involve randomness
+- Fractional dimension: Often have dimensions between whole numbers (e.g., 1.5 or 2.3)`,
     depth: 0,
     isExpanded: false,
   },
   {
     id: 'section-3',
-    title: 'Why Use Next.js?',
+    title: 'Natural Examples',
     description: '',
-    content: 'Developers choose Next.js because it dramatically reduces development time through zero-config setup, provides excellent SEO optimization out-of-the-box, and delivers superior performance through automatic optimizations. It also simplifies deployment with seamless integration to Vercel (its creator) and other hosting platforms, making it ideal for startups and enterprises alike.',
+    content: 'Fractals appear abundantly in nature, including coastlines (endlessly jagged at any magnification), trees and ferns (branching patterns repeating at each level), snowflakes (symmetrical subdivisions), and mountains (similar slopes at different scales). Even human physiology displays fractal patterns in blood vessels, lungs, and neural networks, where branching structures optimize space and efficiency.',
     depth: 0,
     isExpanded: false,
   },
@@ -57,8 +57,8 @@ const DEMO_SEGMENTS: ExploreSegment[] = [
 
 const DEMO_EXPLORATION: Exploration = {
   id: 'dig-deeper-demo',
-  rootTopic: 'What is Next.js',
-  title: 'What is Next.js',
+  rootTopic: 'What are fractals',
+  title: 'What are fractals',
   fullContent: FULL_CONTENT,
   segments: DEMO_SEGMENTS,
   createdAt: Date.now(),

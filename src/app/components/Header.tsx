@@ -42,15 +42,17 @@ export default function Header() {
         <div className="fixed w-full left-0 top-0 flex justify-between items-center p-4 z-[90]">
           {/* Left pills */}
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => scrollToSection('talk-to-me')}
               className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover"
+              tabIndex={-1}
             >
               contact
             </button>
-            <button 
+            <button
               onClick={() => scrollToSection('portfolio-grid')}
               className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover flex items-center gap-2"
+              tabIndex={-1}
             >
               <HeartIcon className="text-accentgray"/>
               working & playing
@@ -63,6 +65,7 @@ export default function Header() {
               onClick={() => router.push('/')}
               className="cursor-pointer bg-transparent border-none"
               aria-label="Go to home"
+              tabIndex={-1}
             >
               <LeleIcon className="text-accentgray" />
             </button>
@@ -87,6 +90,7 @@ export default function Header() {
             onClick={() => router.push('/')}
             className="cursor-pointer bg-transparent border-none"
             aria-label="Go to home"
+            tabIndex={-1}
           >
             <LeleIcon className="text-accentgray" />
           </button>
@@ -99,13 +103,15 @@ export default function Header() {
               rel="noopener noreferrer"
               className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Twitter"
+              tabIndex={-1}
             >
               <TwitterIcon className="text-gray-500" size={20} />
             </a>
-            <a 
+            <a
               href="mailto:clzhang@berkeley.edu"
               className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Email"
+              tabIndex={-1}
             >
               <EnvelopeIcon className="text-gray-500" size={20} />
             </a>
@@ -141,13 +147,14 @@ export default function Header() {
               }}
             >
               <div className="absolute bottom-16 right-18 flex flex-col gap-2 items-end">
-                <button 
+                <button
                   onClick={() => {
                     handleEmailCopy();
                     scrollToSection('talk-to-me');
                     setIsMenuOpen(false);
                   }}
                   className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none whitespace-nowrap hover:bg-glass-bg-hover active:bg-glass-bg-hover"
+                  tabIndex={-1}
                 >
                   contact
                 </button>
@@ -156,12 +163,13 @@ export default function Header() {
                 >
                   san francisco, ca
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     scrollToSection('portfolio-grid');
                     setIsMenuOpen(false);
                   }}
                   className="text-slate px-5 py-3 rounded-full text-xs font-sans backdrop-blur-[20px] transition-all duration-150 cursor-pointer bg-glass border-none hover:bg-glass-bg-hover active:bg-glass-bg-hover flex items-center gap-2 whitespace-nowrap"
+                  tabIndex={-1}
                 >
                   <HeartIcon className="text-accentgray" size={12} />
                   working & playing
