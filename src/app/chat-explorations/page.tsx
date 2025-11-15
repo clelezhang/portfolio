@@ -31,7 +31,7 @@ const InlineVideoDemo = ({ videoSrc, posterSrc, aspectRatio = '16 / 9' }: { vide
     <div style={{
       width: '100%',
       maxWidth: LAYOUT.TEXT_MAX_WIDTH,
-      margin: '2rem auto',
+      margin: '1rem auto',
       overflow: 'hidden',
       position: 'relative',
       aspectRatio,
@@ -244,7 +244,7 @@ function ChatExplorationsContent() {
               I&apos;ve been fiddling with different solutions to this. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a>. 
               This could be &apos;fixed&apos; with Git-style branching or a canvas, but for my daily chats, I wanted depth and breadth without the friction of moving around a canvas or branches.
             </p>
-            <p style={styles.p}>
+            <p style={styles.pNone}>
               Maybe the interface could handle navigation for me, focusing on threads of conversion I want to go deeper in, leaving one-off threads behind.
               <span style={{ fontWeight: 500 }}> Maybe our ai tools could feel more like our memory--vibrant in some areas, faded in others--a scaffold that feels navigable and retrievable.</span>
             </p>
@@ -341,7 +341,7 @@ function ChatExplorationsContent() {
             6 of which I have not revisited. 
             I have returned to 2 chats where we altered brownie and apple cider recipes--I needed to reference them and adjust them while cooking, and will reference them again.
           </p>
-          <p style={styles.pLarge}>
+          <p style={styles.pNone}>
             What if your one off chats only lived as long as needed, and the longer term ones were persistent chats, or became documents?
             For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure² that the user can reference in addition to just floating in a memory soup.
           </p>
