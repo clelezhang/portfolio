@@ -44,6 +44,11 @@
   color: var(--lightgray);
 }
 
+/* Prevent flash during navigation */
+html {
+  background: var(--lightgray);
+}
+
 body {
   background: var(--lightgray);
   color: var(--slate);
@@ -52,6 +57,8 @@ body {
   font-weight: 400;
   overflow-x: hidden;
   overflow-y: auto;
+  /* Prevent content shift during navigation */
+  min-height: 100vh;
 }
 
 /* Ensure mobile browsers respect overflow-x hidden */

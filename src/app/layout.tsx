@@ -159,6 +159,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @supports (view-transition-name: none) {
+              ::view-transition-old(root),
+              ::view-transition-new(root) {
+                animation-duration: 0.15s;
+              }
+            }
+          `
+        }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${untitledSans.variable} ${compagnon.variable} ${missFajardose.variable} ${caveat.variable} antialiased`}
         suppressHydrationWarning

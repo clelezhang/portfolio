@@ -37,6 +37,11 @@ export default function EditableSwipeSection({
   const [selectionPosition, setSelectionPosition] = useState({ x: 0, y: 0 });
   const [selectedText, setSelectedText] = useState('');
 
+  // Touch swipe detection
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const touchStartTime = useRef<number>(0);
+
   // Handle Tiptap selection updates
   const handleTiptapSelection = useCallback((params: { from: number; to: number; x: number; y: number; text: string }) => {
     if (params.text.length > 0 && params.from !== params.to) {
@@ -109,7 +114,7 @@ export default function EditableSwipeSection({
     if (isEditing) {
       return;
     }
-    
+
     e.stopPropagation();
 
     const clickX = e.clientX;
@@ -136,11 +141,71 @@ export default function EditableSwipeSection({
     }, 50);
   };
 
+  // Handle touch start
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Don't interfere with editing mode
+    if (isEditing) return;
+
+    const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+    touchStartTime.current = Date.now();
+  };
+
+  // Handle touch move - prevent horizontal scroll when swiping on section
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isEditing) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
+
+    // If this is a clear horizontal swipe left, prevent the page scroll
+    const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY) * 1.5;
+    const isSwipeLeft = deltaX < -20;
+
+    if (isHorizontalSwipe && isSwipeLeft) {
+      e.preventDefault();
+    }
+  };
+
+  // Handle touch end - detect swipe gestures
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Don't interfere with editing mode
+    if (isEditing) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
+    const deltaTime = Date.now() - touchStartTime.current;
+
+    // Detect horizontal swipe left:
+    // - More sensitive threshold (> 50px instead of 80px)
+    // - Clearly more horizontal than vertical (2x threshold)
+    // - Quick gesture (< 500ms for more flexibility)
+    const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY) * 2;
+    const isSwipeLeft = deltaX < -50;  // More sensitive: 50px instead of 80px
+    const isQuickGesture = deltaTime < 1000;  // More flexible: 500ms instead of 400ms
+
+    // Swipe left on section = expand/go deeper
+    if (isHorizontalSwipe && isSwipeLeft && isQuickGesture && !isExpanding && !isStreaming && onExpandSection) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      onExpandSection(segment);
+    }
+  };
+
   const content = isEditing ? localContent : (segment.content || '');
 
   return (
     <>
-      <div className="swipe-section-wrapper">
+      <div
+        className="swipe-section-wrapper"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className={`swipe-section ${isStreaming ? 'streaming' : ''}`}>
           {/* Section Title */}
           <div className="swipe-section-title-container">
@@ -150,8 +215,8 @@ export default function EditableSwipeSection({
           </div>
 
           {/* Editable Content */}
-          <div 
-            onClick={handleClick} 
+          <div
+            onClick={handleClick}
             style={{ cursor: isEditing ? 'text' : 'pointer' }}
           >
             {isEditing ? (

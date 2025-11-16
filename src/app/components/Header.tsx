@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import LeleIcon from './icons/LeleIcon';
 import HeartIcon from './icons/HeartIcon';
@@ -61,14 +62,14 @@ export default function Header() {
           
           {/* Center: Logo */}
           <div className="absolute left-1/2 transform -translate-x-1/2">
-            <button
-              onClick={() => router.push('/')}
-              className="cursor-pointer bg-transparent border-none"
+            <Link
+              href="/"
+              className="cursor-pointer bg-transparent"
               aria-label="Go to home"
               tabIndex={-1}
             >
               <LeleIcon className="text-accentgray" />
-            </button>
+            </Link>
           </div>
           
           {/* Right pills */}
@@ -86,14 +87,14 @@ export default function Header() {
         {/* Mobile header - always visible */}
         <div className="fixed w-full left-0 top-0 flex justify-between items-center p-4 z-[90]">
           {/* Left: Logo */}
-          <button
-            onClick={() => router.push('/')}
-            className="cursor-pointer bg-transparent border-none"
+          <Link
+            href="/"
+            className="cursor-pointer bg-transparent"
             aria-label="Go to home"
             tabIndex={-1}
           >
             <LeleIcon className="text-accentgray" />
-          </button>
+          </Link>
           
           {/* Right: Social icons */}
           <div className="flex items-center gap-3">
