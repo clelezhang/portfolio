@@ -92,8 +92,26 @@ export default function SwipeDeeper({
   const isExpandingRef = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derive breadcrumb path from current state - no memoization needed
-  const breadcrumbPath = depthPages[currentDepthIndex]?.parentPath || [];
+  // Constants for timing
+  const SCROLL_DELAY = 100;
+  const SCROLL_DEBOUNCE = 150;
+  const DOM_UPDATE_DELAY = 50;
+
+  // Generate breadcrumb items from all existing pages
+  const breadcrumbItems = depthPages.map((page, index) => ({
+    depth: page.depth,
+    label: page.parentPath[page.parentPath.length - 1] || '',
+    depthIndex: index  // Use depthIndex to avoid confusion with array iteration index
+  }));
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Scroll to specific depth
   const scrollToDepth = (depthIndex: number) => {
@@ -114,7 +132,7 @@ export default function SwipeDeeper({
             behavior: 'smooth',
           });
         }
-      }, 100); // Small delay to ensure horizontal scroll starts first
+      }, SCROLL_DELAY);
     }
   };
 
@@ -134,7 +152,7 @@ export default function SwipeDeeper({
         if (newDepthIndex !== currentDepthIndex) {
           setCurrentDepthIndex(newDepthIndex);
         }
-      }, 150); // Wait 150ms after scroll ends before updating
+      }, SCROLL_DEBOUNCE);
     }
   };
 
@@ -319,10 +337,11 @@ export default function SwipeDeeper({
       return;
     }
 
-    // Prepare new depth page
+    // Prepare new depth page - capture current state immediately
+    const currentPage = depthPages[currentDepthIndex];
     const newDepth = currentDepthIndex + 1;
     const parentPath = [
-      ...(depthPages[currentDepthIndex]?.parentPath || []),
+      ...(currentPage?.parentPath || []),
       parentSegment.title,
     ];
 
@@ -352,7 +371,7 @@ export default function SwipeDeeper({
       // Small delay to ensure DOM update before scrolling
       setTimeout(() => {
         scrollToDepth(newDepth);
-      }, 50);
+      }, DOM_UPDATE_DELAY);
 
       return; // Skip API call
     }
@@ -387,7 +406,7 @@ export default function SwipeDeeper({
     // Small delay to ensure DOM update before scrolling
     setTimeout(() => {
       scrollToDepth(newDepth);
-    }, 50);
+    }, DOM_UPDATE_DELAY);
 
     try {
       const requestBody = {
@@ -506,10 +525,11 @@ export default function SwipeDeeper({
   const handleExpandSelection = async (selectedText: string, parentSegment: ExploreSegment) => {
     if (!selectedText.trim() || expandingSegmentId) return;
 
-    // Prepare new depth page
+    // Prepare new depth page - capture current state immediately
+    const currentPage = depthPages[currentDepthIndex];
     const newDepth = currentDepthIndex + 1;
     const parentPath = [
-      ...(depthPages[currentDepthIndex]?.parentPath || []),
+      ...(currentPage?.parentPath || []),
       selectedText,
     ];
 
@@ -570,7 +590,7 @@ export default function SwipeDeeper({
     // Small delay to ensure DOM update before scrolling
     setTimeout(() => {
       scrollToDepth(newDepth);
-    }, 50);
+    }, DOM_UPDATE_DELAY);
 
     try {
       const requestBody = {
@@ -715,7 +735,7 @@ export default function SwipeDeeper({
       {/* Initial topic input (shown when no exploration yet) */}
       {depthPages.length === 0 && (
         <div className="max-w-3xl mx-auto px-4 py-20">
-          <div className="mb-8=4">
+          <div className="mb-8">
             <h1 className="text-3xl font-semibold mb-2" style={{ color: 'var(--color-black)' }}>
               Swipe Deeper
             </h1>
@@ -763,20 +783,20 @@ export default function SwipeDeeper({
           {/* Top breadcrumb bar */}
           <div className="breadcrumb-bar-container">
             <div className="breadcrumb-flex-container">
-              {breadcrumbPath.map((pathItem, pathIndex) => (
+              {breadcrumbItems.filter(item => item.label && item.label.trim()).map((item, btnIndex) => (
                 <button
-                  key={`breadcrumb-${pathIndex}-${pathItem}`}
-                  onClick={() => scrollToDepth(pathIndex)}
+                  key={`breadcrumb-${item.depthIndex}-${item.label}`}
+                  onClick={() => scrollToDepth(item.depthIndex)}
                   className="rounded-md text-center font-medium breadcrumb-button"
                   style={{
-                    '--breadcrumb-index': pathIndex,
-                    '--breadcrumb-total': breadcrumbPath.length,
+                    '--breadcrumb-index': btnIndex,
+                    '--breadcrumb-total': breadcrumbItems.filter(i => i.label && i.label.trim()).length,
                     color: 'var(--color-olive-dark)',
                     border: 'none',
                     fontSize: '0.95rem',
                   } as React.CSSProperties & { '--breadcrumb-index': number; '--breadcrumb-total': number }}
                 >
-                  {pathItem.toLowerCase()}
+                  {item.label.toLowerCase()}
                 </button>
               ))}
             </div>
@@ -821,7 +841,11 @@ export default function SwipeDeeper({
             }}
           >
             <div className="depth-page-sidebar-content">
-              <h2>{depthPages[currentDepthIndex - 1]?.parentPath[depthPages[currentDepthIndex - 1]?.parentPath.length - 1]?.toLowerCase()}</h2>
+              <h2>
+                {currentDepthIndex > 0 && breadcrumbItems[currentDepthIndex - 1]?.label
+                  ? breadcrumbItems[currentDepthIndex - 1].label.toLowerCase()
+                  : ''}
+              </h2>
             </div>
           </div>
 
@@ -835,7 +859,7 @@ export default function SwipeDeeper({
             }}
           >
             {depthPages.map((page, pageIndex) => (
-              <div key={`page-${pageIndex}-depth-${page.depth}`} className="depth-page" data-depth={page.depth}>
+              <div key={`page-${pageIndex}-depth-${page.depth}`} className="depth-page" data-depth={pageIndex}>
 
                 <div className="depth-page-inner" style={{ paddingTop: '4.5rem' }}>
                   {/* Sections (with streaming support) */}

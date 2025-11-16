@@ -59,6 +59,13 @@
   overflow: hidden; /* Hide overflow */
 }
 
+/* Mobile back button - hide on mobile */
+@media (max-width: 768px) {
+  .blog-demos .depth-page-sidebar {
+    display: none;
+  }
+}
+
 /* Inside demo containers, use absolute positioning */
 .blog-demos .demo-container .depth-page-sidebar {
   position: absolute;
@@ -116,6 +123,14 @@
   box-sizing: border-box;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .blog-demos .depth-page-inner {
+    padding: 1rem 0.5rem 0 0.5rem; /* Reduce side padding on mobile */
+    max-width: 100%; /* Full width on mobile */
+  }
+}
+
 /* Add bottom spacing after all sections */
 .blog-demos .depth-page-inner::after {
   content: '';
@@ -137,6 +152,14 @@
   transition: width 200ms ease-out, background-color 200ms ease-out, filter 150ms ease-out;
   /* Calculate lightness: start at 85%, decrease by 5% per level, floor at 50% */
   background-color: hsl(75, 40%, max(calc(85% - (var(--breadcrumb-index, 0) * 5%)), 50%));
+}
+
+/* Mobile breadcrumb buttons - smaller font */
+@media (max-width: 768px) {
+  .blog-demos .breadcrumb-button {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 .blog-demos .breadcrumb-flex-container {
@@ -162,6 +185,7 @@
 .blog-demos .breadcrumb-button:hover {
   filter: brightness(0.96);
 }
+
 
 /* Arrow navigation buttons */
 .blog-demos .swipe-arrow {
@@ -268,6 +292,14 @@
   transition: background-color 200ms ease-out;
 }
 
+/* Mobile section wrapper */
+@media (max-width: 768px) {
+  .blog-demos .swipe-section-wrapper {
+    grid-template-columns: 0 1fr 64px; /* Remove left spacer on mobile, arrow is 64px */
+    margin-right: 0; /* No right margin on mobile */
+  }
+}
+
 /* Entire wrapper turns green on hover */
 .blog-demos .swipe-section-wrapper:hover .swipe-section {
   background-color: var(--color-light-green);
@@ -360,6 +392,7 @@
   align-items: center;
   justify-content: flex-start;
   width: 64px;
+  touch-action: manipulation; /* Improve touch responsiveness */
 }
 
 .blog-demos .section-expand-arrow-external svg {

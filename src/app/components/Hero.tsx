@@ -1,6 +1,7 @@
 'use client';
 
 import InteractivePortfolio from './InteractivePortfolio';
+import Link from 'next/link';
 import { useState } from 'react';
 
 
@@ -42,8 +43,33 @@ export default function Hero() {
         <div className="max-w-[600px] mx-auto text-start mb-16">
           <div className="text-base leading-relaxed font-detail text-gray-900">
             <p>hello there! I&apos;m lele.</p>
-            <p className="mt-3">I&apos;m a designer in pursuit of aesthetics and function. I hope to create a 
-            world of seeing, learning, thinking, building, and loving.</p>
+            <p className="mt-3">I&apos;m a designer in pursuit of aesthetics and function. I hope to create a world of seeing, learning, thinking, building, and loving.</p>
+            <p className="mt-3">
+              I wrote a{' '}
+              <Link
+                href="/chat-explorations"
+                tabIndex={-1}
+                className="blog-post-link"
+                style={{
+                  color: 'var(--color-black)',
+                  textDecoration: 'none',
+                  transition: 'color 200ms ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-accentgray)';
+                  const span = e.currentTarget.querySelector('span');
+                  if (span) span.style.color = 'var(--color-accentgray)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-black)';
+                  const span = e.currentTarget.querySelector('span');
+                  if (span) span.style.color = 'var(--color-black)';
+                }}
+              >
+                blog post <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-black)', letterSpacing: '.05em', transition: 'color 200ms ease' }}>[0]</span>
+              </Link>
+              {' '}about designing chat interfaces around how we think.
+            </p>
           </div>
         </div>
         
