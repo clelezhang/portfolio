@@ -46,7 +46,7 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
         style={{
           position: 'fixed',
           bottom: '1rem',
-          left: '1rem',
+          right: '1rem',
           zIndex: 1000,
           isolation: 'isolate',
         }}>
