@@ -244,7 +244,7 @@ function ChatExplorationsContent() {
               I&apos;ve been fiddling with different solutions to this. I didn&apos;t want the degraded quality that comes with <a href="https://openai.com/index/sycophancy-in-gpt-4o/" target="_blank" rel="noopener noreferrer" tabIndex={-1} style={{ color: 'var(--color-black)', textDecoration: 'none', transition: 'color 200ms ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accentgray)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-black)'}>responses that parrot your tone <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-accentgray)', letterSpacing: '.05em' }}>[2]</span></a>. 
               This could be &apos;fixed&apos; with Git-style branching or a canvas, but for my daily chats, I wanted depth and breadth without the friction of moving around a canvas or branches.
             </p>
-            <p style={styles.pNone}>
+            <p style={styles.pLarge}>
               Maybe the interface could handle navigation for me, focusing on threads of conversion I want to go deeper in, leaving one-off threads behind.
               <span style={{ fontWeight: 500 }}> Maybe our ai tools could feel more like our memory--vibrant in some areas, faded in others--a scaffold that feels navigable and retrievable.</span>
             </p>
@@ -343,16 +343,16 @@ function ChatExplorationsContent() {
           </p>
           <p style={styles.pNone}>
             What if your one off chats only lived as long as needed, and the longer term ones were persistent chats, or became documents?
-            For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure² that the user can reference in addition to just floating in a memory soup.
+            For longer term projects, work projects, or small businesses, your chats could feed into a self organizing document structure<a href="#appendix-2" style={{ color: 'inherit', textDecoration: 'none' }}>²</a> that the user can reference in addition to just floating in a memory soup.
           </p>
           <InlineVideoDemo videoSrc="/demos/demo2.mp4" posterSrc="/demos/demo2-poster.jpg" aspectRatio="30 / 21" />
           </section>
-        <section style={{ marginTop: '4rem', marginBottom: '4rem' }}>
+        <section style={{ marginTop: '3rem', marginBottom: '4rem' }}>
           <h2 style={styles.h2} tabIndex={0}>
               Closing thoughts
             </h2>
           <p style={styles.p}>
-            I am very curious about the potential there is for chat to grow into a home for and co-creator to your thoughts.¹          
+            I am very curious about the potential there is for chat to grow into a home for and co-creator to your thoughts.<a href="#appendix-1" style={{ color: 'inherit', textDecoration: 'none' }}>¹</a>
           </p>
           <p style={styles.p}>
             My explorations were quite limited, and I&apos;m not claiming these are definitive improvements to chat, 
@@ -369,7 +369,7 @@ function ChatExplorationsContent() {
             <h2 style={styles.h2} tabIndex={0}>
                 Appendix
               </h2>
-            <h3 style={{ ...styles.h3, marginTop: '1rem' }} data-demo-name="voice" tabIndex={0}>
+            <h3 id="appendix-1" style={{ ...styles.h3, marginTop: '1rem' }} data-demo-name="voice" tabIndex={0}>
               1. Voice & Co-creation
             </h3>
             <p style={styles.p}>
@@ -389,7 +389,7 @@ function ChatExplorationsContent() {
             <p style={styles.p}>
               I did some prototypes around making messages feel more like documents, but this felt more like an offshoot than the central idea I wanted to explore so they live here now.
             </p>
-            <h3 style={styles.h3} tabIndex={0}>
+            <h3 id="appendix-2" style={styles.h3} tabIndex={0}>
               2a. messages becoming documents
             </h3>
             <p style={styles.p}>
