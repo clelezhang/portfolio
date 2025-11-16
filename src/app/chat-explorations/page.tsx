@@ -297,7 +297,7 @@ function ChatExplorationsContent() {
             My friend commented that he felt encouraged to bounce around when using threads, which nudged me to try a more focused, mobile-friendly interaction.
             </p>
             <p style={{ ...styles.p, marginBottom: '1.5rem' }}>
-              With swipe deeper, you can swipe horizontally to explore topics in depth. Click the arrow on any section (or swipe if you&apos;re on mobile) to dig deeper, or select text and click the &ldquo;?&rdquo; button  to explore that specific concept.
+              With swipe deeper, you can swipe horizontally to explore topics in depth. Click the arrow on any section (or swipe left if you&apos;re on mobile) to dig deeper, or select text and click the &ldquo;?&rdquo; button  to explore that specific concept.
             </p>
           </section>
         </TextContainer>
