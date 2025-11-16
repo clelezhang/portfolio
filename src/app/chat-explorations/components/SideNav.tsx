@@ -40,14 +40,15 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
   if (!isWideScreen) {
     return (
       <motion.div
-        initial={{ opacity: 0, filter: "blur(1px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.1, ease: "easeOut" }}
         style={{
           position: 'fixed',
           bottom: '1rem',
           left: '1rem',
           zIndex: 1000,
+          isolation: 'isolate',
         }}>
         <button
           onClick={onToggleFocus}
@@ -56,11 +57,13 @@ export function SideNav({ isFocused, onToggleFocus }: SideNavProps) {
           className="bg-glass backdrop-blur-[20px] rounded-full px-5 py-3 hover:bg-glass-bg-hover active:bg-glass-bg-hover transition-all duration-200 cursor-pointer border-none"
           tabIndex={-1}
           style={{
-            color: 'var(--color-gray)',
             fontSize: '0.8rem',
+            color: 'var(--color-gray)',
             fontFamily: 'var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
+            willChange: 'backdrop-filter',
+            transform: 'translateZ(0)',
           }}
         >
           <span style={{ display: 'inline-block', position: 'relative' }}>
