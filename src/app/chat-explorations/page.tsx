@@ -232,9 +232,7 @@ function ChatExplorationsContent() {
               It turns out, most of them didn&apos;t journal either. They didn&apos;t need to. When Chloe was stressed about attending school across the country, she told her roommates about it, a little every day.
             </p>
             <p style={styles.p}>
-              <span style={{ fontWeight: 500 }}> Dialogue has always been how we think best.</span>
-            </p>
-            <p style={styles.p}>
+              <span style={{ fontWeight: 500 }}> Dialogue has always been how we think best. </span>
               Journaling was the wrong form factor. With chat, our tools are conversational, but they&apos;re still catching up to how we think. 
               I believe that there&apos;s still enormous potential for chat interfaces to expand and support our thinking. A small example of this--sometimes I get overwhelmed by the length of a response, or by how I want to explore branching topics, but can&apos;t. 
               I think a lot of people feel this way too.
@@ -260,7 +258,7 @@ function ChatExplorationsContent() {
             </p>
 
             <h3 style={styles.h3} tabIndex={0}>
-              A. Threads
+              A.  Threads
             </h3>
             <p style={styles.p}>
               Threads exposes the branches and rabbit holes of exploration. 
