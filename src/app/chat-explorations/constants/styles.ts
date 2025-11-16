@@ -17,7 +17,7 @@ type ParagraphVariant = {
 const paragraphVariants: Record<string, ParagraphVariant> = {
   default: { marginBottom: '2rem' },
   none: { marginBottom: '0rem' },
-  large: { marginBottom: '3rem' },
+  large: { marginBottom: '2rem' },
   final: { marginBottom: '5rem' },
 } as const;
 

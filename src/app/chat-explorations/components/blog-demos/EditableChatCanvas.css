@@ -442,7 +442,7 @@
   overflow-y: auto;
   padding-top: 3rem;
   padding-bottom: 8rem;
-  background: var(--color-white);
+  background: #FBFBFA;
 }
 
 .blog-demos .messages-wrapper {
