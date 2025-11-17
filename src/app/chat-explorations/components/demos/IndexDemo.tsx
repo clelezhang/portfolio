@@ -429,12 +429,6 @@ export default function IndexDemo() {
             </button>
           </div>
           
-          <div className="chat-item">
-            <button className="chat-button">
-              <span className="chat-title">The history of Ancient Rome</span>
-            </button>
-          </div>
-          
         </div>
         <div className="sidebar-gradient" />
       </div>

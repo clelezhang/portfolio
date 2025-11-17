@@ -324,29 +324,6 @@ export default function QueueDemo({ triggerDemo, onDemoTriggered }: QueueDemoPro
             </button>
           </div>
           
-          <div className="chat-item">
-            <button className="chat-button">
-              <span className="chat-title">How does the immune system work?</span>
-            </button>
-          </div>
-          
-          <div className="chat-item">
-            <button className="chat-button">
-              <span className="chat-title">Database indexing strategies</span>
-            </button>
-          </div>
-          
-          <div className="chat-item">
-            <button className="chat-button">
-              <span className="chat-title">Renaissance art movements</span>
-            </button>
-          </div>
-          
-          <div className="chat-item">
-            <button className="chat-button">
-              <span className="chat-title">Piano chord progressions</span>
-            </button>
-          </div>
         </div>
         <div className="sidebar-gradient" />
       </div>
