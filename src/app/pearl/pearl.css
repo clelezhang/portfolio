@@ -1,0 +1,1911 @@
+/* Pearl Case Study Styles */
+
+/* Import Google Fonts for Pearl */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+
+.pearl-case-study {
+  /* ============================================
+     PEARL COLOR PALETTE (from Pearl codebase)
+     ============================================ */
+  
+  /* Primary Rose Palette */
+  --pearl-rose-50: #FFF5F7;
+  --pearl-rose-100: #FEEEF2;
+  --pearl-rose-200: #FDDDE6;
+  --pearl-rose-300: #F9BED0;
+  --pearl-rose-400: #E8A4B8;
+  --pearl-rose-500: #D4899E;
+  --pearl-rose-600: #C27089;
+  --pearl-rose-700: #A45A72;
+  --pearl-rose-800: #7A3D52;
+  
+  /* Pearl UI Accent Colors */
+  --pearl-pink-accent: #a56980;
+  --pearl-pink-gradient-start: #b9839c;
+  --pearl-pink-gradient-end: #a28ba7;
+  --pearl-border-pink: #e6d0d5;
+  --pearl-button-pink: #f4c8c8;
+  
+  /* ============================================
+     EMOTION COLORS (from emotionColors.js)
+     ============================================ */
+  
+  /* Primary Emotions */
+  --pearl-emotion-admiration: #C26E00;
+  --pearl-emotion-admiration-bg: rgba(224, 164, 0, 0.22);
+  
+  --pearl-emotion-adoration: #CF0C53;
+  --pearl-emotion-adoration-bg: rgba(247, 11, 97, 0.16);
+  
+  --pearl-emotion-amusement: #DE4C03;
+  --pearl-emotion-amusement-bg: rgba(255, 102, 0, 0.2);
+  
+  --pearl-emotion-anger: #BD2727;
+  --pearl-emotion-anger-bg: rgba(249, 46, 0, 0.18);
+  
+  --pearl-emotion-anxiety: #4D4AB9;
+  --pearl-emotion-anxiety-bg: rgba(8, 0, 249, 0.12);
+  
+  --pearl-emotion-awe: #0F26E9;
+  --pearl-emotion-awe-bg: rgba(0, 26, 255, 0.14);
+  
+  --pearl-emotion-boredom: #515167;
+  --pearl-emotion-boredom-bg: rgba(53, 55, 59, 0.14);
+  
+  --pearl-emotion-calmness: #2656B1;
+  --pearl-emotion-calmness-bg: rgba(0, 87, 249, 0.16);
+  
+  --pearl-emotion-concentration: #0666C6;
+  --pearl-emotion-concentration-bg: rgba(0, 128, 255, 0.18);
+  
+  --pearl-emotion-confusion: #9932CC;
+  --pearl-emotion-confusion-bg: rgba(125, 0, 174, 0.14);
+  
+  --pearl-emotion-contempt: #AD100D;
+  --pearl-emotion-contempt-bg: rgba(194, 56, 35, 0.16);
+  
+  --pearl-emotion-contentment: #168681;
+  --pearl-emotion-contentment-bg: rgba(28, 234, 186, 0.18);
+  
+  --pearl-emotion-craving: #A33C67;
+  --pearl-emotion-craving-bg: rgba(255, 0, 47, 0.14);
+  
+  --pearl-emotion-desire: #C50455;
+  --pearl-emotion-desire-bg: rgba(255, 0, 111, 0.14);
+  
+  --pearl-emotion-determination: #038455;
+  --pearl-emotion-determination-bg: rgba(0, 178, 80, 0.18);
+  
+  --pearl-emotion-disappointment: #5B58A8;
+  --pearl-emotion-disappointment-bg: rgba(0, 45, 178, 0.12);
+  
+  --pearl-emotion-disgust: #4A8212;
+  --pearl-emotion-disgust-bg: rgba(202, 233, 0, 0.24);
+  
+  --pearl-emotion-distress: #B13F19;
+  --pearl-emotion-distress-bg: rgba(249, 91, 0, 0.18);
+  
+  --pearl-emotion-ecstasy: #D00091;
+  --pearl-emotion-ecstasy-bg: rgba(255, 0, 161, 0.16);
+  
+  --pearl-emotion-embarrassment: #8C7E01;
+  --pearl-emotion-embarrassment-bg: rgba(249, 236, 0, 0.32);
+  
+  --pearl-emotion-enthusiasm: #C56C00;
+  --pearl-emotion-enthusiasm-bg: rgba(249, 199, 0, 0.28);
+  
+  --pearl-emotion-excitement: #AB6C00;
+  --pearl-emotion-excitement-bg: rgba(249, 216, 0, 0.28);
+  
+  --pearl-emotion-fear: #8B5039;
+  --pearl-emotion-fear-bg: rgba(174, 135, 76, 0.18);
+  
+  --pearl-emotion-gratitude: #BA643C;
+  --pearl-emotion-gratitude-bg: rgba(255, 149, 0, 0.22);
+  
+  --pearl-emotion-guilt: #5F1297;
+  --pearl-emotion-guilt-bg: rgba(148, 76, 174, 0.18);
+  
+  --pearl-emotion-horror: #8B3939;
+  --pearl-emotion-horror-bg: rgba(174, 76, 76, 0.18);
+  
+  --pearl-emotion-interest: #2D8A8F;
+  --pearl-emotion-interest-bg: rgba(50, 233, 209, 0.18);
+  
+  --pearl-emotion-joy: #BA643C;
+  --pearl-emotion-joy-bg: rgba(255, 170, 0, 0.22);
+  
+  --pearl-emotion-love: #B53674;
+  --pearl-emotion-love-bg: rgba(248, 10, 152, 0.16);
+  
+  --pearl-emotion-nostalgia: #3C4BD5;
+  --pearl-emotion-nostalgia-bg: rgba(65, 84, 255, 0.14);
+  
+  --pearl-emotion-pain: #C94261;
+  --pearl-emotion-pain-bg: rgba(203, 1, 14, 0.14);
+  
+  --pearl-emotion-pride: #7A05C3;
+  --pearl-emotion-pride-bg: rgba(173, 20, 255, 0.18);
+  
+  --pearl-emotion-realization: #028C91;
+  --pearl-emotion-realization-bg: rgba(0, 212, 228, 0.2);
+  
+  --pearl-emotion-relief: #007EC2;
+  --pearl-emotion-relief-bg: rgba(4, 150, 255, 0.2);
+  
+  --pearl-emotion-romance: #D20A99;
+  --pearl-emotion-romance-bg: rgba(255, 20, 177, 0.18);
+  
+  --pearl-emotion-sadness: #4262B3;
+  --pearl-emotion-sadness-bg: rgba(0, 83, 210, 0.14);
+  
+  --pearl-emotion-satisfaction: #177BB9;
+  --pearl-emotion-satisfaction-bg: rgba(4, 196, 255, 0.2);
+  
+  --pearl-emotion-shame: #895429;
+  --pearl-emotion-shame-bg: rgba(166, 108, 0, 0.18);
+  
+  --pearl-emotion-sympathy: #A905C3;
+  --pearl-emotion-sympathy-bg: rgba(212, 20, 255, 0.16);
+  
+  --pearl-emotion-tiredness: #5B57A3;
+  --pearl-emotion-tiredness-bg: rgba(23, 0, 138, 0.1);
+  
+  --pearl-emotion-triumph: #B17900;
+  --pearl-emotion-triumph-bg: rgba(209, 160, 0, 0.22);
+  
+  /* ============================================
+     NEUTRALS & BACKGROUNDS (from Pearl CSS)
+     ============================================ */
+  
+  /* Main Text Colors */
+  --pearl-text-primary: #322e33;
+  --pearl-text-secondary: #3838688c;
+  --pearl-text-muted: #6B6B6B;
+  
+  /* Background Colors */
+  --pearl-bg-cream: #FFFBF9;
+  --pearl-bg-warm-white: #FDF9F7;
+  --pearl-bg-note: #fdfafb;
+  --pearl-bg-mobile: #fcf9fa;
+  --pearl-bg-dashboard: #fdfafb;
+  --pearl-bg-secondary: #f5f3f6;
+  
+  /* Card & Surface Gradients */
+  --pearl-gradient-card: linear-gradient(135deg, #f5f3f6 0%, #f7f2f6 100%);
+  --pearl-gradient-card-hover: linear-gradient(135deg, #edebf0 0%, #eee6f0 100%);
+  --pearl-gradient-card-active: linear-gradient(135deg, #eae7ed 0%, #e6dee9 100%);
+  --pearl-gradient-moments: radial-gradient(circle at 35% 80%, #f4c7c75e 0%, #f5d4cb00 50%),
+    linear-gradient(100deg, #f5f3f6 0%, #f7f2f6 100%);
+  --pearl-gradient-zero-state: radial-gradient(circle at 30% 30%, #f4c7c784 0%, #f5d4cb00 60%),
+    linear-gradient(180deg, #f5f3f6 0%, #fcfafb34 90%),
+    linear-gradient(90deg, #f5f3f6 0%, #f7f2f6 100%);
+  
+  /* Borders */
+  --pearl-border: rgba(45, 45, 45, 0.08);
+  --pearl-border-light: rgba(179, 175, 215, 0.12);
+  --pearl-border-input: #E9E9F1;
+  
+  /* Shadows */
+  --pearl-shadow-card: 0 5px 12px rgba(162, 166, 217, 0.06);
+  --pearl-shadow-sidebar: 0 3px 12px rgba(162, 166, 217, 0.09);
+  --pearl-shadow-note: 0 8px 40px rgba(162, 140, 160, 0.12);
+  --pearl-shadow-header: 0 4px 12px 12px #fdfafb;
+  
+  /* Reflect Button Specific */
+  --pearl-reflect-border: #e6d0d5;
+  --pearl-reflect-gradient: radial-gradient(48px 16px at center, #f4c8c880 0%, transparent 100%),
+    linear-gradient(270deg, #f2e6e6 0%, #f1ebea 83%);
+  --pearl-reflect-shadow: 0px 2px 10px hsl(238, 25%, 78%, 0.2),
+    inset 0px -4px 6px rgba(229, 208, 210, 0.5),
+    inset 0px 0px 2px 2px rgba(219, 190, 192, 0.2),
+    inset 0px 2px 3px 3px rgba(255, 255, 255, 0.5);
+  
+  /* AI Reflection Colors */
+  --pearl-reflection-gradient: linear-gradient(135deg, #b9839c 0%, #a28ba7 100%);
+  --pearl-reflection-border: rgba(188, 120, 146, 0.53);
+  --pearl-reflection-bg: rgba(192, 122, 149, 0.12);
+  
+  /* Interactive States */
+  --pearl-hover-bg: #f2f3f7;
+  --pearl-active-bg: #e6e9f0;
+  --pearl-focus-ring: rgba(179, 175, 215, 0.3);
+  
+  /* Layout */
+  --pearl-max-width: 1080px;
+  --pearl-text-width: 640px;
+  --pearl-demo-width: 100%;
+  --pearl-sidebar-width: 288px;
+  --pearl-mobile-bar-height: 69px;
+}
+
+/* ============================================
+   HERO DEMO (Note Window)
+   ============================================ */
+.pearl-hero-demo {
+  background: linear-gradient(180deg, var(--pearl-rose-50) 0%, var(--pearl-bg-note) 100%);
+  min-height: 700px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Instrument Sans', sans-serif;
+  position: relative;
+  overflow: hidden;
+  padding: 9rem 0 5rem 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.pearl-note-window {
+  width: 100%;
+  max-width: 750px;
+  background: var(--pearl-bg-note);
+  border-radius: 12px;
+  border: 1px solid var(--pearl-border);
+  box-shadow: 0 12px 48px 0 rgba(17, 19, 35, 0.12), 0 1.5px 8px 0 rgba(22, 22, 28, 0.08);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  user-select: none;
+}
+
+.pearl-note-window.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pearl-note-window.hidden {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.pearl-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  top: 0;
+  background: var(--pearl-bg-note);
+  z-index: 20;
+}
+
+.pearl-note-date {
+  font-size: 0.875rem;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-note-saved {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--pearl-text-secondary);
+  margin-left: 0.75rem;
+}
+
+.pearl-note-content {
+  flex: 1;
+  padding: 0 24px;
+  padding-bottom: 80px;
+  max-width: 550px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pearl-note-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
+  margin-left: 0.35rem;
+}
+
+.pearl-note-emotion-tag {
+  display: flex;
+  text-transform: uppercase;
+  font-size: 10px;
+  line-height: 11px;
+  font-weight: 500;
+  margin-left: -0.35rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+  border-radius: 9999px;
+  justify-content: center;
+}
+
+.pearl-note-emotion-tag.enthusiasm {
+  color: var(--pearl-emotion-enthusiasm);
+  background: var(--pearl-emotion-enthusiasm-bg);
+}
+
+.pearl-note-emotion-tag.interest {
+  color: var(--pearl-emotion-interest);
+  background: var(--pearl-emotion-interest-bg);
+}
+
+.pearl-note-emotion-tag.nostalgia {
+  color: var(--pearl-emotion-nostalgia);
+  background: var(--pearl-emotion-nostalgia-bg);
+}
+
+.pearl-note-title {
+  width: 100%;
+  font-size: 1.125rem;
+  font-family: 'gelica', Georgia, serif;
+  margin-bottom: 1.75rem;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-note-body {
+  color: var(--pearl-text-primary);
+  font-size: 1rem;
+  font-family: 'Instrument Sans', sans-serif;
+  line-height: 150%;
+}
+
+.pearl-note-body p {
+  margin-bottom: 1rem;
+}
+
+.pearl-note-body p:last-child {
+  margin-bottom: 0;
+}
+
+.pearl-note-sidebar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.pearl-note-sidebar-inner {
+  display: inline-flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--pearl-border-light);
+  border-radius: 8px;
+  box-shadow: var(--pearl-shadow-sidebar);
+  padding: 8px;
+  gap: 0.5rem;
+  background: #fdfcfcea;
+  backdrop-filter: blur(8px);
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+.pearl-hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 1.5rem;
+  background: linear-gradient(
+    180deg,
+    var(--pearl-rose-50) 0%,
+    var(--pearl-bg-warm-white) 100%
+  );
+  overflow: hidden;
+}
+
+.pearl-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse 80% 50% at 50% 20%,
+    var(--pearl-rose-100) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.pearl-hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 900px;
+}
+
+.pearl-hero-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--pearl-rose-400);
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.pearl-hero-title span {
+  color: var(--pearl-rose-600);
+}
+
+.pearl-hero-subtitle {
+  font-size: 1.125rem;
+  color: var(--pearl-text-muted);
+  max-width: 500px;
+  margin: 0 auto 3rem;
+  line-height: 1.6;
+}
+
+.pearl-hero-meta {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--pearl-text-muted);
+}
+
+.pearl-hero-meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pearl-hero-meta-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--pearl-rose-500);
+}
+
+/* ============================================
+   MAIN CONTENT & LAYOUT
+   ============================================ */
+.pearl-main-content {
+  position: relative;
+}
+
+.pearl-content {
+  max-width: var(--pearl-max-width);
+  margin: 0 auto;
+  padding: 1rem 1rem;
+}
+
+.pearl-text-container {
+  max-width: var(--pearl-text-width);
+  margin: 0 auto;
+}
+
+.pearl-section {
+  padding: 2.5rem 0;
+}
+
+.pearl-section:first-of-type {
+  padding-top: 0;
+}
+
+.pearl-section-intro {
+  padding: 6rem 0 4rem;
+}
+
+/* ============================================
+   TYPOGRAPHY (matching chat-explorations blog)
+   ============================================ */
+.pearl-h2 {
+  font-family: var(--font-caveat), cursive;
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+.pearl-h3 {
+  font-family: var(--font-caveat), cursive;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-accentgray);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+.pearl-p {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.pearl-p-large {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-black);
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.pearl-p-emphasis {
+  font-weight: 500;
+}
+
+.pearl-quote {
+  font-style: italic;
+  color: var(--color-accentgray);
+  border-left: 3px solid var(--color-accentgray);
+  padding-left: 1.5rem;
+  margin: 2rem 0;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+/* Side Navigation - Sticky Layout */
+.pearl-content-with-sidebar {
+  position: relative;
+}
+
+.pearl-sidenav-column {
+  position: absolute;
+  left: 1rem;
+  top: 0;
+  height: 100%;
+  width: 180px;
+}
+
+.pearl-sidenav {
+  position: sticky;
+  top: calc(50vh - 100px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pearl-main-column {
+  width: 100%;
+}
+
+@media (max-width: 1279px) {
+  .pearl-sidenav-column {
+    display: none;
+  }
+}
+
+.pearl-nav-button {
+  background-color: transparent;
+  color: var(--color-accentgray);
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 200ms ease-out;
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  white-space: nowrap;
+}
+
+.pearl-nav-button:hover {
+  background-color: #C6C7D24D;
+}
+
+/* Links */
+.pearl-case-study a {
+  color: var(--color-black);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.pearl-case-study a:hover {
+  color: var(--color-accentgray);
+}
+
+/* Footnote style */
+.pearl-footnote {
+  font-family: var(--font-compagnon), monospace;
+  color: var(--color-accentgray);
+  letter-spacing: 0.05em;
+  font-size: 0.85em;
+}
+
+/* ============================================
+   DEMO CONTAINERS
+   ============================================ */
+.pearl-demo-container {
+  overflow: hidden;
+  background: var(--pearl-bg-cream);
+}
+
+.pearl-demo-container.full-width {
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+.pearl-demo {
+  padding: 2rem;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--pearl-bg-warm-white) 0%, var(--pearl-bg-cream) 100%);
+}
+
+.pearl-demo-mobile-frame {
+  max-width: 375px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 2rem;
+  box-shadow: var(--pearl-shadow-note);
+  overflow: hidden;
+}
+
+/* ============================================
+   JOURNAL ENTRY DEMO
+   ============================================ */
+.pearl-journal-demo {
+  padding: 1.5rem;
+}
+
+.pearl-journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--pearl-border);
+  margin-bottom: 1rem;
+}
+
+.pearl-journal-date {
+  font-size: 0.875rem;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-emotion-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.pearl-emotion-tag {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+}
+
+/* Emotion Tag Color Classes */
+.pearl-emotion-tag.love { 
+  color: var(--pearl-emotion-love); 
+  background: var(--pearl-emotion-love-bg);
+}
+.pearl-emotion-tag.pain { 
+  color: var(--pearl-emotion-pain); 
+  background: var(--pearl-emotion-pain-bg);
+}
+.pearl-emotion-tag.excitement { 
+  color: var(--pearl-emotion-excitement); 
+  background: var(--pearl-emotion-excitement-bg);
+}
+.pearl-emotion-tag.satisfaction { 
+  color: var(--pearl-emotion-satisfaction); 
+  background: var(--pearl-emotion-satisfaction-bg);
+}
+.pearl-emotion-tag.anxiety { 
+  color: var(--pearl-emotion-anxiety); 
+  background: var(--pearl-emotion-anxiety-bg);
+}
+.pearl-emotion-tag.sadness { 
+  color: var(--pearl-emotion-sadness); 
+  background: var(--pearl-emotion-sadness-bg);
+}
+.pearl-emotion-tag.fear { 
+  color: var(--pearl-emotion-fear); 
+  background: var(--pearl-emotion-fear-bg);
+}
+.pearl-emotion-tag.interest { 
+  color: var(--pearl-emotion-interest); 
+  background: var(--pearl-emotion-interest-bg);
+}
+.pearl-emotion-tag.joy { 
+  color: var(--pearl-emotion-joy); 
+  background: var(--pearl-emotion-joy-bg);
+}
+.pearl-emotion-tag.embarrassment { 
+  color: var(--pearl-emotion-embarrassment); 
+  background: var(--pearl-emotion-embarrassment-bg);
+}
+
+.pearl-journal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--pearl-text-primary);
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.pearl-journal-content {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-journal-content p {
+  margin-bottom: 1rem;
+}
+
+.pearl-journal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pearl-border);
+  margin-top: 1rem;
+}
+
+.pearl-toolbar-left {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* ============================================
+   REFLECT BUTTON (from Pearl's Sidebar.css)
+   ============================================ */
+.pearl-reflect-btn {
+  height: 32px;
+  padding: 0.1rem 1rem;
+  display: flex;
+  gap: 0.2rem;
+  align-items: center;
+  color: var(--pearl-text-primary);
+  font-family: "gelica", Georgia, serif;
+  border-radius: 6px;
+  border: 1px solid var(--pearl-reflect-border);
+  background: var(--pearl-reflect-gradient);
+  box-shadow: var(--pearl-reflect-shadow);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.pearl-reflect-btn:hover {
+  background: radial-gradient(48px 16px at center, #f4c8c880 0%, transparent 100%),
+    linear-gradient(hsla(336, 42%, 46%, 0.02) 0%, hsla(336, 42%, 46%, 0.02) 100%),
+    linear-gradient(270deg, #f2e6e6 0%, #f1ebea 83%);
+}
+
+.pearl-reflect-btn:active {
+  background: radial-gradient(48px 16px at center, #f4c8c880 0%, transparent 100%),
+    linear-gradient(hsla(336, 42%, 46%, 0.08) 0%, hsla(336, 42%, 46%, 0.08) 100%),
+    linear-gradient(270deg, #f2e6e6 0%, #f1ebea 83%);
+  border-color: #dcbdc3;
+}
+
+/* ============================================
+   INLINE REFLECTION
+   ============================================ */
+.pearl-inline-reflection {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--pearl-reflection-bg);
+  border-radius: 0.75rem;
+  border-left: 2.5px solid var(--pearl-reflection-border);
+}
+
+.pearl-reflection-prompt {
+  font-style: italic;
+  background: var(--pearl-reflection-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pearl-reflection-prompt svg {
+  flex-shrink: 0;
+}
+
+.pearl-reflection-response {
+  color: var(--pearl-text-primary);
+  line-height: 1.6;
+}
+
+/* ============================================
+   WEEKLY REFLECTION DEMO
+   ============================================ */
+.pearl-weekly-demo {
+  padding: 1.5rem;
+}
+
+.pearl-weekly-header {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--pearl-text-secondary);
+  margin-left: 12px;
+  margin-bottom: 1rem;
+}
+
+.pearl-emotion-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--pearl-gradient-card);
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+}
+
+.pearl-stat {
+  text-align: left;
+}
+
+.pearl-stat-value {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 300;
+  font-size: 32px;
+  line-height: 32px;
+  margin-bottom: 2px;
+}
+
+.pearl-stat-value.satisfaction { color: var(--pearl-emotion-satisfaction); }
+.pearl-stat-value.anxiety { color: var(--pearl-emotion-anxiety); }
+.pearl-stat-value.excitement { color: var(--pearl-emotion-excitement); }
+.pearl-stat-value.love { color: var(--pearl-emotion-love); }
+.pearl-stat-value.sadness { color: var(--pearl-emotion-sadness); }
+.pearl-stat-value.fear { color: var(--pearl-emotion-fear); }
+
+.pearl-stat-label {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  text-transform: lowercase;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-weekly-summary {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 150%;
+  color: var(--pearl-text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.pearl-weekly-themes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.pearl-theme-tag {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-theme-separator {
+  font-size: 5px;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-weekly-cta {
+  min-height: 36px;
+  padding: 0.2rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  background: var(--pearl-gradient-card);
+  border-radius: 6px;
+  color: var(--pearl-text-secondary);
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+
+.pearl-weekly-cta:hover {
+  background: var(--pearl-gradient-card-hover);
+}
+
+.pearl-weekly-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pearl-weekly-stat-card {
+  padding: 14px 12px;
+  background: var(--pearl-gradient-card);
+  border-radius: 0.375rem;
+}
+
+.pearl-weekly-stat-card.moments {
+  background: var(--pearl-gradient-moments);
+}
+
+.pearl-weekly-stat-number {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 50px;
+  line-height: 110%;
+  color: var(--pearl-text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.pearl-weekly-stat-label {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-weekly-stat-sublabel {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-notes-title {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pearl-text-primary);
+  margin-bottom: 8px;
+}
+
+.pearl-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pearl-notes-item {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--pearl-text-secondary);
+}
+
+/* ============================================
+   EMOTION VISUALIZATION DEMO
+   ============================================ */
+.pearl-viz-demo {
+  padding: 1.5rem;
+}
+
+.pearl-viz-title {
+  font-family: "gelica", Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--pearl-text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.pearl-viz-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 300px;
+  margin: 0 auto 1.5rem;
+}
+
+.pearl-viz-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 300ms ease, opacity 300ms ease;
+  cursor: pointer;
+}
+
+.pearl-viz-dot:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+.pearl-viz-label {
+  position: absolute;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pearl-viz-days {
+  position: absolute;
+  right: -2rem;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-viz-filters {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pearl-viz-filter {
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 12px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--pearl-border-light);
+  background: white;
+  color: var(--pearl-text-secondary);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.pearl-viz-filter.active {
+  background: var(--pearl-rose-100);
+  border-color: var(--pearl-rose-300);
+  color: var(--pearl-rose-600);
+}
+
+.pearl-viz-categories {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pearl-viz-category {
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 12px;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  background: var(--pearl-rose-50);
+  color: var(--pearl-text-secondary);
+}
+
+/* ============================================
+   IMPACT SECTION
+   ============================================ */
+.pearl-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.pearl-impact-card {
+  padding: 1.25rem;
+  background: var(--color-off-white);
+  border-radius: 0.75rem;
+}
+
+.pearl-impact-number {
+  font-family: var(--font-caveat), cursive;
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--color-black);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.pearl-impact-label {
+  font-size: 0.875rem;
+  color: var(--color-accentgray);
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================
+   TESTIMONIAL
+   ============================================ */
+.pearl-testimonial {
+  margin: 2rem 0;
+  padding-left: 1.5rem;
+  border-left: 3px solid var(--color-accentgray);
+}
+
+.pearl-testimonial-quote {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--color-black);
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+.pearl-testimonial-author {
+  font-size: 0.875rem;
+  color: var(--color-accentgray);
+  letter-spacing: -0.02em;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+.pearl-sparkle {
+  display: inline-flex;
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.95); }
+}
+
+.pearl-typing {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pearl-typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--pearl-pink-accent);
+  margin-left: 2px;
+  animation: cursor-blink 1s ease-in-out infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.pearl-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+
+.pearl-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pearl-stagger > * {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+.pearl-stagger.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.pearl-stagger.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.pearl-stagger.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.pearl-stagger.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+.pearl-stagger.visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
+.pearl-stagger.visible > *:nth-child(6) { transition-delay: 500ms; opacity: 1; transform: translateY(0); }
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pearl-viz-dot {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+}
+
+.pearl-viz-container.visible .pearl-viz-dot {
+  animation: dot-appear 500ms ease forwards;
+}
+
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(1) { animation-delay: 0ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(2) { animation-delay: 50ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(3) { animation-delay: 100ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(4) { animation-delay: 150ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(5) { animation-delay: 200ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(6) { animation-delay: 250ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(7) { animation-delay: 300ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(8) { animation-delay: 350ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(9) { animation-delay: 400ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(10) { animation-delay: 450ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(11) { animation-delay: 500ms; }
+.pearl-viz-container.visible .pearl-viz-dot:nth-child(12) { animation-delay: 550ms; }
+
+@keyframes dot-appear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  60% { transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ============================================
+   INPUT BAR
+   ============================================ */
+.pearl-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-top: 1px solid var(--pearl-border);
+}
+
+.pearl-input-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.875rem;
+  color: var(--pearl-text-primary);
+}
+
+.pearl-input-bar input::placeholder {
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-input-icon {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--pearl-rose-50);
+  color: var(--pearl-rose-500);
+}
+
+/* ============================================
+   SIDEBAR STYLES (from Pearl)
+   ============================================ */
+.pearl-sidebar {
+  display: inline-flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--pearl-border-light);
+  border-radius: 8px;
+  box-shadow: var(--pearl-shadow-sidebar);
+  padding: 8px;
+  gap: 0.5rem;
+  background: #fdfcfcea;
+  backdrop-filter: blur(8px);
+}
+
+.pearl-sidebar-button {
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 200ms ease;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pearl-text-primary);
+  cursor: pointer;
+  border: none;
+}
+
+.pearl-sidebar-button:hover {
+  background-color: var(--pearl-hover-bg);
+}
+
+.pearl-sidebar-button:active {
+  background-color: var(--pearl-active-bg);
+}
+
+.pearl-sidebar-divider {
+  width: 1px;
+  height: 32px;
+  border-radius: 0.5px;
+  background: var(--pearl-border-light);
+}
+
+/* ============================================
+   DEMO CONTAINERS & COMPONENTS
+   ============================================ */
+
+/* Demo wrapper - consistent width for all demos */
+.pearl-demo-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: 3.5rem; /* space for toggle */
+}
+
+/* Demo background container - FIXED width for ALL demos */
+.pearl-demo-container {
+  background-size: cover;
+  background-position: center;
+  max-height: 600px;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 3rem 2rem 6rem 6rem;
+  font-family: "Instrument Sans", sans-serif;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgb(232, 232, 232);
+}
+
+/* Full width demo (hero) - no width constraint */
+.pearl-demo-container.full-width {
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 0;
+}
+
+/* Window container (unified border/shadow) */
+.pearl-demo-window {
+  background: var(--pearl-bg-note);
+  border-radius: 12px;
+  border: 1px solid var(--pearl-border-light);
+  box-shadow: var(--pearl-shadow-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 800px !important;
+  min-width: 800px;
+  max-width: none;
+  flex-shrink: 0;
+  transition: opacity 600ms ease, transform 600ms ease, width 300ms ease;
+}
+
+.pearl-demo-window.mobile {
+  width: 375px;
+}
+
+.pearl-demo-window.visible {
+  opacity: 1;
+}
+
+.pearl-demo-window.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Window title bar (macOS style) */
+.pearl-demo-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px 5px 10px;
+  border-bottom: 1px solid var(--pearl-border);
+  cursor: grab;
+}
+
+.pearl-demo-titlebar.dragging {
+  cursor: grabbing;
+}
+
+.pearl-demo-titlebar-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.pearl-demo-titlebar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pearl-border);
+}
+
+.pearl-demo-titlebar-link {
+  font-size: 13px;
+  color: var(--pearl-text-secondary) !important;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 200ms ease !important;
+}
+
+.pearl-demo-window:hover .pearl-demo-titlebar-link,
+.pearl-note-window:hover .pearl-demo-titlebar-link {
+  opacity: 1 !important;
+}
+
+.pearl-demo-titlebar-link:hover {
+  text-decoration: underline;
+}
+
+/* Main content area */
+.pearl-demo-main {
+  display: flex;
+  flex: 1;
+  min-height: 500px;
+}
+
+/* Note list sidebar (exact NoteList.css) */
+.pearl-demo-notelist {
+  width: 18rem; /* exact .note-list-container width */
+  flex-shrink: 0;
+  background: var(--pearl-bg-note);
+  border: 1px solid var(--pearl-border-light);
+  border-radius: 8px;
+  box-shadow: var(--pearl-shadow-card);
+  display: flex;
+  flex-direction: column;
+  padding-top: 1.45rem;
+  padding-left: 12px;
+  padding-right: 12px;
+  margin: 12px;
+  margin-right: 0;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  height: calc(100% - 24px);
+}
+
+/* Note list header (exact .note-list-header) */
+.pearl-demo-notelist-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  height: 24px;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 12px;
+  background: var(--pearl-bg-note);
+  box-shadow: var(--pearl-shadow-header);
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Note list title (exact .note-list-title) */
+.pearl-demo-notelist-title {
+  font-size: 18px;
+  font-weight: 400;
+  font-family: "gelica", Georgia, serif;
+  color: var(--pearl-text-primary);
+  margin: 0;
+}
+
+/* Icon button group */
+.pearl-demo-icon-group {
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Search button (exact .search-button) */
+.pearl-demo-icon-btn {
+  height: 24px;
+  width: 24px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pearl-text-primary);
+  transition: background-color 200ms ease;
+}
+
+.pearl-demo-icon-btn:hover {
+  background-color: var(--pearl-hover-bg);
+}
+
+.pearl-demo-icon-btn:active {
+  background-color: var(--pearl-active-bg);
+}
+
+/* Notes list container (exact .note-list) */
+.pearl-demo-notes {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+}
+
+.pearl-demo-notes::-webkit-scrollbar {
+  display: none;
+}
+
+/* Note list spacer */
+.pearl-demo-notes-spacer {
+  height: 8px;
+  width: 100%;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+/* Note item (exact .note-list-item) */
+.pearl-demo-note-item {
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 12px;
+  padding-right: 16px;
+  position: relative;
+  background: var(--pearl-bg-note);
+  z-index: 30;
+}
+
+.pearl-demo-note-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
+  background: var(--pearl-gradient-card);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  z-index: -1;
+}
+
+.pearl-demo-note-item:hover::before {
+  opacity: 1;
+}
+
+.pearl-demo-note-item.selected::before {
+  background: var(--pearl-gradient-card-hover);
+  opacity: 1;
+}
+
+/* Note title (exact .note-title) */
+.pearl-demo-note-title {
+  font-size: 14px;
+  font-variation-settings: "wght" 500;
+  color: var(--pearl-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  line-height: 1.5;
+  width: 100%;
+}
+
+/* Note preview (exact .note-preview) */
+.pearl-demo-note-preview {
+  font-size: 14px;
+  font-variation-settings: "wght" 400;
+  color: var(--pearl-text-primary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-line;
+  margin-top: 2px;
+}
+
+/* Note metadata container (exact .note-metadata-container) */
+.pearl-demo-note-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Note emotions (exact .note-emotions) */
+.pearl-demo-note-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  margin-left: 5.6px;
+  gap: 2px;
+}
+
+/* Emotion pill in note list (exact .note-emotion) */
+.pearl-demo-emotion {
+  display: inline-flex;
+  text-transform: uppercase;
+  font-size: 8px;
+  font-variation-settings: "wght" 500;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+
+/* First emotion (shows text) */
+.pearl-demo-emotion.first {
+  padding: 2px 4px;
+}
+
+/* Subsequent emotions (circle only, stacked) */
+.pearl-demo-emotion.circle {
+  width: 14px;
+  height: 14px;
+  margin-left: -4px;
+}
+
+/* Note date (exact .note-date) */
+.pearl-demo-note-date {
+  font-size: 10px;
+  font-variation-settings: "wght" 500;
+  color: var(--pearl-text-secondary);
+  padding-top: 8px;
+  margin: 0;
+}
+
+/* Note editor area */
+.pearl-demo-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--pearl-bg-note);
+  overflow-y: auto;
+}
+
+/* Editor header (date + saved) */
+.pearl-demo-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  background: var(--pearl-bg-note);
+}
+
+.pearl-demo-editor-date {
+  font-size: 14px;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-demo-editor-saved {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--pearl-text-secondary);
+  margin-left: 12px;
+}
+
+/* Editor content wrapper */
+.pearl-demo-editor-content {
+  padding: 0 24px 2rem;
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+/* Emotion tags in editor */
+.pearl-demo-editor-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 1rem;
+  margin-bottom: 12px;
+}
+
+.pearl-demo-editor-emotion {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 9999px;
+}
+
+.pearl-demo-editor-emotion.love {
+  color: var(--pearl-emotion-love);
+  background: var(--pearl-emotion-love-bg);
+}
+
+.pearl-demo-editor-emotion.pain {
+  color: var(--pearl-emotion-pain);
+  background: var(--pearl-emotion-pain-bg);
+}
+
+/* Editor body text */
+.pearl-demo-editor-body {
+  color: var(--pearl-text-primary);
+  font-size: 1rem;
+  font-family: "Instrument Sans", sans-serif;
+  line-height: 150%;
+}
+
+.pearl-demo-editor-body p {
+  margin: 0 0 1rem;
+}
+
+/* Reflection styles */
+.pearl-demo-reflection {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.pearl-demo-reflection-prompt {
+  font-family: "gelica", Georgia, serif;
+  font-style: italic;
+  background: var(--pearl-reflection-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.pearl-demo-reflection-response {
+  margin-top: 8px;
+  margin-left: 16px;
+  color: var(--pearl-text-primary);
+  font-family: "Instrument Sans", sans-serif;
+}
+
+.pearl-demo-reflection-followup {
+  margin-top: 1.25rem;
+  font-family: "gelica", Georgia, serif;
+  font-style: italic;
+  background: var(--pearl-reflection-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.pearl-demo-reflection-followup kbd {
+  font-style: italic;
+}
+
+/* Dot icon for reflections */
+.pearl-demo-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pearl-reflection-gradient);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* Typing cursor */
+.pearl-demo-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 16px;
+  margin-left: 2px;
+  animation: pearl-blink 1s infinite;
+}
+
+.pearl-demo-cursor.prompt {
+  background: var(--pearl-pink-gradient-start);
+}
+
+.pearl-demo-cursor.response {
+  background: var(--pearl-text-primary);
+  height: 14px;
+}
+
+@keyframes pearl-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Demo toggle button (bottom right) */
+.pearl-demo-toggle-wrapper {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pearl-demo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(198, 199, 210, 0.3);
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+  font-family: "Instrument Sans", sans-serif;
+}
+
+.pearl-demo-toggle:hover {
+  background: rgba(184, 185, 196, 0.3);
+}
+
+.pearl-demo-toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.pearl-demo-toggle-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  transition: all 200ms ease;
+  color: var(--pearl-text-secondary);
+}
+
+.pearl-demo-toggle-option.active {
+  background: white;
+  box-shadow: var(--pearl-shadow-card);
+  color: var(--pearl-text-primary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .pearl-hero {
+    padding: 4rem 1rem;
+    min-height: auto;
+  }
+  
+  .pearl-hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .pearl-hero-meta {
+    gap: 1.5rem;
+  }
+  
+  .pearl-emotion-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .pearl-stat-value {
+    font-size: 24px;
+    line-height: 24px;
+  }
+  
+  .pearl-weekly-stats-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .pearl-impact-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .pearl-impact-grid {
+    grid-template-columns: 1fr;
+  }
+}
