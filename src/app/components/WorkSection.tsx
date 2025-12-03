@@ -56,7 +56,7 @@ export default function WorkSection() {
   const getProjectLinks = (workId: string) => {
     const linkMap: { [key: string]: { url?: string; titleLink?: boolean; imageLinks?: boolean[] } } = {
       pearl: {
-        url: 'https://info.writewithprl.com/',
+        url: '/pearl',
         titleLink: true,
         imageLinks: [true, true, true] // All images link
       },
@@ -127,7 +127,12 @@ export default function WorkSection() {
 
     if (linkUrl) {
       return (
-        <Link href={linkUrl} target="_blank" rel="noopener noreferrer" className={`${className} cursor-pointer`}>
+        <Link
+          href={linkUrl}
+          target={workId === 'pearl' ? undefined : '_blank'}
+          rel={workId === 'pearl' ? undefined : 'noopener noreferrer'}
+          className={`${className} cursor-pointer`}
+        >
           {imageElement}
         </Link>
       );
@@ -165,10 +170,10 @@ export default function WorkSection() {
               {/* Project Title */}
               <h3 className="text-base mb-2 font-sans text-gray-500">
                 {getProjectLinks(work.id).titleLink && getProjectLinks(work.id).url ? (
-                  <Link 
-                    href={getProjectLinks(work.id).url!} 
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={getProjectLinks(work.id).url!}
+                    target={work.id === 'pearl' ? undefined : '_blank'}
+                    rel={work.id === 'pearl' ? undefined : 'noopener noreferrer'}
                     className="hover:text-slate transition-colors"
                   >
                     {work.title}

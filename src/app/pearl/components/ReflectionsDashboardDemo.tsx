@@ -1,22 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-
-// Icons
-const DesktopIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-    <line x1="8" y1="21" x2="16" y2="21" />
-    <line x1="12" y1="17" x2="12" y2="21" />
-  </svg>
-);
-
-const MobileIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-    <line x1="12" y1="18" x2="12.01" y2="18" />
-  </svg>
-);
+import { Monitor, Smartphone } from 'lucide-react';
 
 // Exact Pearl emotion colors
 const EMOTION_STATS = [
@@ -267,6 +252,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   const [activeTimeFilter, setActiveTimeFilter] = useState(0);
   const [activeDayFilter, setActiveDayFilter] = useState(0);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -287,6 +273,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   const graphRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+  const [contentOffset, setContentOffset] = useState(0);
 
   const timeFilters = ['week', 'month', 'year'];
   const dayFilters = getDateFilters(timeFilters[activeTimeFilter]);
@@ -315,6 +302,21 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   
   // Track node opacities for animation
   const [nodeOpacities, setNodeOpacities] = useState<Record<string, number>>({});
+
+  // Set mobile view on client side only
+  useEffect(() => {
+    setIsClient(true);
+    setIsMobileView(window.innerWidth < 768);
+
+    // Listen for window resize
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      setIsMobileView(isMobile);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Reset day filter when time filter changes
   useEffect(() => {
@@ -368,13 +370,17 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
         if (contentRef.current) {
           if (variant === 'alt') {
             // Demo 4: scroll to bottom to show graph
-            contentRef.current.scrollTop = contentRef.current.scrollHeight;
+            const maxScroll = contentRef.current.scrollHeight - contentRef.current.clientHeight;
+            setContentOffset(-maxScroll);
           } else {
             // Demo 3: scroll to top to show dashboard
-            contentRef.current.scrollTop = 0;
+            setContentOffset(0);
           }
         }
       }, 100);
+    } else {
+      // Reset offset when not in mobile view
+      setContentOffset(0);
     }
   }, [isMobileView, variant]);
 
@@ -384,12 +390,13 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (window.innerWidth < 768) return; // Disable dragging on mobile
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || window.innerWidth < 768) return;
     setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
 
@@ -472,10 +479,10 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
             <div className="pearl-demo-titlebar-dot" />
             <div className="pearl-demo-titlebar-dot" />
           </div>
-          <a 
+          <a
             className="pearl-demo-titlebar-link"
-            href="https://pearl-journal.com" 
-            target="_blank" 
+            href="https://info.writewithprl.com/"
+            target="_blank"
             rel="noopener noreferrer"
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -485,7 +492,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
       )}
 
           {/* Main Content - Dashboard + Graph side by side on desktop */}
-          <div 
+          <div
             ref={contentRef}
             style={{
               display: 'flex',
@@ -493,6 +500,8 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
               overflow: isMobileView ? 'auto' : 'hidden',
               flexDirection: isMobileView ? 'column' : 'row',
               position: 'relative',
+              transform: isMobileView ? `translateY(${contentOffset}px)` : undefined,
+              transition: 'transform 300ms ease',
             }}
           >
             {/* Dashboard Panel (left side on desktop, bottom on mobile) - using CSS classes */}
@@ -992,7 +1001,8 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
                       position: 'absolute',
                       left: preview.positionClass.includes('left-side') ? preview.x - 15 : preview.x,
                       top: preview.y,
-                      transform: preview.positionClass === 'left-side' 
+                      width: '220px',
+                      transform: preview.positionClass === 'left-side'
                         ? 'translate(-100%, -50%)'
                         : preview.positionClass === 'top-side'
                         ? 'translate(0, -100%)'
@@ -1095,28 +1105,27 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   // Normal mode with wrapper, container, and toggle
   return (
     <div className="pearl-demo-wrapper">
-      <div 
+      <div
         className={`pearl-demo-container ${variant === 'alt' ? 'demo-reflections-alt' : 'demo-reflections'}`}
-        style={{ backgroundImage: `url(/work-images/${variant === 'alt' ? 'DF6C469A-DA5D-4B52-8162-412B786F6C8B.jpeg' : '1BEF31C7-13A5-4834-B412-1277F8F01A36.jpeg'})` }}
+        style={{ backgroundImage: `url(/work-images/${variant === 'alt' ? 'i4.webp' : 'i3.webp'})` }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {windowContent}
-      </div>
+        {isClient && window.innerWidth >= 768 && (
+          <button className="pearl-demo-toggle" onClick={handleToggleView} style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', zIndex: 10 }}>
+            <div className="pearl-demo-toggle-switch">
+              <div className={`pearl-demo-toggle-option ${!isMobileView ? 'active' : ''}`}>
+                <Monitor size={16} strokeWidth={1.5} />
+              </div>
+              <div className={`pearl-demo-toggle-option ${isMobileView ? 'active' : ''}`}>
+                <Smartphone size={16} strokeWidth={1.5} />
+              </div>
+            </div>
+          </button>
+        )}
 
-      {/* Toggle */}
-      <div className="pearl-demo-toggle-wrapper">
-        <button className="pearl-demo-toggle" onClick={handleToggleView}>
-          <div className="pearl-demo-toggle-switch">
-            <div className={`pearl-demo-toggle-option ${!isMobileView ? 'active' : ''}`}>
-              <DesktopIcon />
-            </div>
-            <div className={`pearl-demo-toggle-option ${isMobileView ? 'active' : ''}`}>
-              <MobileIcon />
-            </div>
-          </div>
-        </button>
+        {windowContent}
       </div>
     </div>
   );

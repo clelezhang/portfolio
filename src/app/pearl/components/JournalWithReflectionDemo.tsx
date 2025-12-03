@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Monitor, Smartphone } from 'lucide-react';
 
 interface JournalWithReflectionDemoProps {
   isVisible?: boolean;
@@ -28,11 +29,35 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
-  
+
   // Simple animation cancellation: increment ID to invalidate old animations
   const animationIdRef = useRef(0);
+
+  // Set mobile view and screen size on client side only
+  useEffect(() => {
+    setIsClient(true);
+    const isMobile = window.innerWidth < 768;
+    setIsMobileScreen(isMobile);
+    setIsMobileView(isMobile);
+
+    // Listen for window resize
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      setIsMobileScreen(isMobile);
+      // Only auto-switch to mobile view if screen becomes mobile
+      // Don't auto-switch back to desktop to preserve user's toggle choice
+      if (isMobile) {
+        setIsMobileView(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const prompt1 = "When you say you shouldn't be so lax about time, what do you wish you were doing differently?";
   const response1 = "i'm just thinking abt like\n\nhow things are precious. and if I always go on my own pace\n\nif I don't act in response to opportunity, I will most certainly miss things that will never come by again";
@@ -152,8 +177,8 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
     setTimeout(() => {
       if (animationIdRef.current !== animId) return;
       setShowContent(true);
-    }, 200);
-    
+    }, 600);
+
     // Start first reflection
     setTimeout(() => {
       if (animationIdRef.current !== animId) return;
@@ -174,7 +199,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
           }, animId, 0.25);
         }, 400);
       }, animId);
-    }, 800);
+    }, 1500);
   };
 
   // Listen for Cmd+Enter
@@ -202,12 +227,13 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
   };
 
   const handleTitleBarMouseDown = (e: React.MouseEvent) => {
+    if (isMobileScreen) return; // Disable dragging on mobile screens only
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || isMobileScreen) return;
     setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
 
@@ -221,8 +247,9 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
       preview: 'I thought about how I\'ve been across the bridge many times...',
       date: 'AUG 23', 
       emotions: [
-        { name: 'Love', color: '#B53674', bg: 'rgba(248, 10, 152, 0.16)' },
-        { name: 'Pain', color: '#C94261', bg: 'rgba(203, 1, 14, 0.14)' },
+        { name: 'Contemplation', color: '#0680C6', bg: 'rgba(0, 202, 213, 0.18)' },
+        { name: 'Disappointment', color: '#4262B3', bg: 'rgba(0, 83, 210, 0.18)' },
+        { name: 'Realization', color: '#AB6C00', bg: 'rgba(249, 216, 0, 0.22)' },
       ],
       active: true 
     },
@@ -232,9 +259,9 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
       preview: 'Sometimes the smallest things can change everything...',
       date: 'AUG 21', 
       emotions: [
-        { name: 'Joy', color: '#BA643C', bg: 'rgba(255, 170, 0, 0.22)' },
-        { name: 'Satisfaction', color: '#177BB9', bg: 'rgba(4, 196, 255, 0.2)' },
-        { name: 'Contentment', color: '#168681', bg: 'rgba(28, 234, 186, 0.18)' },
+        { name: 'Contemplation', color: '#0680C6', bg: 'rgba(0, 202, 213, 0.18)' },
+        { name: 'Disappointment', color: '#4262B3', bg: 'rgba(0, 83, 210, 0.18)' },
+        { name: 'Realization', color: '#AB6C00', bg: 'rgba(249, 216, 0, 0.22)' },
       ],
       active: false 
     },
@@ -274,22 +301,38 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
 
   return (
     <div className="pearl-demo-wrapper">
-      <div 
+      <div
         className="pearl-demo-container"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ backgroundImage: 'url(/work-images/44E86C7C-3123-4028-B956-F3C96E6B2FA9.jpeg)' }}
+        style={{ backgroundImage: 'url(/work-images/i2.webp)' }}
       >
+        {isClient && !isMobileScreen && (
+          <button className="pearl-demo-toggle" onClick={handleToggleView} style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', zIndex: 10 }}>
+            <div className="pearl-demo-toggle-switch">
+              <div className={`pearl-demo-toggle-option ${!isMobileView ? 'active' : ''}`}>
+                <Monitor size={16} strokeWidth={1.5} />
+              </div>
+              <div className={`pearl-demo-toggle-option ${isMobileView ? 'active' : ''}`}>
+                <Smartphone size={16} strokeWidth={1.5} />
+              </div>
+            </div>
+          </button>
+        )}
+
         {/* Window */}
-        <div 
+        <div
           className={`pearl-demo-window visible ${isMobileView ? 'mobile' : ''}`}
           style={{
-            transform: isMobileView 
-              ? `translate(${position.x}px, ${position.y}px) scale(0.85)` 
+            transform: isMobileView
+              ? `translate(calc(-50% + ${position.x}px), calc(-50% + 40px + ${position.y}px)) scale(0.85)`
               : `translate(${position.x}px, ${position.y}px)`,
-            transformOrigin: 'top center',
+            transformOrigin: 'center',
             transition: isDragging ? 'none' : 'transform 200ms ease',
+            position: 'absolute',
+            left: isMobileView ? '50%' : undefined,
+            top: isMobileView ? '50%' : undefined,
           }}
           onMouseDown={handleTitleBarMouseDown}
         >
@@ -301,10 +344,10 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
                 <div className="pearl-demo-titlebar-dot" />
                 <div className="pearl-demo-titlebar-dot" />
               </div>
-              <a 
+              <a
                 className="pearl-demo-titlebar-link"
-                href="https://pearl-journal.com" 
-                target="_blank" 
+                href="https://info.writewithprl.com/"
+                target="_blank"
                 rel="noopener noreferrer"
                 onMouseDown={(e) => e.stopPropagation()}
               >
@@ -375,8 +418,9 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
 
               <div className="pearl-demo-editor-content">
                 <div className="pearl-note-emotions">
-                  <span className="pearl-note-emotion-tag love">Love</span>
-                  <span className="pearl-note-emotion-tag pain">Pain</span>
+                  <span className="pearl-note-emotion-tag contemplation">Contemplation</span>
+                  <span className="pearl-note-emotion-tag disappointment">Disappointment</span>
+                  <span className="pearl-note-emotion-tag realization">Realization</span>
                 </div>
 
                 <h1 className="pearl-note-title">
@@ -494,27 +538,6 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Toggle - outside container, bottom right */}
-      <div className="pearl-demo-toggle-wrapper">
-        <button className="pearl-demo-toggle" onClick={handleToggleView}>
-          <div className="pearl-demo-toggle-switch">
-            <div className={`pearl-demo-toggle-option ${!isMobileView ? 'active' : ''}`}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
-            </div>
-            <div className={`pearl-demo-toggle-option ${isMobileView ? 'active' : ''}`}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                <line x1="12" y1="18" x2="12.01" y2="18" />
-              </svg>
-            </div>
-          </div>
-        </button>
       </div>
     </div>
   );
