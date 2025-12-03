@@ -4,8 +4,7 @@ import React, { useEffect } from 'react';
 import Header from '@/app/components/Header';
 import HeroDemo from './components/HeroDemo';
 import JournalWithReflectionDemo from './components/JournalWithReflectionDemo';
-import WeeklyReflectionDemo from './components/WeeklyReflectionDemo';
-import EmotionVisualizationDemo from './components/EmotionVisualizationDemo';
+import ReflectionsDashboardDemo from './components/ReflectionsDashboardDemo';
 import PearlDemoSection from './components/PearlDemoSection';
 import { SideNav } from './components/SideNav';
 import './pearl.css';
@@ -107,7 +106,7 @@ export default function PearlCaseStudy() {
             </div>
             
             <PearlDemoSection>
-              <WeeklyReflectionDemo />
+              <ReflectionsDashboardDemo />
             </PearlDemoSection>
             
             <div className="pearl-text-container" style={{ marginTop: '3rem' }}>
@@ -119,7 +118,7 @@ export default function PearlCaseStudy() {
           </div>
         </section>
 
-        {/* Emotion Visualization */}
+        {/* Emotion Tagging & Visualization */}
         <section className="pearl-section" data-section="emotion-visualization">
           <div className="pearl-content">
             <div className="pearl-text-container">
@@ -127,17 +126,18 @@ export default function PearlCaseStudy() {
               <p className="pearl-p">
                 It&apos;s hard to keep journaling. We wanted to reinforce the habit with something you could actually see grow. Pearl automatically tags entries with emotions. Just write, and your emotional patterns surface over time.
               </p>
+            </div>
+            
+            <PearlDemoSection>
+              <ReflectionsDashboardDemo variant="alt" />
+            </PearlDemoSection>
+            
+            <div className="pearl-text-container" style={{ marginTop: '3rem' }}>
               <h3 className="pearl-h3">emotion graph</h3>
               <p className="pearl-p">
                 We built a visualization that maps your emotions over time. Each dot is an entry that you can hover to preview, and click to open.
               </p>
-            </div>
-            
-            <PearlDemoSection>
-              <EmotionVisualizationDemo />
-            </PearlDemoSection>
-            
-            <div className="pearl-text-container" style={{ marginTop: '3rem' }}>
+              
               <h3 className="pearl-h3">noodlings on visualizations</h3>
               <p className="pearl-p">
                 Users engaged with the weekly reflections and emotion visualizations much less than Inline Reflections, but visualizations performed well in marketing content. This suggests discoverability issues: maybe it&apos;s hard to find and not intuitive to use, but it has potential as a growth mechanism.
