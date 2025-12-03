@@ -259,10 +259,10 @@ const getDateFilters = (timeFilter: string) => {
 interface ReflectionsDashboardDemoProps {
   isVisible?: boolean;
   variant?: 'default' | 'alt';
+  embedded?: boolean; // When true, renders just the window without wrapper/container/toggle
 }
 
-export default function ReflectionsDashboardDemo({ isVisible = false, variant = 'default' }: ReflectionsDashboardDemoProps) {
-  const [showContent, setShowContent] = useState(false);
+export default function ReflectionsDashboardDemo({ isVisible = false, variant = 'default', embedded = false }: ReflectionsDashboardDemoProps) {
   const [animatedValues, setAnimatedValues] = useState([0, 0, 0]);
   const [activeTimeFilter, setActiveTimeFilter] = useState(0);
   const [activeDayFilter, setActiveDayFilter] = useState(0);
@@ -324,36 +324,38 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   useEffect(() => {
     if (isVisible && !hasAnimated.current) {
       hasAnimated.current = true;
-      setTimeout(() => setShowContent(true), 200);
       
-      // Animate numbers
-      const targetValues = EMOTION_STATS.map(s => s.value);
-      const duration = 1200;
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
+      // Delay before starting animations
+      setTimeout(() => {
+        // Animate numbers
+        const targetValues = EMOTION_STATS.map(s => s.value);
+        const duration = 1200;
+        const startTime = Date.now();
         
-        setAnimatedValues(targetValues.map(v => Math.round(v * eased)));
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          
+          setAnimatedValues(targetValues.map(v => Math.round(v * eased)));
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
         
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-      
-      setTimeout(animate, 400);
+        setTimeout(animate, 400);
 
-      // Animate all nodes appearing with stagger (use ALL_NODES for consistent animation)
-      ALL_NODES.forEach((node, i) => {
-        setTimeout(() => {
-          setNodeOpacities(prev => ({
-            ...prev,
-            [node.id]: 1,
-          }));
-        }, 400 + i * 60);
-      });
+        // Animate all nodes appearing with stagger (use ALL_NODES for consistent animation)
+        ALL_NODES.forEach((node, i) => {
+          setTimeout(() => {
+            setNodeOpacities(prev => ({
+              ...prev,
+              [node.id]: 1,
+            }));
+          }, 400 + i * 60);
+        });
+      }, 400); // Initial delay before all animations start
     }
   }, [isVisible]);
 
@@ -447,48 +449,40 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
     setPreview(prev => ({ ...prev, visible: false }));
   };
 
-  return (
-    <div className="pearl-demo-wrapper">
-      <div 
-        className={`pearl-demo-container ${variant === 'alt' ? 'demo-reflections-alt' : 'demo-reflections'}`}
-        style={{ backgroundImage: `url(/work-images/${variant === 'alt' ? 'DF6C469A-DA5D-4B52-8162-412B786F6C8B.jpeg' : '1BEF31C7-13A5-4834-B412-1277F8F01A36.jpeg'})` }}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        {/* Window */}
-        <div 
-          className={`pearl-demo-window ${showContent ? 'visible' : 'hidden'} ${isMobileView ? 'mobile' : ''}`}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${isMobileView ? 0.75 : 1})`,
-            transformOrigin: isMobileView ? 'center center' : 'top center',
-            transition: isDragging ? 'none' : undefined,
-            cursor: isDragging ? 'grabbing' : 'grab',
-            width: isMobileView ? '375px' : variant === 'alt' ? '700px' : '900px',
-            minWidth: isMobileView ? '375px' : variant === 'alt' ? '800px' : '900px',
-            height: isMobileView ? '812px' : variant === 'alt' ? '516px' : '612px',
-          }}
-          onMouseDown={handleMouseDown}
-        >
-          {/* Title Bar - hidden on mobile */}
-          {!isMobileView && (
-            <div className={`pearl-demo-titlebar ${isDragging ? 'dragging' : ''}`}>
-              <div className="pearl-demo-titlebar-dots">
-                <div className="pearl-demo-titlebar-dot" />
-                <div className="pearl-demo-titlebar-dot" />
-                <div className="pearl-demo-titlebar-dot" />
-              </div>
-              <a 
-                className="pearl-demo-titlebar-link"
-                href="https://pearl-journal.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                Open Pearl
-              </a>
-            </div>
-          )}
+  // The window content (shared between embedded and normal modes)
+  const windowContent = (
+    <div 
+      className={`pearl-demo-window visible ${isMobileView ? 'mobile' : ''}`}
+      style={{
+        transform: embedded ? undefined : `translate(${position.x}px, ${position.y}px) scale(${isMobileView ? 0.75 : 1})`,
+        transformOrigin: isMobileView ? 'center center' : 'top center',
+        transition: isDragging ? 'none' : 'transform 200ms ease',
+        cursor: embedded ? 'default' : (isDragging ? 'grabbing' : 'grab'),
+        width: embedded ? '724px' : (isMobileView ? '375px' : variant === 'alt' ? '700px' : '900px'),
+        minWidth: embedded ? '724px' : (isMobileView ? '375px' : variant === 'alt' ? '800px' : '900px'),
+        height: embedded ? '548px' : (isMobileView ? '812px' : variant === 'alt' ? '516px' : '612px'),
+      }}
+      onMouseDown={embedded ? undefined : handleMouseDown}
+    >
+      {/* Title Bar - hidden on mobile */}
+      {!isMobileView && (
+        <div className={`pearl-demo-titlebar ${isDragging ? 'dragging' : ''}`}>
+          <div className="pearl-demo-titlebar-dots">
+            <div className="pearl-demo-titlebar-dot" />
+            <div className="pearl-demo-titlebar-dot" />
+            <div className="pearl-demo-titlebar-dot" />
+          </div>
+          <a 
+            className="pearl-demo-titlebar-link"
+            href="https://pearl-journal.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            Open Pearl
+          </a>
+        </div>
+      )}
 
           {/* Main Content - Dashboard + Graph side by side on desktop */}
           <div 
@@ -1091,6 +1085,24 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
             </div>
           </div>
         </div>
+  );
+
+  // When embedded, return just the window
+  if (embedded) {
+    return windowContent;
+  }
+
+  // Normal mode with wrapper, container, and toggle
+  return (
+    <div className="pearl-demo-wrapper">
+      <div 
+        className={`pearl-demo-container ${variant === 'alt' ? 'demo-reflections-alt' : 'demo-reflections'}`}
+        style={{ backgroundImage: `url(/work-images/${variant === 'alt' ? 'DF6C469A-DA5D-4B52-8162-412B786F6C8B.jpeg' : '1BEF31C7-13A5-4834-B412-1277F8F01A36.jpeg'})` }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {windowContent}
       </div>
 
       {/* Toggle */}
