@@ -283,13 +283,13 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
       >
         {/* Window */}
         <div 
-          className={`pearl-demo-window ${showContent ? 'visible' : 'hidden'} ${isMobileView ? 'mobile' : ''}`}
+          className={`pearl-demo-window visible ${isMobileView ? 'mobile' : ''}`}
           style={{
             transform: isMobileView 
               ? `translate(${position.x}px, ${position.y}px) scale(0.85)` 
               : `translate(${position.x}px, ${position.y}px)`,
             transformOrigin: 'top center',
-            transition: isDragging ? 'none' : undefined,
+            transition: isDragging ? 'none' : 'transform 200ms ease',
           }}
           onMouseDown={handleTitleBarMouseDown}
         >
@@ -367,7 +367,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
                 <span className="pearl-demo-editor-date">August 23rd 2024 at 11:24</span>
                 <span className="pearl-demo-editor-saved">
                   Saved
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </span>
@@ -421,7 +421,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
                           <span>
                             {typedFollowUpPrompt1}
                             {typedFollowUpPrompt1.length >= followUpPrompt.length && (
-                              <> (<kbd>⌘</kbd>+<kbd style={{ fontFamily: 'gelica, Georgia, serif' }}>Enter</kbd>)</>
+                              <> (<kbd>⌘</kbd>+<kbd>Enter</kbd>)</>
                             )}
                           </span>
                         </div>
@@ -459,7 +459,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
                           <span>
                             {typedFollowUpPrompt2}
                             {typedFollowUpPrompt2.length >= followUpPrompt.length && (
-                              <> (<kbd>⌘</kbd>+<kbd style={{ fontFamily: 'gelica, Georgia, serif' }}>Enter</kbd>)</>
+                              <> (<kbd>⌘</kbd>+<kbd>Enter</kbd>)</>
                             )}
                           </span>
                         </div>
