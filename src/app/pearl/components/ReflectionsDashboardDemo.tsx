@@ -370,7 +370,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
               ...prev,
               [node.id]: 1,
             }));
-          }, 400 + i * 60);
+          }, 50 + i * 15);
         });
       }, 400); // Initial delay before all animations start
     }
