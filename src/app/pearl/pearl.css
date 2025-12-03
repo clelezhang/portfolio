@@ -238,6 +238,7 @@
   padding: 9rem 0 5rem 0;
   background-size: cover;
   background-position: center;
+  animation: fadeInImage 0.3s ease-in;
 }
 
 .pearl-note-window {
@@ -749,19 +750,12 @@
   font-size: 12px;
 }
 
-/* Disable scrolling in mobile view only for dashboard demos (3 & 4) */
-/* Target elements that contain dashboard content specifically */
-.pearl-demo-window.mobile:has(.pearl-dashboard-content),
-.pearl-demo-window.mobile:has(.pearl-dashboard-content) *,
-.pearl-demo-window.mobile:has(.pearl-dashboard-panel),
-.pearl-demo-window.mobile:has(.pearl-dashboard-panel) * {
-  overflow: hidden !important;
-}
-
-/* Disable scrolling in hero demo (demo 1) note window */
-.pearl-note-window.mobile,
-.pearl-note-window.mobile * {
-  overflow: hidden !important;
+/* Make demo windows non-interactive on mobile to prevent scrolling */
+.pearl-demo-window.mobile,
+.pearl-note-window.mobile {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Full width demo (hero) - no width constraint */
@@ -796,6 +790,7 @@
   min-width: 375px;
   height: 667px;
   border-radius: 24px;
+  overflow: visible;
 }
 
 .pearl-demo-window.visible,
