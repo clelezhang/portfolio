@@ -168,20 +168,28 @@ export default function WorkSection() {
           {filteredWork.map((work) => (
             <div key={work.id} className="group">
               {/* Project Title */}
-              <h3 className="text-base mb-2 font-sans text-gray-500">
-                {getProjectLinks(work.id).titleLink && getProjectLinks(work.id).url ? (
-                  <Link
-                    href={getProjectLinks(work.id).url!}
-                    target={work.id === 'pearl' ? undefined : '_blank'}
-                    rel={work.id === 'pearl' ? undefined : 'noopener noreferrer'}
-                    className="hover:text-slate transition-colors"
-                  >
-                    {work.title}
-                  </Link>
-                ) : (
-                  work.title
-                )}
-              </h3>
+              {getProjectLinks(work.id).titleLink && getProjectLinks(work.id).url ? (
+                <Link
+                  href={getProjectLinks(work.id).url!}
+                  target={work.id === 'pearl' ? undefined : '_blank'}
+                  rel={work.id === 'pearl' ? undefined : 'noopener noreferrer'}
+                  className="block mb-2"
+                >
+                  <h3 className="text-base font-sans text-gray-500">
+                    {work.id === 'pearl' ? (
+                      <>
+                        Journaling with pearl <span style={{ fontSize: '0.85em' }}>✦</span> case study
+                      </>
+                    ) : (
+                      work.title
+                    )}
+                  </h3>
+                </Link>
+              ) : (
+                <h3 className="text-base mb-2 font-sans text-gray-500">
+                  {work.title}
+                </h3>
+              )}
               
               {/* Project Description */}
                 <p 
