@@ -83,7 +83,7 @@ export default function PearlCaseStudy() {
                 </a>{' '}
               </p>
               <p className="pearl-p">
-                Therapy is expensive, inaccessible, and once a week at best. Lower cost, more accessible resources, like journaling, require self-initiative and don’t provide feedback. A blank page doesn't teach you how to process emotions or notice patterns.
+                Therapy is expensive, inaccessible, and once a week at best. Lower cost, more accessible resources, like journaling, require self-initiative and don&apos;t provide feedback. A blank page doesn&apos;t teach you how to process emotions or notice patterns.
               </p>
               <div className="pearl-research-callout">
                 <div className="pearl-quote-header">
@@ -207,7 +207,7 @@ export default function PearlCaseStudy() {
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--color-accentgray)', textAlign: 'right', marginTop: '-0.75rem', marginBottom: '1.5rem' }}>Feedback from Pearl users</p>
               <p className="pearl-p">
-                A user mentioned pearl feeling like "a wise friend helping you find yourself." Another said they'd never shared their journal with anyone before, but Pearl felt different.
+                A user mentioned pearl feeling like &ldquo;a wise friend helping you find yourself.&rdquo; Another said they&apos;d never shared their journal with anyone before, but Pearl felt different.
               </p>
             </div>
           </div>
