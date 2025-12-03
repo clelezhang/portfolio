@@ -273,7 +273,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
   const graphRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
-  const [contentOffset, setContentOffset] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   const timeFilters = ['week', 'month', 'year'];
   const dayFilters = getDateFilters(timeFilters[activeTimeFilter]);
@@ -323,20 +323,20 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
     setActiveDayFilter(0);
   }, [activeTimeFilter]);
 
-  // Position demo 4 to show graph at bottom on mobile
+  // Scroll to bottom for demo 4 on mobile
   useEffect(() => {
-    if (isMobileView && contentRef.current && variant === 'alt') {
+    if (isMobileView && contentRef.current && variant === 'alt' && !scrolled) {
       setTimeout(() => {
         if (contentRef.current) {
-          // Demo 4: position to show graph at bottom
-          const maxScroll = contentRef.current.scrollHeight - contentRef.current.clientHeight;
-          setContentOffset(-maxScroll);
+          contentRef.current.scrollTop = contentRef.current.scrollHeight;
+          setScrolled(true);
         }
       }, 100);
-    } else {
-      setContentOffset(0);
     }
-  }, [isMobileView, variant]);
+    if (!isMobileView) {
+      setScrolled(false);
+    }
+  }, [isMobileView, variant, scrolled]);
 
   useEffect(() => {
     if (isVisible && !hasAnimated.current) {
@@ -490,11 +490,9 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
             style={{
               display: 'flex',
               flex: 1,
-              overflow: isMobileView ? 'visible' : 'hidden',
+              overflow: isMobileView ? 'auto' : 'hidden',
               flexDirection: isMobileView ? 'column' : 'row',
               position: 'relative',
-              transform: isMobileView ? `translateY(${contentOffset}px)` : undefined,
-              transition: 'transform 300ms ease',
             }}
           >
             {/* Dashboard Panel (left side on desktop, bottom on mobile) - using CSS classes */}
