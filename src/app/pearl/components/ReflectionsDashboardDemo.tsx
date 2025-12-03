@@ -323,6 +323,21 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
     setActiveDayFilter(0);
   }, [activeTimeFilter]);
 
+  // Position demo 4 to show graph at bottom on mobile
+  useEffect(() => {
+    if (isMobileView && contentRef.current && variant === 'alt') {
+      setTimeout(() => {
+        if (contentRef.current) {
+          // Demo 4: position to show graph at bottom
+          const maxScroll = contentRef.current.scrollHeight - contentRef.current.clientHeight;
+          setContentOffset(-maxScroll);
+        }
+      }, 100);
+    } else {
+      setContentOffset(0);
+    }
+  }, [isMobileView, variant]);
+
   useEffect(() => {
     if (isVisible && !hasAnimated.current) {
       hasAnimated.current = true;
@@ -361,28 +376,6 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
     }
   }, [isVisible]);
 
-  // Scroll position for mobile view
-  // Demo 3: scroll to top (dashboard)
-  // Demo 4 (alt): scroll to bottom (graph)
-  useEffect(() => {
-    if (isMobileView && contentRef.current) {
-      setTimeout(() => {
-        if (contentRef.current) {
-          if (variant === 'alt') {
-            // Demo 4: scroll to bottom to show graph
-            const maxScroll = contentRef.current.scrollHeight - contentRef.current.clientHeight;
-            setContentOffset(-maxScroll);
-          } else {
-            // Demo 3: scroll to top to show dashboard
-            setContentOffset(0);
-          }
-        }
-      }, 100);
-    } else {
-      // Reset offset when not in mobile view
-      setContentOffset(0);
-    }
-  }, [isMobileView, variant]);
 
   const handleToggleView = () => {
     setIsMobileView(!isMobileView);
@@ -497,7 +490,7 @@ export default function ReflectionsDashboardDemo({ isVisible = false, variant = 
             style={{
               display: 'flex',
               flex: 1,
-              overflow: isMobileView ? 'auto' : 'hidden',
+              overflow: isMobileView ? 'visible' : 'hidden',
               flexDirection: isMobileView ? 'column' : 'row',
               position: 'relative',
               transform: isMobileView ? `translateY(${contentOffset}px)` : undefined,

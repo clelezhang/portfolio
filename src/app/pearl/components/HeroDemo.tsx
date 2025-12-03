@@ -220,22 +220,22 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
       </div>
 
       {/* Window 2 - Reflection Dashboard (Desktop only) */}
-      {isClient && !isMobile && (
-        <div
-          onMouseDown={handleMouseDown2}
-          style={{
-            transform: `translate(calc(-50% + 230px + ${position2.x}px), calc(-50% + 60px + ${position2.y}px))`,
-            transition: isDragging2 ? 'none' : 'transform 200ms ease',
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            zIndex: 1,
-            cursor: isDragging2 ? 'grabbing' : 'grab',
-          }}
-        >
-          <ReflectionsDashboardDemo isVisible={isVisible} variant="default" embedded={true} />
-        </div>
-      )}
+      <div
+        onMouseDown={handleMouseDown2}
+        style={{
+          transform: `translate(calc(-50% + 80px + ${position2.x}px), calc(-50% + ${position2.y}px))`,
+          transition: isDragging2 ? 'none' : 'transform 200ms ease, opacity 600ms ease',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          zIndex: 1,
+          cursor: isDragging2 ? 'grabbing' : 'grab',
+          opacity: (isClient && !isMobile) ? 1 : 0,
+          pointerEvents: (isClient && !isMobile) ? 'auto' : 'none',
+        }}
+      >
+        <ReflectionsDashboardDemo isVisible={isVisible} variant="default" embedded={true} />
+      </div>
     </div>
   );
 }
