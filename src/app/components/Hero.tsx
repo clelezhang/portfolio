@@ -4,16 +4,13 @@ import InteractivePortfolio from './InteractivePortfolio';
 import Link from 'next/link';
 import { useState } from 'react';
 
-
 export default function Hero() {
   const [activeWord, setActiveWord] = useState('make');
   const [animationKey, setAnimationKey] = useState(0);
-  
-
 
   const handleCardClick = (cardId: string) => {
     let newWord = 'make';
-    
+
     // Apps, house, apple = what i like
     if (['apps', 'house', 'apple'].includes(cardId)) {
       newWord = 'like';
