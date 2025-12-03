@@ -27,7 +27,7 @@ export default function PearlDemoSection({
           observer.disconnect();
         }
       },
-      { threshold: 0.3, rootMargin: '50px' }
+      { threshold: 0.5, rootMargin: '-100px 0px' }
     );
 
     observer.observe(element);

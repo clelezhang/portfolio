@@ -16,10 +16,25 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
   const [isDragging1, setIsDragging1] = useState(false);
   const [isDragging2, setIsDragging2] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [activeWindow, setActiveWindow] = useState<1 | 2>(1);
   const [displayedTitle, setDisplayedTitle] = useState('');
   const [visibleEmotions, setVisibleEmotions] = useState<number[]>([]);
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const hasAnimated = useRef(false);
+
+  // Client-side initialization
+  useEffect(() => {
+    setIsClient(true);
+    setIsMobile(window.innerWidth < 768);
+
+    // Listen for window resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isVisible && !hasAnimated.current) {
@@ -50,22 +65,21 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
   }, [isVisible]);
 
   const handleMouseDown1 = (e: React.MouseEvent) => {
-    setActiveWindow(1);
+    if (isMobile) return; // Disable dragging on mobile
     setIsDragging1(true);
     setDragStart({ x: e.clientX - position1.x, y: e.clientY - position1.y });
   };
 
   const handleMouseDown2 = (e: React.MouseEvent) => {
-    setActiveWindow(2);
+    if (isMobile) return; // Disable dragging on mobile
     setIsDragging2(true);
     setDragStart({ x: e.clientX - position2.x, y: e.clientY - position2.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging1) {
+    if (isDragging1 && !isMobile) {
       setPosition1({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    }
-    if (isDragging2) {
+    } else if (isDragging2 && !isMobile) {
       setPosition2({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     }
   };
@@ -82,40 +96,25 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       style={{
-        backgroundImage: 'url(/work-images/2CC16435-0FC3-4CC6-889C-C8166568D59F.jpeg)',
+        backgroundImage: 'url(/work-images/i1.webp)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
     >
-      {/* Window 2 - Dashboard (top right of center) */}
-      <div
-        onMouseDown={handleMouseDown2}
-        style={{
-          transform: `translate(calc(-50% + 80px + ${position2.x}px), calc(-50% - 10px + ${position2.y}px))`,
-          transition: isDragging2 ? 'none' : 'transform 200ms ease',
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          zIndex: activeWindow === 2 ? 2 : 1,
-          cursor: isDragging2 ? 'grabbing' : 'grab',
-        }}
-      >
-        <div style={{ pointerEvents: activeWindow === 2 ? 'auto' : 'none' }}>
-          <ReflectionsDashboardDemo isVisible={true} embedded />
-        </div>
-      </div>
-
-      {/* Window 1 - Note (bottom left of center) */}
+      {/* Window 1 - Note */}
       <div
         className={`pearl-note-window ${isDragging1 ? 'dragging' : ''}`}
         onMouseDown={handleMouseDown1}
         style={{
-          transform: `translate(calc(-50% - 60px + ${position1.x}px), calc(-50% + 60px + ${position1.y}px))`,
+          transform: isMobile
+            ? `translate(-50%, calc(-50% + 60px))`
+            : `translate(calc(-50% - 70px + ${position1.x}px), calc(-50% + 60px + ${position1.y}px))`,
           transition: isDragging1 ? 'none' : 'transform 200ms ease',
           position: 'absolute',
           top: '50%',
           left: '50%',
-          zIndex: activeWindow === 1 ? 2 : 1,
+          zIndex: 2,
+          cursor: !isMobile ? (isDragging1 ? 'grabbing' : 'grab') : 'default',
         }}
       >
         {/* Window Title Bar */}
@@ -125,10 +124,10 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
             <div className="pearl-demo-titlebar-dot" />
             <div className="pearl-demo-titlebar-dot" />
           </div>
-          <a 
+          <a
             className="pearl-demo-titlebar-link"
-            href="https://pearl-journal.com" 
-            target="_blank" 
+            href="https://info.writewithprl.com/"
+            target="_blank"
             rel="noopener noreferrer"
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -185,7 +184,30 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
               Journaling is one of the most recommended tools for mental health, but most people start and stop within weeks. Their entries sit unread, with unnoticed patterns and nonexistent insights.
             </p>
             <p>
-              Last fall, Emily Zhang and I started prototyping Pearl to create a journaling app that reflects with you.
+              Last fall,{' '}
+              <a
+                href="https://www.emilyz.sh/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'var(--color-black)',
+                  textDecoration: 'none',
+                  transition: 'color 200ms ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-accentgray)';
+                  const span = e.currentTarget.querySelector('span');
+                  if (span) span.style.color = 'var(--color-accentgray)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-black)';
+                  const span = e.currentTarget.querySelector('span');
+                  if (span) span.style.color = 'var(--color-black)';
+                }}
+              >
+                Emily Zhang <span style={{ fontFamily: 'var(--font-compagnon), monospace', color: 'var(--color-black)', letterSpacing: '.05em', transition: 'color 200ms ease' }}>[1]</span>
+              </a>{' '}
+              and I started prototyping Pearl to create a journaling app that reflects with you.
             </p>
             <p>
               I designed the core experiences, including inline reflection that digs deeper into your statements, weekly summaries that synthesize your entries, and emotion visualization that makes progress feel tangible.
@@ -196,6 +218,24 @@ export default function HeroDemo({ isVisible = false }: HeroDemoProps) {
           </div>
         </div>
       </div>
+
+      {/* Window 2 - Reflection Dashboard (Desktop only) */}
+      {isClient && !isMobile && (
+        <div
+          onMouseDown={handleMouseDown2}
+          style={{
+            transform: `translate(calc(-50% + 230px + ${position2.x}px), calc(-50% + 60px + ${position2.y}px))`,
+            transition: isDragging2 ? 'none' : 'transform 200ms ease',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            zIndex: 1,
+            cursor: isDragging2 ? 'grabbing' : 'grab',
+          }}
+        >
+          <ReflectionsDashboardDemo isVisible={isVisible} variant="default" embedded={true} />
+        </div>
+      )}
     </div>
   );
 }

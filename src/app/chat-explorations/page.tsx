@@ -3,7 +3,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DemoSection from '@/app/components/DemoSection';
-import Header from '@/app/components/Header';
 import { Play } from 'lucide-react';
 import { SideNav } from './components/SideNav';
 import { ExplorationInput } from './components/ExplorationInput';
@@ -203,7 +202,6 @@ function ChatExplorationsContent() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <Header />
       <SideNav isFocused={isDemosFocused} onToggleFocus={handleToggleFocus} />
       <div
         className="blog-demos"

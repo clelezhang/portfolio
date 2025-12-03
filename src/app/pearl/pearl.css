@@ -5,6 +5,8 @@
 
 
 .pearl-case-study {
+  background-color: white;
+  
   /* ============================================
      PEARL COLOR PALETTE (from Pearl codebase)
      ============================================ */
@@ -340,6 +342,21 @@
   color: var(--pearl-emotion-pain);
   background: var(--pearl-emotion-pain-bg);
 }
+
+.pearl-note-emotion-tag.contemplation {
+  color: var(--pearl-emotion-concentration);
+  background: var(--pearl-emotion-concentration-bg);
+}
+
+.pearl-note-emotion-tag.disappointment {
+  color: var(--pearl-emotion-disappointment);
+  background: var(--pearl-emotion-disappointment-bg);
+}
+
+.pearl-note-emotion-tag.realization {
+  color: var(--pearl-emotion-realization);
+  background: var(--pearl-emotion-realization-bg);
+}
 .pearl-note-title {
   width: 100%;
   font-size: 1.125rem;
@@ -371,7 +388,6 @@
 .pearl-content {
   max-width: var(--pearl-max-width);
   margin: 0 auto;
-  padding: 1rem 1rem;
 }
 
 .pearl-text-container {
@@ -380,15 +396,46 @@
 }
 
 .pearl-section {
-  padding: 2.5rem 0;
-}
-
-.pearl-section:first-of-type {
-  padding-top: 0;
+  padding: 0 1rem 0 1rem;
 }
 
 .pearl-section-intro {
   padding: 6rem 0 4rem;
+}
+
+/* Project Info Section */
+.pearl-project-info {
+  padding-top: .5rem;
+  padding-bottom: 1.5rem;
+}
+
+.pearl-info-grid {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.pearl-info-item {
+  display: inline;
+  color: var(--accentgray);
+  font-size: 1rem;
+  text-transform: lowercase;
+}
+
+.pearl-info-separator {
+  color: var(--accentgray);
+  margin: 0 0.5rem;
+}
+
+.pearl-info-link {
+  color: var(--accentgray);
+  text-decoration: none;
+  text-transform: lowercase;
+  transition: color 200ms ease;
+}
+
+.pearl-info-link:hover {
+  color: #1f2937;
 }
 
 /* ============================================
@@ -398,7 +445,8 @@
   font-family: var(--font-caveat), cursive;
   font-size: 1.75rem;
   font-weight: 500;
-  color: var(--color-black);
+  color: var(--slate);
+  margin-top: 1rem;
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
   text-transform: lowercase;
@@ -417,7 +465,7 @@
 .pearl-p {
   font-size: 1rem;
   line-height: 1.5;
-  color: var(--color-black);
+  color: var(--slate);
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
 }
@@ -425,7 +473,7 @@
 .pearl-p-large {
   font-size: 1rem;
   line-height: 1.5;
-  color: var(--color-black);
+  color: var(--slate);
   margin-bottom: 2rem;
   letter-spacing: -0.02em;
 }
@@ -434,14 +482,41 @@
   font-weight: 500;
 }
 
-.pearl-quote {
-  font-style: italic;
+.pearl-caption {
+  margin-top: -1.5rem;
+}
+
+@media (max-width: 768px) {
+  .pearl-caption {
+    margin-top: -0.5rem;
+  }
+}
+
+.pearl-quote-header {
   color: var(--color-accentgray);
-  border-left: 3px solid var(--color-accentgray);
-  padding-left: 1.5rem;
-  margin: 2rem 0;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.pearl-quote {
+  color: var(--slate);
   line-height: 1.5;
   letter-spacing: -0.02em;
+}
+
+/* Research callout - similar to blog exploration input */
+.pearl-research-callout {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 1.25rem;
+  background-color: #C6C7D24D;
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  margin-bottom: 5rem;
+  gap: 1rem;
 }
 
 /* Side Navigation - Sticky Layout */
@@ -450,16 +525,14 @@
 }
 
 .pearl-sidenav-column {
-  position: absolute;
+  position: fixed;
   left: 1rem;
-  top: 0;
-  height: 100%;
+  top: calc(50vh - 100px);
   width: 180px;
+  z-index: 100;
 }
 
 .pearl-sidenav {
-  position: sticky;
-  top: calc(50vh - 100px);
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -495,7 +568,7 @@
 
 /* Links */
 .pearl-case-study a {
-  color: var(--color-black);
+  color: var(--slate);
   text-decoration: none;
   transition: color 200ms ease;
 }
@@ -516,7 +589,6 @@
    DEMO CONTAINERS
    ============================================ */
 .pearl-demo-container {
-  overflow: hidden;
   background: var(--pearl-bg-cream);
 }
 
@@ -548,7 +620,7 @@
   font-family: var(--font-caveat), cursive;
   font-size: 2rem;
   font-weight: 500;
-  color: var(--color-black);
+  color: var(--slate);
   margin-bottom: 0.25rem;
   letter-spacing: -0.02em;
 }
@@ -572,7 +644,7 @@
 .pearl-testimonial-quote {
   font-size: 1rem;
   font-style: italic;
-  color: var(--color-black);
+  color: var(--slate);
   margin-bottom: 0.5rem;
   line-height: 1.5;
   letter-spacing: -0.02em;
@@ -595,15 +667,15 @@
   position: relative;
   width: 100%;
   max-width: 640px;
-  margin: 0 auto;
-  padding-bottom: 3.5rem; /* space for toggle */
+  margin-top: 6rem;
+  margin-bottom: 2rem;
 }
 
 /* Demo background container - FIXED width for ALL demos */
 .pearl-demo-container {
   background-size: cover;
   background-position: center;
-  max-height: 600px;
+  min-height: 600px;
   max-width: 640px;
   margin: 0 auto;
   display: flex;
@@ -613,8 +685,26 @@
   font-family: "Instrument Sans", sans-serif;
   position: relative;
   border-radius: 8px;
-  overflow: hidden;
   border: 1px solid rgb(232, 232, 232);
+  overflow: hidden;
+}
+
+.pearl-demo-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.pearl-demo-container > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Demo 3 (Reflections Dashboard) - taller container */
@@ -657,6 +747,21 @@
 
 .pearl-demo-window.mobile .pearl-dashboard-heading {
   font-size: 12px;
+}
+
+/* Disable scrolling in mobile view only for dashboard demos (3 & 4) */
+/* Target elements that contain dashboard content specifically */
+.pearl-demo-window.mobile:has(.pearl-dashboard-content),
+.pearl-demo-window.mobile:has(.pearl-dashboard-content) *,
+.pearl-demo-window.mobile:has(.pearl-dashboard-panel),
+.pearl-demo-window.mobile:has(.pearl-dashboard-panel) * {
+  overflow: hidden !important;
+}
+
+/* Disable scrolling in hero demo (demo 1) note window */
+.pearl-note-window.mobile,
+.pearl-note-window.mobile * {
+  overflow: hidden !important;
 }
 
 /* Full width demo (hero) - no width constraint */
@@ -1144,56 +1249,73 @@
   51%, 100% { opacity: 0; }
 }
 
-/* Demo toggle button (bottom right) */
-.pearl-demo-toggle-wrapper {
-  position: absolute;
-  bottom: 0.25rem;
-  right: 0;
-  display: flex;
-  justify-content: flex-end;
-}
-
+/* Demo toggle button */
 .pearl-demo-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  background: rgba(198, 199, 210, 0.3);
-  border: none;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 20px;
+  background: white;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: background 150ms ease;
   font-family: "Instrument Sans", sans-serif;
+  position: relative;
+  isolation: isolate;
 }
 
-.pearl-demo-toggle:hover {
-  background: rgba(184, 185, 196, 0.3);
+.pearl-demo-toggle::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  width: 32px;
+  height: 32px;
+  background-color: #C6C7D24D;
+  border-radius: 16px;
+  transition: transform 200ms ease;
+  z-index: 0;
+}
+
+.pearl-demo-toggle:has(.pearl-demo-toggle-option:last-child.active)::before {
+  transform: translateX(36px);
 }
 
 .pearl-demo-toggle-switch {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.5);
+  gap: 4px;
 }
 
 .pearl-demo-toggle-option {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  transition: all 200ms ease;
-  color: var(--pearl-text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  transition: background-color 200ms ease, transform 150ms ease;
+  color: var(--color-accentgray);
+  position: relative;
+  z-index: 1;
 }
 
-.pearl-demo-toggle-option.active {
-  background: white;
-  box-shadow: var(--pearl-shadow-card);
-  color: var(--pearl-text-primary);
+.pearl-demo-toggle-option:hover:not(.active) {
+  background-color: #c6c7d225;
+  transform: scale(1.05);
+}
+
+/* Pearl page footer overrides */
+.pearl-case-study footer {
+  background-color: white;
+}
+
+.pearl-case-study footer a {
+  color: var(--color-accentgray);
+}
+
+.pearl-case-study footer a:hover {
+  color: var(--color-slate);
 }
 
 /* ============================================

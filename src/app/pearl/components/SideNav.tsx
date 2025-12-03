@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
   { id: 'problem', label: 'the problem' },
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
 export function SideNav() {
   const [isWideScreen, setIsWideScreen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isPastHero, setIsPastHero] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -23,6 +24,21 @@ export function SideNav() {
     checkWidth();
     window.addEventListener('resize', checkWidth);
     return () => window.removeEventListener('resize', checkWidth);
+  }, []);
+
+  // Show sidebar only after scrolling past the hero
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroSection = document.querySelector('.pearl-hero-demo');
+      if (heroSection) {
+        const heroBottom = heroSection.getBoundingClientRect().bottom;
+        setIsPastHero(heroBottom < 1);
+      }
+    };
+    
+    handleScroll(); // Check initial position
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -37,24 +53,29 @@ export function SideNav() {
   }
 
   return (
-    <aside className="pearl-sidenav-column">
-      <motion.nav
-        className="pearl-sidenav"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      >
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => scrollToSection(item.id)}
-            className="pearl-nav-button"
-            tabIndex={-1}
-          >
-            {item.label}
-          </button>
-        ))}
-      </motion.nav>
-    </aside>
+    <AnimatePresence>
+      {isPastHero && (
+        <motion.aside 
+          className="pearl-sidenav-column"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
+          <nav className="pearl-sidenav">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="pearl-nav-button"
+                tabIndex={-1}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </motion.aside>
+      )}
+    </AnimatePresence>
   );
 }
