@@ -8,52 +8,198 @@ interface JournalWithReflectionDemoProps {
 
 export default function JournalWithReflectionDemo({ isVisible = false }: JournalWithReflectionDemoProps) {
   const [showContent, setShowContent] = useState(false);
-  const [showReflection, setShowReflection] = useState(false);
-  const [typedPrompt, setTypedPrompt] = useState('');
-  const [typedResponse, setTypedResponse] = useState('');
-  const [showFollowUp, setShowFollowUp] = useState(false);
+  // First reflection
+  const [showReflection1, setShowReflection1] = useState(false);
+  const [typedPrompt1, setTypedPrompt1] = useState('');
+  const [typedResponse1, setTypedResponse1] = useState('');
+  // "Would you like another question?" prompts
+  const [typedFollowUpPrompt1, setTypedFollowUpPrompt1] = useState('');
+  const [typedFollowUpPrompt2, setTypedFollowUpPrompt2] = useState('');
+  // Second reflection  
+  const [showReflection2, setShowReflection2] = useState(false);
+  const [typedPrompt2, setTypedPrompt2] = useState('');
+  const [typedResponse2, setTypedResponse2] = useState('');
+  // Third reflection
+  const [showReflection3, setShowReflection3] = useState(false);
+  const [typedPrompt3, setTypedPrompt3] = useState('');
+  const [typedResponse3, setTypedResponse3] = useState('');
+  
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isMobileView, setIsMobileView] = useState(false);
-  const hasAnimated = useRef(false);
+  const [animationKey, setAnimationKey] = useState(0);
+  const editorRef = useRef<HTMLDivElement>(null);
+  
+  // Simple animation cancellation: increment ID to invalidate old animations
+  const animationIdRef = useRef(0);
 
-  const prompt = "What would it look like to act on these opportunities?";
-  const response = "To take more chances, to say yes more, to reach out to people, to try new things";
+  const prompt1 = "When you say you shouldn't be so lax about time, what do you wish you were doing differently?";
+  const response1 = "i'm just thinking abt like\n\nhow things are precious. and if I always go on my own pace\n\nif I don't act in response to opportunity, I will most certainly miss things that will never come by again";
+  const followUpPrompt = "Would you like another question?";
+  const prompt2 = "What would it look like to act on these opportunities?";
+  const response2 = "i think i need to take more chances, say yes more, reach out to people, try new things";
+  const prompt3 = "What's one small step you could take this week?";
+  const response3 = "maybe i'll message someone i've been meaning to catch up with";
+
+  const autoScroll = () => {
+    if (editorRef.current) {
+      editorRef.current.scrollTop = editorRef.current.scrollHeight;
+    }
+  };
+
+  // Assistant text - animate in chunks (words)
+  const typeChunks = (text: string, setter: (val: string) => void, onComplete: () => void, animId: number) => {
+    const words = text.split(' ');
+    let wordIndex = 0;
+    const step = () => {
+      if (animationIdRef.current !== animId) return; // Cancelled
+      if (wordIndex <= words.length) {
+        setter(words.slice(0, wordIndex).join(' '));
+        wordIndex++;
+        autoScroll();
+        setTimeout(step, 50);
+      } else {
+        onComplete();
+      }
+    };
+    step();
+  };
+
+  // User text - natural typing with pauses
+  const typeNatural = (text: string, setter: (val: string) => void, onComplete: () => void, animId: number, speed = 1) => {
+    let index = 0;
+    const typeNext = () => {
+      if (animationIdRef.current !== animId) return; // Cancelled
+      if (index <= text.length) {
+        setter(text.slice(0, index));
+        index++;
+        autoScroll();
+        const char = text[index - 1];
+        let delay = (30 + Math.random() * 40) * speed;
+        if (char === '.' || char === ',' || char === '\n') delay += (150 + Math.random() * 200) * speed;
+        if (char === ' ' && Math.random() > 0.7) delay += 100 * speed;
+        setTimeout(typeNext, delay);
+      } else {
+        onComplete();
+      }
+    };
+    typeNext();
+  };
+
+  const [waitingForTrigger1, setWaitingForTrigger1] = useState(false);
+  const [waitingForTrigger2, setWaitingForTrigger2] = useState(false);
+
+  const triggerSecondReflection = () => {
+    if (!waitingForTrigger1) return;
+    const animId = animationIdRef.current;
+    setWaitingForTrigger1(false);
+    setShowReflection2(true);
+    typeChunks(prompt2, setTypedPrompt2, () => {
+      if (animationIdRef.current !== animId) return;
+      setTimeout(() => {
+        if (animationIdRef.current !== animId) return;
+        typeNatural(response2, setTypedResponse2, () => {
+          if (animationIdRef.current !== animId) return;
+          setTimeout(() => {
+            if (animationIdRef.current !== animId) return;
+            setWaitingForTrigger2(true);
+            typeChunks(followUpPrompt, setTypedFollowUpPrompt2, () => {
+              autoScroll();
+            }, animId);
+          }, 400);
+        }, animId, 0.25);
+      }, 400);
+    }, animId);
+  };
+
+  const triggerThirdReflection = () => {
+    if (!waitingForTrigger2) return;
+    const animId = animationIdRef.current;
+    setWaitingForTrigger2(false);
+    setShowReflection3(true);
+    typeChunks(prompt3, setTypedPrompt3, () => {
+      if (animationIdRef.current !== animId) return;
+      setTimeout(() => {
+        if (animationIdRef.current !== animId) return;
+        typeNatural(response3, setTypedResponse3, () => {
+          autoScroll();
+        }, animId, 0.25);
+      }, 400);
+    }, animId);
+  };
+
+  const runAnimation = () => {
+    // Increment animation ID to cancel any running animations
+    const animId = ++animationIdRef.current;
+    
+    // Reset all state
+    setShowContent(false);
+    setShowReflection1(false);
+    setTypedPrompt1('');
+    setTypedResponse1('');
+    setTypedFollowUpPrompt1('');
+    setTypedFollowUpPrompt2('');
+    setShowReflection2(false);
+    setTypedPrompt2('');
+    setTypedResponse2('');
+    setShowReflection3(false);
+    setTypedPrompt3('');
+    setTypedResponse3('');
+    setWaitingForTrigger1(false);
+    setWaitingForTrigger2(false);
+
+    setTimeout(() => {
+      if (animationIdRef.current !== animId) return;
+      setShowContent(true);
+    }, 200);
+    
+    // Start first reflection
+    setTimeout(() => {
+      if (animationIdRef.current !== animId) return;
+      setShowReflection1(true);
+      typeChunks(prompt1, setTypedPrompt1, () => {
+        if (animationIdRef.current !== animId) return;
+        setTimeout(() => {
+          if (animationIdRef.current !== animId) return;
+          typeNatural(response1, setTypedResponse1, () => {
+            if (animationIdRef.current !== animId) return;
+            setTimeout(() => {
+              if (animationIdRef.current !== animId) return;
+              setWaitingForTrigger1(true);
+              typeChunks(followUpPrompt, setTypedFollowUpPrompt1, () => {
+                autoScroll();
+              }, animId);
+            }, 400);
+          }, animId, 0.25);
+        }, 400);
+      }, animId);
+    }, 800);
+  };
+
+  // Listen for Cmd+Enter
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        if (waitingForTrigger1) triggerSecondReflection();
+        else if (waitingForTrigger2) triggerThirdReflection();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [waitingForTrigger1, waitingForTrigger2]);
 
   useEffect(() => {
-    if (isVisible && !hasAnimated.current) {
-      hasAnimated.current = true;
-      setTimeout(() => setShowContent(true), 200);
-      
-      setTimeout(() => {
-        setShowReflection(true);
-        
-        let promptIndex = 0;
-        const promptInterval = setInterval(() => {
-          if (promptIndex <= prompt.length) {
-            setTypedPrompt(prompt.slice(0, promptIndex));
-            promptIndex++;
-          } else {
-            clearInterval(promptInterval);
-            
-            setTimeout(() => {
-              let responseIndex = 0;
-              const responseInterval = setInterval(() => {
-                if (responseIndex <= response.length) {
-                  setTypedResponse(response.slice(0, responseIndex));
-                  responseIndex++;
-                } else {
-                  clearInterval(responseInterval);
-                  setTimeout(() => setShowFollowUp(true), 400);
-                }
-              }, 25);
-            }, 600);
-          }
-        }, 30);
-      }, 800);
+    if (isVisible) {
+      runAnimation();
     }
-  }, [isVisible]);
+  }, [isVisible, animationKey]);
+
+  const handleToggleView = () => {
+    setIsMobileView(!isMobileView);
+    setPosition({ x: 0, y: 0 });
+    setAnimationKey(prev => prev + 1); // Trigger re-animation
+  };
 
   const handleTitleBarMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -113,6 +259,17 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
       ],
       active: false 
     },
+    { 
+        id: 5, 
+        title: 'Weekend reflections', 
+        preview: 'Taking stock of where I am and where I want to be...',
+        date: 'AUG 17', 
+        emotions: [
+          { name: 'Contemplation', color: '#0680C6', bg: 'rgba(0, 202, 213, 0.18)' },
+          { name: 'Nostalgia', color: '#3C4BD5', bg: 'rgba(65, 84, 255, 0.14)' },
+        ],
+        active: false 
+      },
   ];
 
   return (
@@ -128,7 +285,10 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
         <div 
           className={`pearl-demo-window ${showContent ? 'visible' : 'hidden'} ${isMobileView ? 'mobile' : ''}`}
           style={{
-            transform: `translate(${position.x}px, ${position.y}px)`,
+            transform: isMobileView 
+              ? `translate(${position.x}px, ${position.y}px) scale(0.85)` 
+              : `translate(${position.x}px, ${position.y}px)`,
+            transformOrigin: 'top center',
             transition: isDragging ? 'none' : undefined,
           }}
           onMouseDown={handleTitleBarMouseDown}
@@ -202,7 +362,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
             )}
 
             {/* Editor Area */}
-            <div className="pearl-demo-editor">
+            <div className="pearl-demo-editor" ref={editorRef}>
               <div className="pearl-demo-editor-header">
                 <span className="pearl-demo-editor-date">August 23rd 2024 at 11:24</span>
                 <span className="pearl-demo-editor-saved">
@@ -214,45 +374,117 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
               </div>
 
               <div className="pearl-demo-editor-content">
-                <div className="pearl-demo-editor-emotions">
-                  <span className="pearl-demo-editor-emotion love">Love</span>
-                  <span className="pearl-demo-editor-emotion pain">Pain</span>
+                <div className="pearl-note-emotions">
+                  <span className="pearl-note-emotion-tag love">Love</span>
+                  <span className="pearl-note-emotion-tag pain">Pain</span>
                 </div>
 
+                <h1 className="pearl-note-title">
+                  I was in the bus going across the bay, looking out the window
+                </h1>
+
                 <div className="pearl-demo-editor-body">
-                  <p>I was in the bus going across the bay, looking out the window</p>
                   <p>I thought about how I&apos;ve been across the bridge many times now, but I will never feel like it&apos;s enough. Every time I cross the bridge it will be as beautiful as it was the first time.</p>
                   <p>maybe I shouldn&apos;t be so lax about the time I have</p>
-                  <p>things are precious</p>
-                  <p>and if I always go on my own pace, if I don&apos;t act in response to opportunity, I will most certainly miss things that will never come by again</p>
 
-                  {showReflection && (
+                  {/* First reflection - animated */}
+                  {showReflection1 && (
                     <div className="pearl-demo-reflection">
                       <div className="pearl-demo-reflection-prompt">
                         <span className="pearl-demo-dot" />
                         <span>
-                          {typedPrompt}
-                          {typedPrompt.length < prompt.length && typedResponse.length === 0 && (
+                          {typedPrompt1}
+                          {typedPrompt1.length < prompt1.length && (
                             <span className="pearl-demo-cursor prompt" />
                           )}
                         </span>
                       </div>
-
-                      {typedResponse && (
+                      {typedResponse1 && (
                         <div className="pearl-demo-reflection-response">
-                          {typedResponse}
-                          {typedResponse.length < response.length && (
+                          {typedResponse1.split('\n\n').map((para, i, arr) => (
+                            <p key={i}>
+                              {para}
+                              {i === arr.length - 1 && typedResponse1.length < response1.length && (
+                                <span className="pearl-demo-cursor response" />
+                              )}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {/* Waiting for user to trigger second question */}
+                      {waitingForTrigger1 && (
+                        <div 
+                          className="pearl-demo-reflection-followup clickable"
+                          onClick={triggerSecondReflection}
+                        >
+                          <span className="pearl-demo-dot" />
+                          <span>
+                            {typedFollowUpPrompt1}
+                            {typedFollowUpPrompt1.length >= followUpPrompt.length && (
+                              <> (<kbd>⌘</kbd>+<kbd style={{ fontFamily: 'gelica, Georgia, serif' }}>Enter</kbd>)</>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Second reflection - animated */}
+                  {showReflection2 && (
+                    <div className="pearl-demo-reflection">
+                      <div className="pearl-demo-reflection-prompt">
+                        <span className="pearl-demo-dot" />
+                        <span>
+                          {typedPrompt2}
+                          {typedPrompt2.length < prompt2.length && (
+                            <span className="pearl-demo-cursor prompt" />
+                          )}
+                        </span>
+                      </div>
+                      {typedResponse2 && (
+                        <div className="pearl-demo-reflection-response">
+                          {typedResponse2}
+                          {typedResponse2.length < response2.length && (
                             <span className="pearl-demo-cursor response" />
                           )}
                         </div>
                       )}
-
-                      {showFollowUp && (
-                        <div className="pearl-demo-reflection-followup">
+                      {/* Waiting for user to trigger third question */}
+                      {waitingForTrigger2 && (
+                        <div 
+                          className="pearl-demo-reflection-followup clickable"
+                          onClick={triggerThirdReflection}
+                        >
                           <span className="pearl-demo-dot" />
                           <span>
-                            Would you like another question? (<kbd>⌘</kbd>+<kbd>Enter</kbd>)
+                            {typedFollowUpPrompt2}
+                            {typedFollowUpPrompt2.length >= followUpPrompt.length && (
+                              <> (<kbd>⌘</kbd>+<kbd style={{ fontFamily: 'gelica, Georgia, serif' }}>Enter</kbd>)</>
+                            )}
                           </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Third reflection - animated */}
+                  {showReflection3 && (
+                    <div className="pearl-demo-reflection">
+                      <div className="pearl-demo-reflection-prompt">
+                        <span className="pearl-demo-dot" />
+                        <span>
+                          {typedPrompt3}
+                          {typedPrompt3.length < prompt3.length && (
+                            <span className="pearl-demo-cursor prompt" />
+                          )}
+                        </span>
+                      </div>
+                      {typedResponse3 && (
+                        <div className="pearl-demo-reflection-response">
+                          {typedResponse3}
+                          {typedResponse3.length < response3.length && (
+                            <span className="pearl-demo-cursor response" />
+                          )}
                         </div>
                       )}
                     </div>
@@ -266,7 +498,7 @@ export default function JournalWithReflectionDemo({ isVisible = false }: Journal
 
       {/* Toggle - outside container, bottom right */}
       <div className="pearl-demo-toggle-wrapper">
-        <button className="pearl-demo-toggle" onClick={() => setIsMobileView(!isMobileView)}>
+        <button className="pearl-demo-toggle" onClick={handleToggleView}>
           <div className="pearl-demo-toggle-switch">
             <div className={`pearl-demo-toggle-option ${!isMobileView ? 'active' : ''}`}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
