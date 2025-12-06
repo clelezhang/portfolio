@@ -23,7 +23,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesRef = useRef<Message[]>(initialMessages);
-  
+
   // Keep ref in sync with state
   useEffect(() => {
     messagesRef.current = messages;
@@ -31,7 +31,7 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
 
   const sendMessage = useCallback(async (text: string, cardImage?: string, cardId?: string) => {
     if (!text.trim()) return;
-    
+
     setIsLoading(true);
     setError(null);
 
@@ -92,13 +92,13 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       let accumulatedText = '';
       let updateBuffer = '';
       let lastUpdate = 0;
-      const UPDATE_THROTTLE = 30; 
+      const UPDATE_THROTTLE = 30;
       const BUFFER_SIZE = 15; // Smaller buffer for more frequent updates
 
       const updateMessage = (text: string) => {
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === messageId 
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === messageId
               ? { ...msg, text }
               : msg
           )
@@ -111,6 +111,11 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
           // Final update with any remaining text in buffer
           if (updateBuffer) {
             accumulatedText += updateBuffer;
+          }
+          // Check if blocked - remove the empty assistant message
+          if (accumulatedText === '__BLOCKED__' || accumulatedText === '') {
+            setMessages(prev => prev.filter(msg => msg.id !== messageId));
+          } else {
             updateMessage(accumulatedText);
           }
           break;
@@ -118,23 +123,26 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
 
         const chunk = decoder.decode(value, { stream: true });
         updateBuffer += chunk;
-        
+
         // Throttled updates for smooth streaming with smaller chunks
         const now = Date.now();
         if (now - lastUpdate >= UPDATE_THROTTLE || updateBuffer.length > BUFFER_SIZE) {
           accumulatedText += updateBuffer;
           updateBuffer = '';
-          updateMessage(accumulatedText);
+          // Don't update UI if it's the blocked marker
+          if (!accumulatedText.startsWith('__BLOCKED__')) {
+            updateMessage(accumulatedText);
+          }
           lastUpdate = now;
         }
       }
 
     } catch (err) {
       console.error('Chat error:', err);
-      
+
       // Create user-friendly error messages in lele's tone
       let userFriendlyError = 'hmm something went wrong';
-      
+
       if (err instanceof Error) {
         const errorMessage = err.message.toLowerCase();
         if (errorMessage.includes('http error')) {
@@ -145,9 +153,9 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
           userFriendlyError = 'your internet might be acting up; check your connection?';
         }
       }
-      
+
       setError(userFriendlyError);
-      
+
       // Remove the user message if there was an error
       setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     } finally {
