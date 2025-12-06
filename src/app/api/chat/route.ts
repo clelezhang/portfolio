@@ -4,6 +4,7 @@ import { validateOrigin, createCORSHeaders, generateVisitorId } from '../../lib/
 import { checkChatRateLimit, createRateLimitHeaders } from '../../lib/rate-limit';
 import { createSystemPrompt } from '../../lib/prompts';
 import { kv } from '@vercel/kv';
+import { fetchPortfolioPage, getAvailablePages, PortfolioPageId } from '../../lib/portfolio-content';
 
 // Configure for edge runtime for better performance
 export const runtime = 'edge';
@@ -99,33 +100,201 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Build conversation with personality
+    // 4. Check for rude/toxic content using Claude - warn first, then stop responding
+    if (lastUserMessage && lastUserMessage.sender === 'user') {
+      const moderationResponse = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: lastUserMessage.text }],
+        system: `You are a content moderator. Respond with only "RUDE" or "OK".
+Say "RUDE" if the message is: rude, mean, disrespectful, insulting, harassing, condescending, passive-aggressive, sexually inappropriate, or generally unkind.
+Say "OK" if the message is neutral or friendly, even if it's a bit blunt or direct.
+Only respond with one word.`,
+      });
+
+      const moderationResult = moderationResponse.content[0];
+      if (moderationResult.type === 'text' && moderationResult.text.trim().toUpperCase() === 'RUDE') {
+        // Check if visitor has already been warned
+        const warningKey = `chat:${visitorId}:warned`;
+        const hasBeenWarned = await kv.get(warningKey);
+
+        if (hasBeenWarned) {
+          // Already warned - return special marker that frontend will hide
+          return new Response('__BLOCKED__', {
+            headers: {
+              ...allHeaders,
+              'Content-Type': 'text/plain; charset=utf-8',
+            },
+          });
+        } else {
+          // First offense - set warning flag and return warning message
+          await kv.set(warningKey, true, { ex: 86400 }); // expires in 24 hours
+
+          const warningMessage = "be nice or i'll stop responding.";
+          const warningStream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder();
+              for (const char of warningMessage) {
+                await new Promise(resolve => setTimeout(resolve, 15));
+                controller.enqueue(encoder.encode(char));
+              }
+              controller.close();
+            },
+          });
+
+          return new Response(warningStream, {
+            headers: {
+              ...allHeaders,
+              'Content-Type': 'text/plain; charset=utf-8',
+            },
+          });
+        }
+      }
+    }
+
+    // 5. Build conversation with personality
     const systemPrompt = createSystemPrompt(cardContext);
-    
+
     // Convert messages to Claude format (Claude API doesn't support system role in messages)
     const claudeMessages = messages.map((message: Message) => ({
       role: message.sender === 'user' ? 'user' as const : 'assistant' as const,
       content: message.text,
     }));
 
-    // 5. Create streaming response optimized for speed
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',  
-      max_tokens: 800,  
+    // Tool definition for reading portfolio content
+    const tools: Anthropic.Tool[] = [
+      {
+        name: 'read_portfolio_page',
+        description: `Read the content of a page from Lele's portfolio website. Use this when someone asks detailed questions about your work, projects, case studies, or anything on the portfolio. Available pages: ${getAvailablePages().join(', ')}`,
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            page: {
+              type: 'string',
+              description: 'The page to read. Options: home (main portfolio page with work overview), pearl (detailed Pearl case study)',
+              enum: getAvailablePages(),
+            },
+          },
+          required: ['page'],
+        },
+      },
+    ];
+
+    // Get base URL for fetching portfolio pages
+    const baseUrl = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || 'https://lelezhang.com';
+
+    // 5. First call - check if tool use is needed
+    const initialResponse = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
       messages: claudeMessages,
-      system: systemPrompt, 
-        stream: true,
-        temperature: 0.6, // Slightly lower for more consistent speed
+      system: systemPrompt,
+      tools,
+      temperature: 0.6,
     });
 
-    // 6. Optimized streaming for faster initial response
+    // Handle tool use if needed
+    let finalMessages: Anthropic.MessageParam[] = claudeMessages;
+    let responseToStream: Anthropic.Messages.Message | null = null;
+
+    if (initialResponse.stop_reason === 'tool_use') {
+      const toolUseBlock = initialResponse.content.find(
+        (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
+      );
+
+      if (toolUseBlock && toolUseBlock.name === 'read_portfolio_page') {
+        const pageId = (toolUseBlock.input as { page: string }).page as PortfolioPageId;
+        const pageContent = await fetchPortfolioPage(pageId, baseUrl);
+
+        // Add assistant's tool use and tool result to messages
+        finalMessages = [
+          ...claudeMessages,
+          {
+            role: 'assistant' as const,
+            content: initialResponse.content,
+          },
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'tool_result' as const,
+                tool_use_id: toolUseBlock.id,
+                content: pageContent,
+              },
+            ],
+          },
+        ];
+      }
+    } else {
+      // No tool use, we can stream the initial response
+      responseToStream = initialResponse;
+    }
+
+    // 6. Create streaming response
+    if (responseToStream) {
+      // Stream the already-received response
+      const textContent = responseToStream.content
+        .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
+        .map(block => block.text)
+        .join('');
+
+      const nonToolStream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          // Stream character by character with delay
+          for (const char of textContent) {
+            await new Promise(resolve => setTimeout(resolve, 15));
+            controller.enqueue(encoder.encode(char));
+          }
+
+          // Save to KV
+          try {
+            const assistantTimestamp = new Date().toISOString();
+            const assistantKey = `chat:${visitorId}:${assistantTimestamp}:assistant`;
+            await kv.set(assistantKey, {
+              visitorId,
+              timestamp: assistantTimestamp,
+              message: textContent,
+              inResponseTo: lastUserMessage?.text,
+            });
+            await kv.lpush(`chat:${visitorId}:messages`, assistantKey);
+          } catch (kvError) {
+            console.error('Error saving assistant response to KV:', kvError);
+          }
+
+          controller.close();
+        },
+      });
+
+      return new Response(nonToolStream, {
+        headers: {
+          ...allHeaders,
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+
+    // If we used a tool, make the final streaming call
+    const toolResponse = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      messages: finalMessages,
+      system: systemPrompt,
+      tools,
+      stream: true,
+      temperature: 0.6,
+    });
+
+    // Optimized streaming for faster initial response
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         let fullAssistantResponse = '';
-        
+
         try {
-          for await (const chunk of response) {
+          for await (const chunk of toolResponse) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               const text = chunk.delta.text;
               fullAssistantResponse += text;
