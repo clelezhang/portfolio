@@ -85,6 +85,151 @@ html {
   }
 }
 
+/* Loading dots animation */
+@keyframes loadingDot {
+  0%, 60%, 100% {
+    color: var(--gray-300);
+  }
+  30% {
+    color: var(--slate);
+  }
+}
+
+.loading-dot {
+  animation: loadingDot 0.9s ease-in-out infinite;
+}
+
+/* Expandable text page styles */
+.expand-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 14rem 1rem 3rem 1rem;
+}
+
+.expand-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.expand-toggle-btn {
+  padding: 0.1rem 0.25rem 0.3rem 0.25rem;
+  background-color: transparent;
+  color: var(--slate);
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: var(--font-compagnon), monospace;
+  text-transform: uppercase;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  transition: background-color 0.15s ease;
+}
+
+.expand-toggle-btn.selected {
+  background-color: var(--glass-bg);
+}
+
+.expand-toggle-btn.selected:hover {
+  background-color: var(--glass-bg-hover);
+}
+
+.expand-reset-btn {
+  padding: 0.4rem;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expand-custom-input {
+  margin-bottom: 1.5rem;
+}
+
+.expand-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--slate);
+  background-color: var(--glass-bg);
+  border: none;
+  border-radius: 0.5rem;
+  resize: none;
+  outline: none;
+  margin-bottom: 0.125rem;
+  line-height: 1.6;
+}
+
+.expand-input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.expand-submit-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: var(--lightgray);
+  background-color: var(--accentgray);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.expand-char-count {
+  font-size: 0.75rem;
+  color: var(--accentgray);
+}
+
+.expand-article {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--slate);
+  letter-spacing: -0.01em;
+}
+
+.expand-word {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--slate);
+  cursor: pointer;
+}
+
+.expand-word.expanded {
+  text-decoration-line: none;
+  cursor: default;
+}
+
+.expand-word.loading {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.expand-loading-dots {
+  margin-left: 4px;
+}
+
+.expand-attribution {
+  margin-top: 12rem;
+  font-size: 0.875rem;
+  color: var(--accentgray);
+}
+
+.expand-attribution a {
+  color: var(--accentgray);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .font-sans {
   font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
