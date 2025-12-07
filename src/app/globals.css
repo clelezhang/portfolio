@@ -226,8 +226,9 @@ html {
 
 .expand-attribution a {
   color: var(--accentgray);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .font-sans {
