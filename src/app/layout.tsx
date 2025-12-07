@@ -89,8 +89,8 @@ const caveat = Caveat({
 export const metadata: Metadata = {
   // Basic metadata
   title: {
-    default: "lele's portfolio",
-    template: "%s | lele's portfolio"
+    default: "lele's website",
+    template: "%s | lele's website"
   },
   description: "product designer",
   keywords: ["lele zhang", "cherrilynn zhang", "cherrilynnz", "lele zhang berkeley", "lele zhang design"],
@@ -104,8 +104,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://lelezhang.design",
-    siteName: "lele's portfolio",
-    title: "lele's portfolio",
+    siteName: "lele's website",
+    title: "lele's website",
     description: "product designer",
     // OpenGraph image handled automatically by /app/opengraph-image.jpg
   },
@@ -115,7 +115,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@CherrilynnZ",
     creator: "@CherrilynnZ",
-    title: "lele's portfolio", 
+    title: "lele's website",
     description: "a little glimpse into my work and thoughts",
     // Twitter image handled automatically by /app/opengraph-image.jpg
   },
@@ -135,7 +135,7 @@ export const metadata: Metadata = {
   
   // Mobile and app metadata
   other: {
-    "apple-mobile-web-app-title": "lele's portfolio",
+    "apple-mobile-web-app-title": "lele's website",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
     "format-detection": "telephone=no",

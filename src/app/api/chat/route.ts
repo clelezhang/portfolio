@@ -165,7 +165,7 @@ Only respond with one word.`,
     const tools: Anthropic.Tool[] = [
       {
         name: 'read_portfolio_page',
-        description: `Read the content of a page from Lele's portfolio website. Use this when someone asks detailed questions about your work, projects, case studies, or anything on the portfolio. Available pages: ${getAvailablePages().join(', ')}`,
+        description: `Read the content of a page from Lele's website. Use this when someone asks detailed questions about your work, projects, case studies, or anything on the website. Available pages: ${getAvailablePages().join(', ')}`,
         input_schema: {
           type: 'object' as const,
           properties: {
