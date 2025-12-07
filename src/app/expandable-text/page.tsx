@@ -372,9 +372,7 @@ export default function ExpandableTextPage() {
         )}
 
         <p className="expand-attribution">
-          Inspired by <a href="https://alantrotter.com" target="_blank" rel="noopener noreferrer">
-            Alan Trotter&apos;s website
-          </a>.
+          Inspired by Alan Trotter&apos;s <a href="https://alantrotter.com" target="_blank" rel="noopener noreferrer">website</a>.
         </p>
       </div>
     </div>
