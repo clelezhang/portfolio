@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
     "@heroicons/react": "^2.2.0",
+    "@paper-design/shaders-react": "^0.0.67",
     "@radix-ui/react-dialog": "^1.1.14",
     "@rive-app/react-canvas": "^4.22.1",
     "@tiptap/extension-highlight": "^3.10.2",
