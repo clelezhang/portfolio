@@ -127,14 +127,19 @@ export default function SkyClockPage() {
   const [expandedPalette, setExpandedPalette] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [clockCentered, setClockCentered] = useState(false);
+  const [ready, setReady] = useState(false);
 
   const lastTouchY = useRef(0);
   const animFrameRef = useRef<number>(0);
   const scrollVelocity = useRef(0);
 
-  // Sync to real time after hydration
+  // Sync to real time after hydration and mark as ready
   useEffect(() => {
     setTimeValue(getCurrentTimeAsFraction());
+    // Small delay to ensure styles are applied before enabling transitions
+    requestAnimationFrame(() => {
+      setReady(true);
+    });
   }, []);
 
   // Continuous animation loop - advances real time and handles effects
@@ -348,7 +353,14 @@ export default function SkyClockPage() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
+    <div
+      className="fixed inset-0 overflow-hidden"
+      data-ready={ready}
+      style={{
+        opacity: ready ? 1 : 0,
+        transition: ready ? 'opacity 0.5s ease-out' : 'none',
+      }}
+    >
       {/* Base Sky Gradient */}
       <div
         className="absolute inset-0"
@@ -428,45 +440,44 @@ export default function SkyClockPage() {
         }}
       />
 
-      {/* Stars overlay - visible at night, rotates with time */}
-      <div
-        className="absolute pointer-events-none transition-opacity duration-1000"
-        style={{
-          // Larger than viewport to allow rotation without gaps
-          width: '200%',
-          height: '200%',
-          left: '-50%',
-          top: '-50%',
-          opacity: isNight ? 1 : isDusk ? 0.4 : 0,
-          // Rotate star field as time passes (full rotation over 24 hours)
-          transform: `rotate(${exactHour * 15}deg)`,
-          transformOrigin: '50% 50%',
-        }}
-      >
-        {stars.map((star, i) => {
-          // Time-based twinkling using sine waves with unique phase per star
-          const twinklePhase = animTime * 2 + star.twinkleDelay;
-          const twinkle = 0.7 + 0.3 * Math.sin(twinklePhase * (6 / star.twinkleDuration));
+      {/* Stars overlay - visible at night, rotates with time (client-side only to avoid hydration mismatch) */}
+      {ready && (
+        <div
+          className="absolute pointer-events-none transition-opacity duration-1000"
+          style={{
+            width: '200%',
+            height: '200%',
+            left: '-50%',
+            top: '-50%',
+            opacity: isNight ? 1 : isDusk ? 0.4 : 0,
+            transform: `rotate(${exactHour * 15}deg)`,
+            transformOrigin: '50% 50%',
+          }}
+        >
+          {stars.map((star, i) => {
+            const twinklePhase = animTime * 2 + star.twinkleDelay;
+            const twinkle = 0.7 + 0.3 * Math.sin(twinklePhase * (6 / star.twinkleDuration));
 
-          return (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: star.size,
-                height: star.size,
-                left: `${star.left}%`,
-                top: `${star.top}%`,
-                opacity: star.opacity * twinkle,
-                backgroundColor: star.color,
-                boxShadow: star.glow > 0
-                  ? `0 0 ${star.glow * twinkle}px ${(star.glow / 2) * twinkle}px ${star.color}`
-                  : 'none',
-              }}
-            />
-          );
-        })}
-      </div>
+            return (
+              <div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: star.size,
+                  height: star.size,
+                  left: `${star.left}%`,
+                  top: `${star.top}%`,
+                  opacity: star.opacity * twinkle,
+                  backgroundColor: star.color,
+                  boxShadow: star.glow > 0
+                    ? `0 0 ${star.glow * twinkle}px ${(star.glow / 2) * twinkle}px ${star.color}`
+                    : 'none',
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Time display - center top of screen */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center flex items-center gap-3">
@@ -1088,6 +1099,8 @@ export default function SkyClockPage() {
           cursor: pointer;
           top: calc(100% - min(35vw, 35vh));
           transform: translateX(-50%) translateY(0) scale(1);
+        }
+        [data-ready="true"] .sky-clock {
           transition: top 0.25s ease-out, transform 0.25s ease-out;
         }
         .sky-clock[data-centered="true"] {
@@ -1112,6 +1125,8 @@ export default function SkyClockPage() {
           width: min(38vw, 38vh);
           height: min(8vw, 8vh);
           opacity: 1;
+        }
+        [data-ready="true"] .sky-scroll-text {
           transition: bottom 0.3s ease-out, opacity 0.3s ease-out;
         }
         .sky-scroll-text[data-hidden="true"] {
@@ -1131,10 +1146,12 @@ export default function SkyClockPage() {
         /* Reset button */
         .sky-reset-btn {
           color: rgba(255, 255, 255, 0.6);
-          transition: all 0.3s;
           opacity: 0;
           transform: translateX(-8px);
           pointer-events: none;
+        }
+        [data-ready="true"] .sky-reset-btn {
+          transition: all 0.3s;
         }
         .sky-reset-btn[data-visible="true"] {
           opacity: 1;
