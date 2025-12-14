@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the Three.js Sky shader (SSR not supported)
+const SkyShader = dynamic(() => import('./SkyShader'), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-gradient-to-b from-blue-900 to-blue-600" />
+});
 
 // California sky color palettes - warm, golden, hazy
 // [zenith, upper, mid, lower, horizon]
@@ -11,34 +18,37 @@ const skyPalettes = [
   { hour: 2, colors: ['#0a0a1a', '#101826', '#182030', '#202840', '#343045'], stops: [0, 20, 45, 70, 100] },
   { hour: 3, colors: ['#0c0c1e', '#141830', '#1c2438', '#263048', '#3a3850'], stops: [0, 18, 42, 68, 100] },
   { hour: 4, colors: ['#141828', '#1c2030', '#263040', '#364050', '#4a4058'], stops: [0, 30, 60, 88, 100] },
+  { hour: 4.75, colors: ['#1a2030', '#283848', '#3a4858', '#4a5060', '#605868'], stops: [0, 28, 55, 82, 100] },
   { hour: 5, colors: ['#1e2838', '#2e3850', '#405060', '#5a5868', '#7a6070'], stops: [0, 28, 55, 82, 100] },
+  { hour: 5.75, colors: ['#2a3448', '#364050', '#486068', '#6a6878', '#887080'], stops: [0, 22, 48, 75, 100] },
   { hour: 6, colors: ['#2e3850', '#3a4458', '#506070', '#7a7080', '#987888'], stops: [0, 22, 48, 75, 100] },
-  { hour: 6.08, colors: ['#406080', '#587090', '#6a7088', '#7a7080', '#987888'], stops: [0, 21, 46, 73, 100] },
-  { hour: 6.17, colors: ['#486090', '#6070a0', '#707888', '#7a7080', '#987888'], stops: [0, 20, 45, 72, 100] },
-  { hour: 6.25, colors: ['#5070a0', '#6880a8', '#7880a0', '#7a7080', '#987888'], stops: [0, 19, 44, 71, 100] },
-  { hour: 6.33, colors: ['#5880a8', '#7090b0', '#90a0b8', '#98889a', '#a888a0'], stops: [25, 30, 43, 70, 100] },
-  { hour: 6.42, colors: ['#5890c0', '#80a8c8', '#c8c8d0', '#d8b8b8', '#d8a0a8'], stops: [22, 32, 50, 70, 100] },
-  { hour: 6.5, colors: ['#60a0d0', '#88b8d8', '#c0d8e8', '#e8d8d0', '#f0b0b0'], stops: [20, 30, 48, 70, 100] },
-  { hour: 7, colors: ['#60a0d0', '#78b0d0', '#a8c8d8', '#e0d8c8', '#f8d898'], stops: [20, 40, 70, 90, 100] },
+  { hour: 6.17, colors: ['#406080', '#587090', '#6a7088', '#7a7080', '#987888'], stops: [0, 21, 46, 73, 100] },
+  { hour: 6.33, colors: ['#486090', '#6070a0', '#707888', '#7a7080', '#987888'], stops: [0, 20, 45, 72, 100] },
+  { hour: 6.5, colors: ['#5070a0', '#6880a8', '#7880a0', '#7a7080', '#987888'], stops: [0, 19, 44, 71, 100] },
+  { hour: 6.67, colors: ['#5880a8', '#7090b0', '#90a0b8', '#98889a', '#a888a0'], stops: [25, 30, 43, 70, 100] },
+  { hour: 6.83, colors: ['#5890c0', '#80a8c8', '#c8c8d0', '#d8b8b8', '#d8a0a8'], stops: [22, 32, 50, 70, 100] },
+  { hour: 7, colors: ['#60a0d0', '#88b8d8', '#c0d8e8', '#e8d8d0', '#f0b0b0'], stops: [20, 35, 55, 70, 100] },
+  { hour: 7.25, colors: ['#60a0d0', '#78b0d0', '#a8c8d8', '#e0d8c8', '#f8d898'], stops: [20, 40, 70, 90, 100] },
+  { hour: 7.5, colors: ['#64a8d8', '#7cb8dc', '#a4d0e4', '#d8e0dc', '#f4e8c0'], stops: [20, 35, 60, 85, 100] },
   { hour: 8, colors: ['#68b0e0', '#80c0e8', '#a0d8f0', '#d0e8f0', '#f0f0e8'], stops: [20, 30, 50, 80, 100] },
   { hour: 9, colors: ['#60a8d8', '#78c0e8', '#98d8f8', '#c8e8f8', '#e8f0f0'], stops: [0, 24, 50, 78, 100] },
   { hour: 10, colors: ['#60a8d8', '#78c0e8', '#98d8f8', '#c8e8f8', '#e8f0f0'], stops: [0, 22, 48, 76, 100] },
-  { hour: 11, colors: ['#58a0d0', '#70b8e0', '#88d0f0', '#b0e0f0', '#d0f0f8'], stops: [0, 20, 45, 72, 100] },
-  { hour: 12, colors: ['#58a0d0', '#70b8e0', '#88d0f0', '#b0e0f0', '#d0f0f8'], stops: [0, 20, 45, 72, 100] },
-  { hour: 13, colors: ['#5098c8', '#68b0d8', '#80c8e8', '#a8e0f0', '#c8e8f0'], stops: [0, 18, 42, 70, 100] },
-  { hour: 14, colors: ['#4890c0', '#60a8d0', '#78c0e0', '#a0d8f0', '#c0e8f0'], stops: [0, 16, 40, 68, 100] },
-  { hour: 15, colors: ['#4890c0', '#60a8d0', '#78c0e0', '#a0d8f0', '#c0e8f0'], stops: [0, 16, 40, 68, 100] },
-  { hour: 16, colors: ['#5098c8', '#68b0d8', '#80c8e8', '#a8e0f0', '#c8e8f0'], stops: [0, 18, 42, 70, 100] },
-  { hour: 17, colors: ['#58a0c0', '#78b8d0', '#a0c8d8', '#c8e0e0', '#e8f0e0'], stops: [0, 20, 45, 72, 100] },
-  { hour: 18, colors: ['#68a8c0', '#90b8c8', '#b0c8c8', '#e0d8b0', '#f8e0a0'], stops: [0, 18, 42, 68, 100] },
-  { hour: 19, colors: ['#5090b0', '#98b8c8', '#c0c8b8', '#d8c8a0', '#e0b070'], stops: [15, 25, 50, 65, 100] },
-  { hour: 19.08, colors: ['#5090b0', '#98b8c8', '#c8c8c0', '#d8c0a8', '#e0a878'], stops: [20, 35, 44, 71, 100] },
-  { hour: 19.17, colors: ['#68a8c8', '#a0c0c8', '#d8c8a0', '#f0c090', '#f0a080'], stops: [22, 35, 45, 70, 100] },
-  { hour: 19.25, colors: ['#68a8c8', '#b0c8d8', '#e0d8c0', '#f8c0a0', '#f0a090'], stops: [20, 28, 40, 60, 100] },
-  { hour: 19.33, colors: ['#60a0c0', '#b0c8d8', '#e8d0b0', '#e8b0b0', '#98a0c0'], stops: [14, 26, 37, 73, 100] },
-  { hour: 19.42, colors: ['#58a0b8', '#b0c8d8', '#d0c8c0', '#c0b8c8', '#98b8d0'], stops: [22, 32, 46, 68, 100] },
-  { hour: 19.5, colors: ['#4088a8', '#78a8b8', '#a8a898', '#a89880', '#b08068'], stops: [20, 35, 48, 75, 100] },
-  { hour: 20, colors: ['#304868', '#485060', '#586070', '#685868', '#505068'], stops: [20, 33, 50, 75, 100] },
+  { hour: 11, colors: ['#68a8c8', '#70b8e0', '#88d0f0', '#b0e0f0', '#d0f0f8'], stops: [0, 20, 45, 72, 100] },
+  { hour: 12, colors: ['#68a8c8', '#70b8e0', '#88d0f0', '#b0e0f0', '#d0f0f8'], stops: [0, 20, 45, 72, 100] },
+  { hour: 13, colors: ['#58a0d0', '#68b0d8', '#80c8e8', '#a8e0f0', '#c8e8f0'], stops: [0, 18, 42, 70, 100] },
+  { hour: 14, colors: ['#5098c8', '#60a8d0', '#78c0e0', '#a0d8f0', '#c0e8f0'], stops: [0, 16, 40, 68, 100] },
+  { hour: 15, colors: ['#4890c0', '#90b8c8', '#b0c8c8', '#e0d8b0', '#f8e0a0'], stops: [0, 18, 42, 68, 100] },
+  { hour: 15.5, colors: ['#68a8c0', '#94b8c8', '#c0c8c0', '#d8d0a8', '#e8c888'], stops: [10, 22, 44, 66, 100] },
+  { hour: 16, colors: ['#5c9cb8', '#98b8c8', '#c0c8b8', '#d8c8a0', '#e0b070'], stops: [15, 25, 46, 65, 100] },
+  { hour: 16.5, colors: ['#5090b0', '#98b8c8', '#c8c8c0', '#d8c0a8', '#e0a878'], stops: [20, 30, 48, 71, 100] },
+  { hour: 17, colors: ['#5090b0', '#a0c0c8', '#d8c8a0', '#f0c090', '#f0a080'], stops: [22, 35, 50, 70, 100] },
+  { hour: 17.25, colors: ['#5090b0', '#b0c8d8', '#e8d0b0', '#f8c0a0', '#f0a090'], stops: [20, 28, 40, 60, 100] },
+  { hour: 17.5, colors: ['#60a0c0', '#b0c8d8', '#ccc0b8', '#e8b0b0', '#d09080'], stops: [14, 22, 37, 65, 100] },
+  { hour: 18, colors: ['#3a6080', '#6888a0', '#9090a0', '#a89098', '#b08888'], stops: [20, 35, 50, 75, 100] },
+  { hour: 18.5, colors: ['#2e4460', '#4c6478', '#687080', '#7c7480', '#847478'], stops: [20, 35, 52, 76, 100] },
+  { hour: 19, colors: ['#283c54', '#425868', '#586070', '#686470', '#706870'], stops: [20, 35, 52, 76, 100] },
+  { hour: 19.5, colors: ['#1e3248', '#38505c', '#4c5460', '#5c5c62', '#645c5c'], stops: [20, 35, 52, 76, 100] },
+  { hour: 20, colors: ['#1a2a42', '#2e4252', '#444c54', '#52525a', '#5a545a'], stops: [20, 35, 52, 76, 100] },
   { hour: 21, colors: ['#202848', '#303848', '#404858', '#504858', '#686070'], stops: [0, 25, 50, 75, 100] },
   { hour: 22, colors: ['#101028', '#182038', '#243048', '#303850', '#403858'], stops: [0, 22, 48, 75, 100] },
   { hour: 23, colors: ['#0c0c1e', '#121828', '#1a2438', '#243048', '#343050'], stops: [0, 20, 45, 72, 100] },
@@ -78,6 +88,7 @@ interface SkySettings {
   grainFrequency: number;
   grainBlur: number;
   grainAnimate: boolean;
+  grainAnimSpeed: number;
   // Large grain
   largeGrainOpacity: number;
   largeGrainScale: number;
@@ -95,6 +106,7 @@ const defaultSettings: SkySettings = {
   grainFrequency: 0.10,
   grainBlur: 0,
   grainAnimate: true,
+  grainAnimSpeed: 12,
   // Large grain
   largeGrainOpacity: 0.02,
   largeGrainScale: 1.1,
@@ -122,6 +134,7 @@ export default function SkyClockPage() {
   const [animTime, setAnimTime] = useState(0); // Continuous animation time for effects
   const [showSettings, setShowSettings] = useState(false);
   const [showColorEditor, setShowColorEditor] = useState(false);
+  const [useShader, setUseShader] = useState(true); // Use Three.js shader by default
   const [settings, setSettings] = useState<SkySettings>(defaultSettings);
   const [palettes, setPalettes] = useState<PaletteEntry[]>([...skyPalettes]);
   const [expandedPalette, setExpandedPalette] = useState<number | null>(null);
@@ -468,46 +481,53 @@ export default function SkyClockPage() {
           zIndex: 1,
         }}
       >
-      {/* Base Sky Gradient */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(
-            ellipse 150% 100% at 50% 120%,
-            ${interpolatedColors[4]} ${interpolatedStops[0]}%,
-            ${interpolatedColors[3]} ${interpolatedStops[1]}%,
-            ${interpolatedColors[2]} ${interpolatedStops[2]}%,
-            ${interpolatedColors[1]} ${interpolatedStops[3]}%,
-            ${interpolatedColors[0]} ${interpolatedStops[4]}%
-          )`,
-        }}
-      />
+      {/* Sky Background - Three.js Shader or CSS Gradient */}
+      {useShader ? (
+        <SkyShader hour={exactHour} />
+      ) : (
+        <>
+          {/* Base Sky Gradient (CSS fallback) */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(
+                ellipse 150% 100% at 50% 120%,
+                ${interpolatedColors[4]} ${interpolatedStops[0]}%,
+                ${interpolatedColors[3]} ${interpolatedStops[1]}%,
+                ${interpolatedColors[2]} ${interpolatedStops[2]}%,
+                ${interpolatedColors[1]} ${interpolatedStops[3]}%,
+                ${interpolatedColors[0]} ${interpolatedStops[4]}%
+              )`,
+            }}
+          />
 
-      {/* Sun glow - warm light that rises/sets with time */}
-      {(exactHour >= 5 && exactHour <= 8) || (exactHour >= 17 && exactHour <= 20) ? (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: (() => {
-              // Calculate sun position and intensity based on time
-              const isMorning = exactHour < 12;
-              // Sun rises from bottom, peaks at horizon, sets
-              const sunProgress = isMorning
-                ? Math.max(0, (exactHour - 5) / 3) // 5am-8am: 0 to 1
-                : Math.max(0, 1 - (exactHour - 17) / 3); // 5pm-8pm: 1 to 0
-              const sunY = 150 - (sunProgress * 30); // moves up as sun rises
-              const intensity = Math.sin(sunProgress * Math.PI) * 0.4; // peaks in middle
-              const warmth = isMorning ? '#f8d070' : '#f09050'; // morning more yellow, evening more orange
-              return `radial-gradient(
-                ellipse 80% 40% at 50% ${sunY}%,
-                ${warmth}${Math.round(intensity * 255).toString(16).padStart(2, '0')} 0%,
-                ${warmth}${Math.round(intensity * 0.5 * 255).toString(16).padStart(2, '0')} 30%,
-                transparent 70%
-              )`;
-            })(),
-          }}
-        />
-      ) : null}
+          {/* Sun glow - warm light that rises/sets with time */}
+          {(exactHour >= 5 && exactHour <= 8) || (exactHour >= 17 && exactHour <= 20) ? (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: (() => {
+                  // Calculate sun position and intensity based on time
+                  const isMorning = exactHour < 12;
+                  // Sun rises from bottom, peaks at horizon, sets
+                  const sunProgress = isMorning
+                    ? Math.max(0, (exactHour - 5) / 3) // 5am-8am: 0 to 1
+                    : Math.max(0, 1 - (exactHour - 17) / 3); // 5pm-8pm: 1 to 0
+                  const sunY = 150 - (sunProgress * 30); // moves up as sun rises
+                  const intensity = Math.sin(sunProgress * Math.PI) * 0.4; // peaks in middle
+                  const warmth = isMorning ? '#f8d070' : '#f09050'; // morning more yellow, evening more orange
+                  return `radial-gradient(
+                    ellipse 80% 40% at 50% ${sunY}%,
+                    ${warmth}${Math.round(intensity * 255).toString(16).padStart(2, '0')} 0%,
+                    ${warmth}${Math.round(intensity * 0.5 * 255).toString(16).padStart(2, '0')} 30%,
+                    transparent 70%
+                  )`;
+                })(),
+              }}
+            />
+          ) : null}
+        </>
+      )}
 
       {/* Subtle vignette for depth */}
       <div
@@ -521,29 +541,47 @@ export default function SkyClockPage() {
         }}
       />
 
-      {/* Large blurry grain layer - reduced at night */}
+      {/* Large blurry grain layer - reduced at night, with slow drift */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+        className="absolute pointer-events-none transition-opacity duration-1000"
         style={{
+          // Expand beyond viewport to allow drift without edges showing
+          top: '-10%',
+          left: '-10%',
+          width: '120%',
+          height: '120%',
           opacity: settings.largeGrainOpacity * (isNight ? 0.5 : isDusk ? 0.5 : 1),
           mixBlendMode: settings.grainBlendMode,
           filter: `blur(${settings.largeGrainBlur}px)`,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.largeGrainFrequency}' numOctaves='3' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * 5) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.largeGrainFrequency}' numOctaves='3' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * settings.grainAnimSpeed * 0.3) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: `${settings.grainSize * settings.largeGrainScale}px ${settings.grainSize * settings.largeGrainScale}px`,
+          // Slow drifting movement
+          transform: settings.grainAnimate
+            ? `translate(${Math.sin(animTime * 0.1) * 3}%, ${Math.cos(animTime * 0.08) * 2}%)`
+            : 'none',
         }}
       />
 
-      {/* Fine grain overlay - reduced at night */}
+      {/* Fine grain overlay - reduced at night, faster flicker */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+        className="absolute pointer-events-none transition-opacity duration-1000"
         style={{
+          // Expand beyond viewport for drift
+          top: '-5%',
+          left: '-5%',
+          width: '110%',
+          height: '110%',
           opacity: settings.grainOpacity * (isNight ? 0.5 : isDusk ? 0.5 : 1),
           mixBlendMode: settings.grainBlendMode,
           filter: `blur(${settings.grainBlur}px)`,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.grainFrequency}' numOctaves='4' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * 8) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.grainFrequency}' numOctaves='4' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * settings.grainAnimSpeed) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: `${settings.grainSize}px ${settings.grainSize}px`,
+          // Subtle jitter movement
+          transform: settings.grainAnimate
+            ? `translate(${Math.sin(animTime * 0.5) * 1}%, ${Math.cos(animTime * 0.4) * 0.8}%)`
+            : 'none',
         }}
       />
 
@@ -587,7 +625,7 @@ export default function SkyClockPage() {
               cx="200"
               cy="200"
               r="195"
-              fill="rgba(255, 255, 255, 0.20)"
+              fill="rgba(255, 255, 255, 0.15)"
             />
 
             {/* Hour marks - shorter ticks */}
@@ -610,7 +648,7 @@ export default function SkyClockPage() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke="rgba(255, 255, 255, 1.0)"
+                  stroke="rgba(255, 255, 255, 0.85)"
                   strokeWidth={2}
                 />
               );
@@ -639,7 +677,7 @@ export default function SkyClockPage() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke="rgba(255, 255, 255, 0.2)"
+                  stroke="rgba(255, 255, 255, 0.3)"
                   strokeWidth={2}
                 />
               );
@@ -659,9 +697,9 @@ export default function SkyClockPage() {
                   key={i}
                   x={labelX}
                   y={labelY}
-                  fill="rgba(255, 255, 255, 1.0)"
+                  fill="rgba(255, 255, 255, 0.85)"
                   fontSize="13"
-                  fontWeight="300"
+                  fontWeight="500"
                   textAnchor="middle"
                   dominantBaseline="middle"
                   style={{
@@ -691,7 +729,7 @@ export default function SkyClockPage() {
                     y1="200"
                     x2="200"
                     y2="110"
-                    stroke="rgba(255, 255, 255, 1.0)"
+                    stroke="rgba(255, 255, 255, 0.85)"
                     strokeWidth="5"
                     style={{ transform: `rotate(${hourAngle}deg)`, transformOrigin: '200px 200px' }}
                   />
@@ -714,7 +752,7 @@ export default function SkyClockPage() {
                       y1="215"
                       x2="200"
                       y2="50"
-                      stroke="rgba(255, 255, 255, 0.2)"
+                      stroke="rgba(255, 255, 255, 0.3)"
                       strokeWidth="1.5"
                       style={{ transform: `rotate(${secondAngle}deg)`, transformOrigin: '200px 200px' }}
                     />
@@ -725,7 +763,7 @@ export default function SkyClockPage() {
                     cx="200"
                     cy="200"
                     r="5"
-                    fill="rgba(255, 255, 255, 1.0)"
+                    fill="rgba(255, 255, 255, 0.85)"
                   />
                 </g>
               );
@@ -755,9 +793,7 @@ export default function SkyClockPage() {
         </text>
       </svg>
 
-      {/* NOTE: Do not delete the commented out settings below - they may be needed later */}
-
-      {/* Settings toggle button
+      {/* Settings toggle button */}
       <button
         onClick={() => setShowSettings(!showSettings)}
         className="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white/80 transition-all z-50"
@@ -768,9 +804,8 @@ export default function SkyClockPage() {
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
         </svg>
       </button>
-      */}
 
-      {/* Color Editor toggle button
+      {/* Color Editor toggle button */}
       <button
         onClick={() => setShowColorEditor(!showColorEditor)}
         className="fixed bottom-6 left-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white/80 transition-all z-50"
@@ -781,10 +816,9 @@ export default function SkyClockPage() {
           <circle cx="12" cy="12" r="3" />
         </svg>
       </button>
-      */}
 
-      {/* Color Editor Panel - NOTE: Do not delete, may be needed later */}
-      {false && showColorEditor && (
+      {/* Color Editor Panel */}
+      {showColorEditor && (
         <div
           className="fixed left-6 top-6 bottom-20 w-80 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 z-50 flex flex-col"
           style={{ pointerEvents: 'auto' }}
@@ -975,12 +1009,29 @@ export default function SkyClockPage() {
       )}
 
       {/* Settings Panel - NOTE: Do not delete, may be needed later */}
-      {false && showSettings && (
+      {showSettings && (
         <div
           className="fixed bottom-20 right-6 w-72 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 p-4 z-50 max-h-[70vh] overflow-y-auto"
           style={{ pointerEvents: 'auto' }}
         >
           <div className="text-white/80 text-sm font-medium mb-4 tracking-wide">Sky Settings</div>
+
+          {/* Sky Mode Section */}
+          <div className="text-white/40 text-xs uppercase tracking-wider mb-2">Sky Rendering</div>
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-white/50 text-xs">Use 3D Shader</span>
+            <button
+              onClick={() => setUseShader(!useShader)}
+              className={`w-10 h-5 rounded-full transition-colors ${useShader ? 'bg-blue-500/50' : 'bg-white/10'}`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white transition-transform ${useShader ? 'translate-x-5' : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
+          <div className="text-white/30 text-[10px] mb-4 -mt-2">
+            {useShader ? 'Atmospheric scattering (realistic)' : 'CSS gradient (custom colors)'}
+          </div>
 
           {/* Fine Grain Section */}
           <div className="text-white/40 text-xs uppercase tracking-wider mb-2">Fine Grain</div>
@@ -1135,7 +1186,7 @@ export default function SkyClockPage() {
             </select>
           </div>
 
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between">
             <span className="text-white/50 text-xs">Animate</span>
             <button
               onClick={() => setSettings(prev => ({ ...prev, grainAnimate: !prev.grainAnimate }))}
@@ -1145,6 +1196,24 @@ export default function SkyClockPage() {
                 className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.grainAnimate ? 'translate-x-5' : 'translate-x-0.5'}`}
               />
             </button>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex justify-between text-white/50 text-xs mb-1.5">
+              <span>Animation Speed</span>
+              <span>{settings.grainAnimSpeed.toFixed(0)}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value={settings.grainAnimSpeed}
+              onChange={(e) => updateSetting('grainAnimSpeed', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
+              disabled={!settings.grainAnimate}
+              style={{ opacity: settings.grainAnimate ? 1 : 0.4 }}
+            />
           </div>
 
           {/* Reset button */}
