@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Custom sky shader based on Three.js Sky with Rayleigh/Mie scattering
+// California sky shader - warm, hazy, golden
 const vertexShader = `
 varying vec3 vWorldPosition;
+
 void main() {
   vec4 worldPosition = modelMatrix * vec4(position, 1.0);
   vWorldPosition = worldPosition.xyz;
@@ -15,215 +16,269 @@ void main() {
 `;
 
 const fragmentShader = `
-uniform vec3 sunPosition;
-uniform float rayleigh;
-uniform float turbidity;
-uniform float mieCoefficient;
-uniform float mieDirectionalG;
-uniform float sunIntensity;
-uniform float exposure;
+uniform float hour;
+uniform float horizonOffset;
+uniform float gradientScale;
 
 varying vec3 vWorldPosition;
 
-// Constants for atmospheric scattering
-const vec3 up = vec3(0.0, 1.0, 0.0);
-const float e = 2.71828182845904523536028747135266249775724709369995957;
-const float pi = 3.141592653589793238462643383279502884197169;
-
-// Wavelengths of RGB in nanometers
-const vec3 lambda = vec3(680E-9, 550E-9, 450E-9);
-// Refractive index of air
-const float n = 1.0003;
-// Number of molecules per unit volume at standard atmosphere
-const float N = 2.545E25;
-// Depolarization factor for standard air
-const float pn = 0.035;
-
-// Rayleigh coefficient calculation
-vec3 totalRayleigh(vec3 lambda) {
-  return (8.0 * pow(pi, 3.0) * pow(pow(n, 2.0) - 1.0, 2.0) * (6.0 + 3.0 * pn)) /
-         (3.0 * N * pow(lambda, vec3(4.0)) * (6.0 - 7.0 * pn));
-}
-
-// Mie coefficient
-const float v = 4.0;
-const vec3 K = vec3(0.686, 0.678, 0.666);
-vec3 totalMie(vec3 lambda, vec3 K, float T) {
-  float c = (0.2 * T) * 10E-18;
-  return 0.434 * c * pi * pow((2.0 * pi) / lambda, vec3(v - 2.0)) * K;
-}
-
-// Rayleigh phase function
-float rayleighPhase(float cosTheta) {
-  return (3.0 / (16.0 * pi)) * (1.0 + pow(cosTheta, 2.0));
-}
-
-// Henyey-Greenstein phase function for Mie scattering
-float hgPhase(float cosTheta, float g) {
-  float g2 = pow(g, 2.0);
-  float inverse = 1.0 / pow(1.0 - 2.0 * g * cosTheta + g2, 1.5);
-  return (1.0 / (4.0 * pi)) * ((1.0 - g2) * inverse);
-}
-
-// Sun intensity on horizon
-const float sunAngularDiameterCos = 0.999956676946448443553574619906976478926848692873900859324;
-const float cutoffAngle = 1.6110731556870734;
-const float steepness = 1.5;
-
-float sunIntensityCalc(float zenithAngleCos) {
-  zenithAngleCos = clamp(zenithAngleCos, -1.0, 1.0);
-  return sunIntensity * max(0.0, 1.0 - pow(e, -((cutoffAngle - acos(zenithAngleCos)) / steepness)));
+// Attempt smooth interpolation
+float smootherstep(float edge0, float edge1, float x) {
+  x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
 }
 
 void main() {
-  vec3 direction = normalize(vWorldPosition);
+  vec3 viewDir = normalize(vWorldPosition);
 
-  // Sun direction
-  vec3 sunDir = normalize(sunPosition);
-  float sunE = sunIntensityCalc(dot(sunDir, up));
+  // viewDir.y: -1 (down/nadir) to +1 (up/zenith)
+  // horizonOffset shifts where horizon appears on screen
+  // gradientScale stretches the gradient (higher = more zoomed in)
+  float elevation = (viewDir.y + horizonOffset) / gradientScale;
 
-  // Optical length - distance light travels through atmosphere
-  float zenithAngle = acos(max(0.0, dot(up, direction)));
-  float inverse = 1.0 / (cos(zenithAngle) + 0.15 * pow(93.885 - ((zenithAngle * 180.0) / pi), -1.253));
-  float sR = 8.4E3 * inverse;
-  float sM = 1.25E3 * inverse;
+  // t=0 at horizon, t=1 at zenith
+  float t = clamp(elevation, 0.0, 1.0);
 
-  // Combined extinction factor
-  vec3 betaR = totalRayleigh(lambda) * rayleigh;
-  vec3 betaM = totalMie(lambda, K, turbidity) * mieCoefficient;
-  vec3 Fex = exp(-(betaR * sR + betaM * sM));
+  // Below horizon factor for ground
+  float belowHorizon = clamp(-elevation, 0.0, 1.0);
 
-  // In-scattering
-  float cosTheta = dot(direction, sunDir);
-  float rPhase = rayleighPhase(cosTheta * 0.5 + 0.5);
-  vec3 betaRTheta = betaR * rPhase;
+  // === TIME OF DAY CALCULATIONS ===
+  // California winter timing
+  float sunriseStart = 5.5;
+  float sunrisePeak = 6.5;
+  float sunriseEnd = 8.0;
+  float sunsetStart = 16.0;
+  float sunsetPeak = 17.5;
+  float sunsetEnd = 19.5;
 
-  float mPhase = hgPhase(cosTheta, mieDirectionalG);
-  vec3 betaMTheta = betaM * mPhase;
+  // Day factor: 0 at night, 1 at full day
+  float dayFactor = 0.0;
+  if (hour >= sunriseStart && hour <= 12.0) {
+    dayFactor = smootherstep(sunriseStart, 9.0, hour);
+  } else if (hour > 12.0 && hour <= sunsetEnd) {
+    dayFactor = 1.0 - smootherstep(16.0, sunsetEnd, hour);
+  }
 
-  vec3 Lin = pow(sunE * ((betaRTheta + betaMTheta) / (betaR + betaM)) * (1.0 - Fex), vec3(1.5));
-  Lin *= mix(vec3(1.0), pow(sunE * ((betaRTheta + betaMTheta) / (betaR + betaM)) * Fex, vec3(0.5)),
-             clamp(pow(1.0 - dot(up, sunDir), 5.0), 0.0, 1.0));
+  // Golden hour intensity
+  float goldenMorning = 0.0;
+  float goldenEvening = 0.0;
+  if (hour >= sunriseStart && hour <= sunriseEnd) {
+    float riseUp = smootherstep(sunriseStart, sunrisePeak, hour);
+    float riseDown = 1.0 - smootherstep(sunrisePeak, sunriseEnd, hour);
+    goldenMorning = riseUp * riseDown * 1.5; // Peak at sunrise
+  }
+  if (hour >= sunsetStart && hour <= sunsetEnd) {
+    float setUp = smootherstep(sunsetStart, sunsetPeak, hour);
+    float setDown = 1.0 - smootherstep(sunsetPeak, sunsetEnd, hour);
+    goldenEvening = setUp * setDown * 1.5; // Peak at sunset
+  }
+  float goldenHour = max(goldenMorning, goldenEvening);
 
-  // Night sky color - darker blue
-  vec3 nightColor = vec3(0.02, 0.02, 0.06);
-  float nightFactor = smoothstep(-0.2, 0.0, sunDir.y);
+  // Night factor
+  float night = 0.0;
+  if (hour < sunriseStart) {
+    night = 1.0 - smootherstep(4.5, sunriseStart, hour);
+  } else if (hour > sunsetEnd) {
+    night = smootherstep(sunsetEnd, 21.0, hour);
+  }
 
-  // Compose final color
-  vec3 texColor = Lin + nightColor * (1.0 - nightFactor);
+  // === SKY COLORS (based on California sky palettes) ===
 
-  // Sun disk
-  float sundisk = smoothstep(sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosTheta);
-  vec3 sunColor = vec3(1.0, 0.9, 0.7) * sundisk * sunE * 0.04;
+  // ZENITH (top of sky) - from palette[0] colors
+  vec3 zenithNight = vec3(0.04, 0.04, 0.10);       // #0a0a1a
+  vec3 zenithPreDawn = vec3(0.12, 0.16, 0.22);     // #1e2838
+  vec3 zenithDawn = vec3(0.18, 0.22, 0.31);        // #2e3850
+  vec3 zenithSunrise = vec3(0.38, 0.63, 0.82);     // #60a0d0
+  vec3 zenithMorning = vec3(0.38, 0.66, 0.85);     // #60a8d8
+  vec3 zenithMidday = vec3(0.41, 0.66, 0.78);      // #68a8c8
+  vec3 zenithAfternoon = vec3(0.28, 0.56, 0.75);   // #4890c0
+  vec3 zenithSunset = vec3(0.31, 0.56, 0.69);      // #5090b0
+  vec3 zenithDusk = vec3(0.23, 0.38, 0.50);        // #3a6080
+  vec3 zenithTwilight = vec3(0.13, 0.16, 0.28);    // #202848
 
-  texColor += sunColor;
+  vec3 zenith = zenithNight;
+  if (hour < 5.0) {
+    zenith = mix(zenithNight, zenithPreDawn, smootherstep(3.0, 5.0, hour));
+  } else if (hour < 6.0) {
+    zenith = mix(zenithPreDawn, zenithDawn, smootherstep(5.0, 6.0, hour));
+  } else if (hour < 7.0) {
+    zenith = mix(zenithDawn, zenithSunrise, smootherstep(6.0, 7.0, hour));
+  } else if (hour < 9.0) {
+    zenith = mix(zenithSunrise, zenithMorning, smootherstep(7.0, 9.0, hour));
+  } else if (hour < 12.0) {
+    zenith = mix(zenithMorning, zenithMidday, smootherstep(9.0, 12.0, hour));
+  } else if (hour < 15.0) {
+    zenith = mix(zenithMidday, zenithAfternoon, smootherstep(12.0, 15.0, hour));
+  } else if (hour < 17.5) {
+    zenith = mix(zenithAfternoon, zenithSunset, smootherstep(15.0, 17.5, hour));
+  } else if (hour < 19.0) {
+    zenith = mix(zenithSunset, zenithDusk, smootherstep(17.5, 19.0, hour));
+  } else if (hour < 21.0) {
+    zenith = mix(zenithDusk, zenithTwilight, smootherstep(19.0, 21.0, hour));
+  } else {
+    zenith = mix(zenithTwilight, zenithNight, smootherstep(21.0, 23.0, hour));
+  }
 
-  // Tone mapping and exposure
-  vec3 retColor = pow(texColor * exposure, vec3(1.0 / 2.2));
+  // HORIZON - from palette[4] colors
+  vec3 horizonNight = vec3(0.24, 0.22, 0.31);      // #3c3850
+  vec3 horizonPreDawn = vec3(0.48, 0.38, 0.44);    // #7a6070
+  vec3 horizonDawn = vec3(0.60, 0.47, 0.53);       // #987888
+  vec3 horizonSunrise = vec3(0.94, 0.69, 0.69);    // #f0b0b0
+  vec3 horizonMorning = vec3(0.97, 0.85, 0.60);    // #f8d898
+  vec3 horizonDay = vec3(0.91, 0.94, 0.94);        // #e8f0f0
+  vec3 horizonAfternoon = vec3(0.97, 0.88, 0.63);  // #f8e0a0
+  vec3 horizonSunset = vec3(0.94, 0.63, 0.50);     // #f0a080
+  vec3 horizonDusk = vec3(0.69, 0.53, 0.53);       // #b08888
+  vec3 horizonTwilight = vec3(0.35, 0.35, 0.37);   // #5a545a
 
-  gl_FragColor = vec4(retColor, 1.0);
+  vec3 horizon = horizonNight;
+  if (hour < 5.0) {
+    horizon = mix(horizonNight, horizonPreDawn, smootherstep(4.0, 5.0, hour));
+  } else if (hour < 6.0) {
+    horizon = mix(horizonPreDawn, horizonDawn, smootherstep(5.0, 6.0, hour));
+  } else if (hour < 7.0) {
+    horizon = mix(horizonDawn, horizonSunrise, smootherstep(6.0, 7.0, hour));
+  } else if (hour < 8.0) {
+    horizon = mix(horizonSunrise, horizonMorning, smootherstep(7.0, 8.0, hour));
+  } else if (hour < 10.0) {
+    horizon = mix(horizonMorning, horizonDay, smootherstep(8.0, 10.0, hour));
+  } else if (hour < 15.0) {
+    horizon = mix(horizonDay, horizonAfternoon, smootherstep(12.0, 15.0, hour));
+  } else if (hour < 17.0) {
+    horizon = mix(horizonAfternoon, horizonSunset, smootherstep(15.0, 17.0, hour));
+  } else if (hour < 18.5) {
+    // Peak sunset - intensify the orange
+    float peak = 1.0 - abs(hour - 17.5) / 1.0;
+    horizon = mix(horizonSunset, vec3(0.98, 0.55, 0.40), peak * 0.3);
+  } else if (hour < 20.0) {
+    horizon = mix(horizonSunset, horizonDusk, smootherstep(18.0, 20.0, hour));
+  } else if (hour < 22.0) {
+    horizon = mix(horizonDusk, horizonTwilight, smootherstep(20.0, 22.0, hour));
+  } else {
+    horizon = mix(horizonTwilight, horizonNight, smootherstep(22.0, 24.0, hour));
+  }
+
+  // MID SKY - from palette[2] colors
+  vec3 midNight = vec3(0.10, 0.13, 0.22);          // #1a2438
+  vec3 midPreDawn = vec3(0.25, 0.31, 0.38);        // #405060
+  vec3 midDawn = vec3(0.31, 0.38, 0.44);           // #506070
+  vec3 midSunrise = vec3(0.75, 0.85, 0.91);        // #c0d8e8
+  vec3 midMorning = vec3(0.60, 0.85, 0.97);        // #98d8f8
+  vec3 midDay = vec3(0.53, 0.82, 0.94);            // #88d0f0
+  vec3 midAfternoon = vec3(0.69, 0.78, 0.78);      // #b0c8c8
+  vec3 midSunset = vec3(0.85, 0.78, 0.65);         // #d8c8a0
+  vec3 midDusk = vec3(0.56, 0.56, 0.63);           // #9090a0
+  vec3 midTwilight = vec3(0.25, 0.28, 0.34);       // #404858
+
+  vec3 mid = midNight;
+  if (hour < 5.0) {
+    mid = mix(midNight, midPreDawn, smootherstep(4.0, 5.0, hour));
+  } else if (hour < 6.0) {
+    mid = mix(midPreDawn, midDawn, smootherstep(5.0, 6.0, hour));
+  } else if (hour < 7.0) {
+    mid = mix(midDawn, midSunrise, smootherstep(6.0, 7.0, hour));
+  } else if (hour < 9.0) {
+    mid = mix(midSunrise, midMorning, smootherstep(7.0, 9.0, hour));
+  } else if (hour < 12.0) {
+    mid = mix(midMorning, midDay, smootherstep(9.0, 12.0, hour));
+  } else if (hour < 15.0) {
+    mid = mix(midDay, midAfternoon, smootherstep(12.0, 15.0, hour));
+  } else if (hour < 17.5) {
+    mid = mix(midAfternoon, midSunset, smootherstep(15.0, 17.5, hour));
+  } else if (hour < 19.0) {
+    mid = mix(midSunset, midDusk, smootherstep(17.5, 19.0, hour));
+  } else if (hour < 21.0) {
+    mid = mix(midDusk, midTwilight, smootherstep(19.0, 21.0, hour));
+  } else {
+    mid = mix(midTwilight, midNight, smootherstep(21.0, 23.0, hour));
+  }
+
+  // GROUND (below horizon)
+  vec3 groundDay = horizon * 0.5;
+  vec3 groundNight = vec3(0.03, 0.02, 0.04);
+  vec3 ground = mix(groundDay, groundNight, night);
+
+  // === BUILD GRADIENT ===
+  vec3 skyColor;
+
+  // Use non-linear interpolation for more natural gradient
+  // More horizon color near bottom, faster transition to zenith
+  float horizonBlend = pow(1.0 - t, 2.0); // Strong at bottom
+  float midBlend = sin(t * 3.14159) * 0.8; // Peaks in middle
+  float zenithBlend = pow(t, 1.5); // Strong at top
+
+  // Normalize
+  float total = horizonBlend + midBlend + zenithBlend;
+  horizonBlend /= total;
+  midBlend /= total;
+  zenithBlend /= total;
+
+  skyColor = horizon * horizonBlend + mid * midBlend + zenith * zenithBlend;
+
+  // Add extra warm glow at horizon during golden hour
+  if (goldenHour > 0.1 && t < 0.4) {
+    float glowAmount = (1.0 - t / 0.4) * goldenHour * 0.5;
+    vec3 glowColor = goldenMorning > goldenEvening
+      ? vec3(1.0, 0.75, 0.45)  // Morning: more yellow-gold
+      : vec3(1.0, 0.50, 0.30); // Evening: more orange-red
+    skyColor = mix(skyColor, glowColor, glowAmount);
+  }
+
+  // Blend to ground below horizon
+  if (belowHorizon > 0.0) {
+    skyColor = mix(skyColor, ground, belowHorizon);
+  }
+
+  gl_FragColor = vec4(skyColor, 1.0);
 }
 `;
 
 interface SkyMeshProps {
   hour: number;
+  horizonOffset: number;
+  gradientScale: number;
 }
 
-function SkyMesh({ hour }: SkyMeshProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+function SkyMesh({ hour, horizonOffset, gradientScale }: SkyMeshProps) {
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const hourRef = useRef(hour);
+  const offsetRef = useRef(horizonOffset);
+  const scaleRef = useRef(gradientScale);
 
-  // Calculate sun position based on hour (winter California timing - earlier sunset)
-  const sunPosition = useMemo(() => {
-    // Convert hour to sun angle
-    // Sunrise ~6am (hour 6), Sunset ~5pm (hour 17) for winter
-    // Sun is highest at noon (hour 12)
-
-    // Map hour to angle: 6am = -90deg (horizon), 12pm = 0deg (zenith), 6pm = 90deg (horizon)
-    const sunriseHour = 6;
-    const sunsetHour = 17;
-    const noonHour = 11.5; // Solar noon slightly before clock noon in winter
-
-    let elevation: number;
-    let azimuth: number;
-
-    if (hour < sunriseHour || hour > sunsetHour + 1) {
-      // Night - sun below horizon
-      const nightProgress = hour < sunriseHour
-        ? (sunriseHour - hour) / sunriseHour
-        : (hour - sunsetHour) / (24 - sunsetHour + sunriseHour);
-      elevation = -10 - nightProgress * 30; // Degrees below horizon
-      azimuth = hour < 12 ? -90 + hour * 15 : 90 - (hour - 12) * 15;
-    } else if (hour <= noonHour) {
-      // Morning - sun rising
-      const progress = (hour - sunriseHour) / (noonHour - sunriseHour);
-      elevation = progress * 45; // Max 45 degrees in winter
-      azimuth = -90 + progress * 90; // East to south
-    } else {
-      // Afternoon - sun setting
-      const progress = (hour - noonHour) / (sunsetHour - noonHour);
-      elevation = 45 * (1 - progress);
-      azimuth = progress * 90; // South to west
-    }
-
-    // Convert to radians and calculate position
-    const phi = THREE.MathUtils.degToRad(90 - elevation);
-    const theta = THREE.MathUtils.degToRad(azimuth);
-
-    return new THREE.Vector3().setFromSphericalCoords(1, phi, theta);
+  useEffect(() => {
+    hourRef.current = hour;
   }, [hour]);
 
-  // Calculate atmosphere parameters based on time
-  const atmosphereParams = useMemo(() => {
-    const sunY = sunPosition.y;
+  useEffect(() => {
+    offsetRef.current = horizonOffset;
+  }, [horizonOffset]);
 
-    // Turbidity increases at sunrise/sunset for that hazy California look
-    const turbidity = sunY < 0.1 ? 10 + (0.1 - sunY) * 50 : 8;
+  useEffect(() => {
+    scaleRef.current = gradientScale;
+  }, [gradientScale]);
 
-    // Rayleigh scattering - more at midday (bluer sky)
-    const rayleigh = sunY > 0.3 ? 2 : 1 + sunY * 3;
+  const uniforms = useRef({
+    hour: { value: hour },
+    horizonOffset: { value: horizonOffset },
+    gradientScale: { value: gradientScale },
+  });
 
-    // Mie coefficient - more haze at horizon
-    const mieCoefficient = sunY < 0.2 ? 0.01 + (0.2 - sunY) * 0.05 : 0.005;
-
-    // Sun intensity based on elevation
-    const sunIntensity = Math.max(0, sunY * 1000 + 100);
-
-    // Exposure adjustment
-    const exposure = sunY > 0 ? 0.4 + sunY * 0.2 : 0.3;
-
-    return { turbidity, rayleigh, mieCoefficient, sunIntensity, exposure };
-  }, [sunPosition]);
-
-  const uniforms = useMemo(() => ({
-    sunPosition: { value: sunPosition },
-    rayleigh: { value: atmosphereParams.rayleigh },
-    turbidity: { value: atmosphereParams.turbidity },
-    mieCoefficient: { value: atmosphereParams.mieCoefficient },
-    mieDirectionalG: { value: 0.8 },
-    sunIntensity: { value: atmosphereParams.sunIntensity },
-    exposure: { value: atmosphereParams.exposure },
-  }), [sunPosition, atmosphereParams]);
-
-  // Update uniforms when they change
   useFrame(() => {
-    if (meshRef.current) {
-      const material = meshRef.current.material as THREE.ShaderMaterial;
-      material.uniforms.sunPosition.value.copy(sunPosition);
-      material.uniforms.rayleigh.value = atmosphereParams.rayleigh;
-      material.uniforms.turbidity.value = atmosphereParams.turbidity;
-      material.uniforms.mieCoefficient.value = atmosphereParams.mieCoefficient;
-      material.uniforms.sunIntensity.value = atmosphereParams.sunIntensity;
-      material.uniforms.exposure.value = atmosphereParams.exposure;
+    if (materialRef.current) {
+      materialRef.current.uniforms.hour.value = hourRef.current;
+      materialRef.current.uniforms.horizonOffset.value = offsetRef.current;
+      materialRef.current.uniforms.gradientScale.value = scaleRef.current;
     }
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[450000, 32, 15]} />
+    <mesh>
+      <sphereGeometry args={[500, 64, 64]} />
       <shaderMaterial
+        ref={materialRef}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
-        uniforms={uniforms}
+        uniforms={uniforms.current}
         side={THREE.BackSide}
       />
     </mesh>
@@ -232,21 +287,23 @@ function SkyMesh({ hour }: SkyMeshProps) {
 
 interface SkyShaderProps {
   hour: number;
+  horizonOffset?: number;
+  gradientScale?: number;
 }
 
-export default function SkyShader({ hour }: SkyShaderProps) {
+export default function SkyShader({ hour, horizonOffset = 0.5, gradientScale = 1.0 }: SkyShaderProps) {
   return (
     <div className="absolute inset-0" style={{ zIndex: 0 }}>
       <Canvas
         camera={{
           position: [0, 0, 0.01],
-          fov: 60,
+          fov: 100,
           near: 0.1,
-          far: 1000000
+          far: 1000,
         }}
         gl={{ antialias: true, alpha: false }}
       >
-        <SkyMesh hour={hour} />
+        <SkyMesh hour={hour} horizonOffset={horizonOffset} gradientScale={gradientScale} />
       </Canvas>
     </div>
   );

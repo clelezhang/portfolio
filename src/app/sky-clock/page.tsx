@@ -1,13 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-
-// Dynamically import the Three.js Sky shader (SSR not supported)
-const SkyShader = dynamic(() => import('./SkyShader'), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 bg-gradient-to-b from-blue-900 to-blue-600" />
-});
 
 // California sky color palettes - warm, golden, hazy
 // [zenith, upper, mid, lower, horizon]
@@ -81,6 +74,16 @@ function interpolateStops(stops1: number[], stops2: number[], factor: number): n
 type BlendMode = 'normal' | 'multiply' | 'overlay' | 'soft-light' | 'hard-light' | 'difference' | 'exclusion' | 'luminosity';
 
 interface SkySettings {
+  // Gradient shape
+  horizonY: number;        // Where horizon sits (100 = bottom, 150 = below screen)
+  gradientStretch: number; // Ellipse width (100 = circular, 200 = wide dome)
+  gradientHeight: number;  // Ellipse height (affects dome curvature)
+  // Sun glow
+  sunGlowIntensity: number;
+  sunGlowSize: number;
+  // Atmospheric haze
+  hazeIntensity: number;
+  hazeHeight: number;
   // Fine grain
   grainOpacity: number;
   grainSize: number;
@@ -99,19 +102,29 @@ interface SkySettings {
 const blendModes: BlendMode[] = ['normal', 'multiply', 'overlay', 'soft-light', 'hard-light', 'difference', 'exclusion', 'luminosity'];
 
 const defaultSettings: SkySettings = {
+  // Gradient shape
+  horizonY: 120,
+  gradientStretch: 150,
+  gradientHeight: 100,
+  // Sun glow
+  sunGlowIntensity: 0.5,
+  sunGlowSize: 80,
+  // Atmospheric haze
+  hazeIntensity: 0.15,
+  hazeHeight: 40,
   // Fine grain
-  grainOpacity: 0.10,
-  grainSize: 140,
+  grainOpacity: 0.20,
+  grainSize: 500,
   grainBlendMode: 'hard-light',
-  grainFrequency: 0.10,
-  grainBlur: 0,
+  grainFrequency: 0.95,
+  grainBlur: 0.5,
   grainAnimate: true,
   grainAnimSpeed: 12,
   // Large grain
-  largeGrainOpacity: 0.02,
-  largeGrainScale: 1.1,
-  largeGrainBlur: 0,
-  largeGrainFrequency: 0.05,
+  largeGrainOpacity: 0.10,
+  largeGrainScale: 2.4,
+  largeGrainBlur: 0.5,
+  largeGrainFrequency: 1.00,
 };
 
 // Palette entry type
@@ -134,7 +147,6 @@ export default function SkyClockPage() {
   const [animTime, setAnimTime] = useState(0); // Continuous animation time for effects
   const [showSettings, setShowSettings] = useState(false);
   const [showColorEditor, setShowColorEditor] = useState(false);
-  const [useShader, setUseShader] = useState(true); // Use Three.js shader by default
   const [settings, setSettings] = useState<SkySettings>(defaultSettings);
   const [palettes, setPalettes] = useState<PaletteEntry[]>([...skyPalettes]);
   const [expandedPalette, setExpandedPalette] = useState<number | null>(null);
@@ -432,45 +444,7 @@ export default function SkyClockPage() {
 
   return (
     <>
-      {/* Stars overlay - OUTSIDE overflow-hidden container for full screen coverage */}
-      {ready && (
-        <div
-          className="pointer-events-none transition-opacity duration-1000"
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            width: '300vw',
-            height: '300vh',
-            opacity: isNight ? 1 : isDusk ? 0.4 : 0,
-            transform: `translate(-50%, -50%) rotate(${exactHour * 15}deg)`,
-            zIndex: 5,
-          }}
-        >
-          {stars.map((star, i) => {
-            const twinklePhase = animTime * 2 + star.twinkleDelay;
-            const twinkle = 0.7 + 0.3 * Math.sin(twinklePhase * (6 / star.twinkleDuration));
-
-            return (
-              <div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: star.size,
-                  height: star.size,
-                  left: `${star.left}%`,
-                  top: `${star.top}%`,
-                  opacity: star.opacity * twinkle,
-                  backgroundColor: star.color,
-                  boxShadow: star.glow > 0
-                    ? `0 0 ${star.glow * twinkle}px ${(star.glow / 2) * twinkle}px ${star.color}`
-                    : 'none',
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
+      {/* Stars overlay - TEMPORARILY HIDDEN */}
 
       <div
         className="fixed inset-0 overflow-hidden"
@@ -481,52 +455,91 @@ export default function SkyClockPage() {
           zIndex: 1,
         }}
       >
-      {/* Sky Background - Three.js Shader or CSS Gradient */}
-      {useShader ? (
-        <SkyShader hour={exactHour} />
-      ) : (
-        <>
-          {/* Base Sky Gradient (CSS fallback) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(
-                ellipse 150% 100% at 50% 120%,
-                ${interpolatedColors[4]} ${interpolatedStops[0]}%,
-                ${interpolatedColors[3]} ${interpolatedStops[1]}%,
-                ${interpolatedColors[2]} ${interpolatedStops[2]}%,
-                ${interpolatedColors[1]} ${interpolatedStops[3]}%,
-                ${interpolatedColors[0]} ${interpolatedStops[4]}%
-              )`,
-            }}
-          />
+      {/* Base Sky Gradient - domed radial effect */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(
+            ellipse ${settings.gradientStretch}% ${settings.gradientHeight}% at 50% ${settings.horizonY}%,
+            ${interpolatedColors[4]} ${interpolatedStops[0]}%,
+            ${interpolatedColors[3]} ${interpolatedStops[1]}%,
+            ${interpolatedColors[2]} ${interpolatedStops[2]}%,
+            ${interpolatedColors[1]} ${interpolatedStops[3]}%,
+            ${interpolatedColors[0]} ${interpolatedStops[4]}%
+          )`,
+        }}
+      />
 
-          {/* Sun glow - warm light that rises/sets with time */}
-          {(exactHour >= 5 && exactHour <= 8) || (exactHour >= 17 && exactHour <= 20) ? (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: (() => {
-                  // Calculate sun position and intensity based on time
-                  const isMorning = exactHour < 12;
-                  // Sun rises from bottom, peaks at horizon, sets
-                  const sunProgress = isMorning
-                    ? Math.max(0, (exactHour - 5) / 3) // 5am-8am: 0 to 1
-                    : Math.max(0, 1 - (exactHour - 17) / 3); // 5pm-8pm: 1 to 0
-                  const sunY = 150 - (sunProgress * 30); // moves up as sun rises
-                  const intensity = Math.sin(sunProgress * Math.PI) * 0.4; // peaks in middle
-                  const warmth = isMorning ? '#f8d070' : '#f09050'; // morning more yellow, evening more orange
-                  return `radial-gradient(
-                    ellipse 80% 40% at 50% ${sunY}%,
-                    ${warmth}${Math.round(intensity * 255).toString(16).padStart(2, '0')} 0%,
-                    ${warmth}${Math.round(intensity * 0.5 * 255).toString(16).padStart(2, '0')} 30%,
-                    transparent 70%
-                  )`;
-                })(),
-              }}
-            />
-          ) : null}
-        </>
+      {/* Atmospheric haze layer - adds depth near horizon */}
+      {settings.hazeIntensity > 0 && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(
+              to top,
+              ${interpolatedColors[4]}${Math.round(settings.hazeIntensity * 255).toString(16).padStart(2, '0')} 0%,
+              ${interpolatedColors[3]}${Math.round(settings.hazeIntensity * 0.5 * 255).toString(16).padStart(2, '0')} ${settings.hazeHeight}%,
+              transparent ${settings.hazeHeight * 2}%
+            )`,
+          }}
+        />
+      )}
+
+      {/* Sun glow - warm light that rises/sets with time */}
+      {settings.sunGlowIntensity > 0 && ((exactHour >= 5 && exactHour <= 9) || (exactHour >= 16 && exactHour <= 20)) && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: (() => {
+              const isMorning = exactHour < 12;
+
+              // Sun position - lower during peak golden hour
+              const peakProgress = isMorning
+                ? 1 - Math.abs(exactHour - 6.5) / 1.5  // peaks at 6:30am
+                : 1 - Math.abs(exactHour - 17.5) / 1.5; // peaks at 5:30pm
+              const sunY = settings.horizonY - 20 + (1 - Math.max(0, peakProgress)) * 30;
+
+              // Intensity based on how close to peak
+              const intensity = Math.max(0, peakProgress) * settings.sunGlowIntensity;
+
+              // Color - morning more yellow/pink, evening more orange/red
+              const warmth = isMorning ? '#ffb060' : '#ff7040';
+              const warmth2 = isMorning ? '#ffd090' : '#ff9050';
+
+              return `radial-gradient(
+                ellipse ${settings.sunGlowSize}% ${settings.sunGlowSize * 0.5}% at 50% ${sunY}%,
+                ${warmth2}${Math.round(intensity * 200).toString(16).padStart(2, '0')} 0%,
+                ${warmth}${Math.round(intensity * 150).toString(16).padStart(2, '0')} 30%,
+                ${warmth}${Math.round(intensity * 50).toString(16).padStart(2, '0')} 60%,
+                transparent 100%
+              )`;
+            })(),
+          }}
+        />
+      )}
+
+      {/* Secondary atmospheric glow - adds warmth to whole sky during golden hour */}
+      {((exactHour >= 5.5 && exactHour <= 8) || (exactHour >= 17 && exactHour <= 19.5)) && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: (() => {
+              const isMorning = exactHour < 12;
+              const peakProgress = isMorning
+                ? 1 - Math.abs(exactHour - 6.5) / 1.5
+                : 1 - Math.abs(exactHour - 18) / 1.5;
+              const intensity = Math.max(0, peakProgress) * 0.15;
+              const tint = isMorning ? '#ffcc80' : '#ff8866';
+              return `linear-gradient(
+                to top,
+                ${tint}${Math.round(intensity * 255).toString(16).padStart(2, '0')} 0%,
+                ${tint}${Math.round(intensity * 0.3 * 255).toString(16).padStart(2, '0')} 50%,
+                transparent 100%
+              )`;
+            })(),
+            mixBlendMode: 'soft-light',
+          }}
+        />
       )}
 
       {/* Subtle vignette for depth */}
@@ -541,11 +554,10 @@ export default function SkyClockPage() {
         }}
       />
 
-      {/* Large blurry grain layer - reduced at night, with slow drift */}
+      {/* Large blurry grain layer */}
       <div
         className="absolute pointer-events-none transition-opacity duration-1000"
         style={{
-          // Expand beyond viewport to allow drift without edges showing
           top: '-10%',
           left: '-10%',
           width: '120%',
@@ -556,18 +568,16 @@ export default function SkyClockPage() {
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.largeGrainFrequency}' numOctaves='3' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * settings.grainAnimSpeed * 0.3) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: `${settings.grainSize * settings.largeGrainScale}px ${settings.grainSize * settings.largeGrainScale}px`,
-          // Slow drifting movement
           transform: settings.grainAnimate
             ? `translate(${Math.sin(animTime * 0.1) * 3}%, ${Math.cos(animTime * 0.08) * 2}%)`
             : 'none',
         }}
       />
 
-      {/* Fine grain overlay - reduced at night, faster flicker */}
+      {/* Fine grain overlay */}
       <div
         className="absolute pointer-events-none transition-opacity duration-1000"
         style={{
-          // Expand beyond viewport for drift
           top: '-5%',
           left: '-5%',
           width: '110%',
@@ -578,7 +588,6 @@ export default function SkyClockPage() {
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${settings.grainFrequency}' numOctaves='4' stitchTiles='stitch' seed='${settings.grainAnimate ? Math.floor(animTime * settings.grainAnimSpeed) % 100 : 0}'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: `${settings.grainSize}px ${settings.grainSize}px`,
-          // Subtle jitter movement
           transform: settings.grainAnimate
             ? `translate(${Math.sin(animTime * 0.5) * 1}%, ${Math.cos(animTime * 0.4) * 0.8}%)`
             : 'none',
@@ -805,17 +814,242 @@ export default function SkyClockPage() {
         </svg>
       </button>
 
-      {/* Color Editor toggle button */}
-      <button
-        onClick={() => setShowColorEditor(!showColorEditor)}
-        className="fixed bottom-6 left-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white/80 transition-all z-50"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </button>
+      {/* Settings Panel */}
+      {showSettings && (
+        <div
+          className="fixed bottom-20 right-6 bg-black/50 backdrop-blur-md rounded-xl border border-white/10 p-4 z-50 max-h-[70vh] overflow-y-auto"
+          style={{ pointerEvents: 'auto', width: '280px' }}
+        >
+          <div className="text-white/70 text-xs uppercase tracking-wider mb-4">Sky Settings</div>
+
+          {/* Gradient Shape */}
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-2">Gradient Shape</div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Horizon Position</span>
+              <span>{settings.horizonY}%</span>
+            </div>
+            <input
+              type="range"
+              min="80"
+              max="150"
+              step="1"
+              value={settings.horizonY}
+              onChange={(e) => updateSetting('horizonY', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Dome Stretch</span>
+              <span>{settings.gradientStretch}%</span>
+            </div>
+            <input
+              type="range"
+              min="100"
+              max="250"
+              step="5"
+              value={settings.gradientStretch}
+              onChange={(e) => updateSetting('gradientStretch', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Dome Height</span>
+              <span>{settings.gradientHeight}%</span>
+            </div>
+            <input
+              type="range"
+              min="50"
+              max="150"
+              step="5"
+              value={settings.gradientHeight}
+              onChange={(e) => updateSetting('gradientHeight', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Sun & Atmosphere */}
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-2 mt-4">Sun & Atmosphere</div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Sun Glow</span>
+              <span>{(settings.sunGlowIntensity * 100).toFixed(0)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings.sunGlowIntensity}
+              onChange={(e) => updateSetting('sunGlowIntensity', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Glow Size</span>
+              <span>{settings.sunGlowSize}%</span>
+            </div>
+            <input
+              type="range"
+              min="40"
+              max="150"
+              step="5"
+              value={settings.sunGlowSize}
+              onChange={(e) => updateSetting('sunGlowSize', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Haze</span>
+              <span>{(settings.hazeIntensity * 100).toFixed(0)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.5"
+              step="0.02"
+              value={settings.hazeIntensity}
+              onChange={(e) => updateSetting('hazeIntensity', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Haze Height</span>
+              <span>{settings.hazeHeight}%</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="70"
+              step="5"
+              value={settings.hazeHeight}
+              onChange={(e) => updateSetting('hazeHeight', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Fine Grain */}
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-2 mt-4">Fine Grain</div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Opacity</span>
+              <span>{(settings.grainOpacity * 100).toFixed(0)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.5"
+              step="0.01"
+              value={settings.grainOpacity}
+              onChange={(e) => updateSetting('grainOpacity', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Size</span>
+              <span>{settings.grainSize}px</span>
+            </div>
+            <input
+              type="range"
+              min="20"
+              max="500"
+              step="10"
+              value={settings.grainSize}
+              onChange={(e) => updateSetting('grainSize', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Large Grain */}
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-2 mt-4">Large Grain</div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Opacity</span>
+              <span>{(settings.largeGrainOpacity * 100).toFixed(0)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.5"
+              step="0.01"
+              value={settings.largeGrainOpacity}
+              onChange={(e) => updateSetting('largeGrainOpacity', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Scale</span>
+              <span>{settings.largeGrainScale.toFixed(1)}x</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={settings.largeGrainScale}
+              onChange={(e) => updateSetting('largeGrainScale', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Shared Grain Settings */}
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-2 mt-4">Grain Effects</div>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-white/50 text-[10px] mb-1">
+              <span>Blend Mode</span>
+              <span>{settings.grainBlendMode}</span>
+            </div>
+            <select
+              value={settings.grainBlendMode}
+              onChange={(e) => setSettings(prev => ({ ...prev, grainBlendMode: e.target.value as BlendMode }))}
+              className="w-full h-6 bg-white/10 rounded text-white/70 text-[10px] px-2 border border-white/10 cursor-pointer"
+            >
+              {blendModes.map(mode => (
+                <option key={mode} value={mode} className="bg-gray-900">{mode}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-white/50 text-[10px]">Animate Grain</span>
+            <button
+              onClick={() => setSettings(prev => ({ ...prev, grainAnimate: !prev.grainAnimate }))}
+              className={`w-10 h-5 rounded-full transition-colors ${settings.grainAnimate ? 'bg-white/30' : 'bg-white/10'}`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.grainAnimate ? 'translate-x-5' : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
+
+          {/* Reset button */}
+          <button
+            onClick={() => setSettings(defaultSettings)}
+            className="w-full mt-3 py-2 text-xs text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 rounded-lg transition-all"
+          >
+            Reset to defaults
+          </button>
+        </div>
+      )}
 
       {/* Color Editor Panel */}
       {showColorEditor && (
@@ -1005,224 +1239,6 @@ export default function SkyClockPage() {
               Reset to Defaults
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Settings Panel - NOTE: Do not delete, may be needed later */}
-      {showSettings && (
-        <div
-          className="fixed bottom-20 right-6 w-72 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 p-4 z-50 max-h-[70vh] overflow-y-auto"
-          style={{ pointerEvents: 'auto' }}
-        >
-          <div className="text-white/80 text-sm font-medium mb-4 tracking-wide">Sky Settings</div>
-
-          {/* Sky Mode Section */}
-          <div className="text-white/40 text-xs uppercase tracking-wider mb-2">Sky Rendering</div>
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-white/50 text-xs">Use 3D Shader</span>
-            <button
-              onClick={() => setUseShader(!useShader)}
-              className={`w-10 h-5 rounded-full transition-colors ${useShader ? 'bg-blue-500/50' : 'bg-white/10'}`}
-            >
-              <div
-                className={`w-4 h-4 rounded-full bg-white transition-transform ${useShader ? 'translate-x-5' : 'translate-x-0.5'}`}
-              />
-            </button>
-          </div>
-          <div className="text-white/30 text-[10px] mb-4 -mt-2">
-            {useShader ? 'Atmospheric scattering (realistic)' : 'CSS gradient (custom colors)'}
-          </div>
-
-          {/* Fine Grain Section */}
-          <div className="text-white/40 text-xs uppercase tracking-wider mb-2">Fine Grain</div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Opacity</span>
-              <span>{(settings.grainOpacity * 100).toFixed(0)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="0.5"
-              step="0.01"
-              value={settings.grainOpacity}
-              onChange={(e) => updateSetting('grainOpacity', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Size</span>
-              <span>{settings.grainSize}px</span>
-            </div>
-            <input
-              type="range"
-              min="20"
-              max="500"
-              step="10"
-              value={settings.grainSize}
-              onChange={(e) => updateSetting('grainSize', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Frequency</span>
-              <span>{settings.grainFrequency.toFixed(2)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.05"
-              value={settings.grainFrequency}
-              onChange={(e) => updateSetting('grainFrequency', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-4">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Blur</span>
-              <span>{settings.grainBlur.toFixed(1)}px</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="3"
-              step="0.1"
-              value={settings.grainBlur}
-              onChange={(e) => updateSetting('grainBlur', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          {/* Large Grain Section */}
-          <div className="text-white/40 text-xs uppercase tracking-wider mb-2 mt-4">Large Grain</div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Opacity</span>
-              <span>{(settings.largeGrainOpacity * 100).toFixed(0)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="0.5"
-              step="0.01"
-              value={settings.largeGrainOpacity}
-              onChange={(e) => updateSetting('largeGrainOpacity', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Scale</span>
-              <span>{settings.largeGrainScale.toFixed(1)}x</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="3"
-              step="0.1"
-              value={settings.largeGrainScale}
-              onChange={(e) => updateSetting('largeGrainScale', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Frequency</span>
-              <span>{settings.largeGrainFrequency.toFixed(2)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="1"
-              step="0.01"
-              value={settings.largeGrainFrequency}
-              onChange={(e) => updateSetting('largeGrainFrequency', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          <div className="mb-4">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Blur</span>
-              <span>{settings.largeGrainBlur.toFixed(1)}px</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="10"
-              step="0.5"
-              value={settings.largeGrainBlur}
-              onChange={(e) => updateSetting('largeGrainBlur', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-            />
-          </div>
-
-          {/* Shared Settings */}
-          <div className="text-white/40 text-xs uppercase tracking-wider mb-2 mt-4">Shared</div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Blend Mode</span>
-              <span>{settings.grainBlendMode}</span>
-            </div>
-            <select
-              value={settings.grainBlendMode}
-              onChange={(e) => setSettings(prev => ({ ...prev, grainBlendMode: e.target.value as BlendMode }))}
-              className="w-full h-7 bg-white/10 rounded text-white/70 text-xs px-2 border border-white/10 cursor-pointer"
-            >
-              {blendModes.map(mode => (
-                <option key={mode} value={mode} className="bg-gray-900">{mode}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-white/50 text-xs">Animate</span>
-            <button
-              onClick={() => setSettings(prev => ({ ...prev, grainAnimate: !prev.grainAnimate }))}
-              className={`w-10 h-5 rounded-full transition-colors ${settings.grainAnimate ? 'bg-white/30' : 'bg-white/10'}`}
-            >
-              <div
-                className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.grainAnimate ? 'translate-x-5' : 'translate-x-0.5'}`}
-              />
-            </button>
-          </div>
-
-          <div className="mb-4">
-            <div className="flex justify-between text-white/50 text-xs mb-1.5">
-              <span>Animation Speed</span>
-              <span>{settings.grainAnimSpeed.toFixed(0)}</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="30"
-              step="1"
-              value={settings.grainAnimSpeed}
-              onChange={(e) => updateSetting('grainAnimSpeed', parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer slider"
-              disabled={!settings.grainAnimate}
-              style={{ opacity: settings.grainAnimate ? 1 : 0.4 }}
-            />
-          </div>
-
-          {/* Reset button */}
-          <button
-            onClick={() => setSettings(defaultSettings)}
-            className="w-full mt-3 py-2 text-xs text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 rounded-lg transition-all"
-          >
-            Reset to defaults
-          </button>
         </div>
       )}
 
