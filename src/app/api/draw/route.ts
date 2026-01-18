@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Use custom prompt if provided, otherwise use default
-    let basePrompt = prompt || `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can use ASCII art and/or shapes. You can draw wherever and however you want.`;
+    const basePrompt = prompt || `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can use ASCII art and/or shapes. You can draw wherever and however you want.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
