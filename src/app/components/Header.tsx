@@ -36,6 +36,11 @@ export default function Header() {
     }
   };
 
+  // Hide header completely on draw page
+  if (pathname === '/draw') {
+    return null;
+  }
+
   return (
     <header>
       {/* Desktop/Tablet: Full header - use CSS media queries only */}
