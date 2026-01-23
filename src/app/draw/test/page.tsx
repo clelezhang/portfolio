@@ -37,6 +37,12 @@ interface PanelState {
   isLoading: boolean;
 }
 
+interface HumanStroke {
+  d: string;
+  color: string;
+  strokeWidth: number;
+}
+
 const MODES: DrawMode[] = ['shapes', 'ascii'];
 
 export default function DrawTestPage() {
@@ -55,6 +61,8 @@ export default function DrawTestPage() {
   );
   const [showSettings, setShowSettings] = useState(false);
   const [filterSeed, setFilterSeed] = useState(1);
+  const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
+  const [currentStroke, setCurrentStroke] = useState<HumanStroke | null>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   // Wobble animation
@@ -174,7 +182,15 @@ export default function DrawTestPage() {
     const canvas = canvasRefs.current[0];
     if (!canvas) return;
     setIsDrawing(true);
-    lastPoint.current = getPoint(e, canvas);
+    const point = getPoint(e, canvas);
+    lastPoint.current = point;
+
+    // Start a new SVG stroke
+    setCurrentStroke({
+      d: `M ${point.x} ${point.y}`,
+      color: tool === 'erase' ? '#ffffff' : strokeColor,
+      strokeWidth: tool === 'erase' ? strokeSize * 5 : strokeSize,
+    });
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
@@ -185,32 +201,48 @@ export default function DrawTestPage() {
     if (!firstCanvas) return;
     const point = getPoint(e, firstCanvas);
 
-    // Draw on all canvases using the same coordinates
-    canvasRefs.current.forEach((canvas) => {
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      ctx.beginPath();
-      ctx.moveTo(lastPoint.current!.x, lastPoint.current!.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = tool === 'erase' ? '#ffffff' : strokeColor;
-      ctx.lineWidth = tool === 'erase' ? strokeSize * 5 : strokeSize;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    });
+    // Extend the current SVG stroke
+    setCurrentStroke(prev => prev ? {
+      ...prev,
+      d: `${prev.d} L ${point.x} ${point.y}`,
+    } : null);
 
     lastPoint.current = point;
   };
 
   const stopDrawing = () => {
+    // Save the completed stroke
+    if (currentStroke && currentStroke.d.includes('L')) {
+      setHumanStrokes(prev => [...prev, currentStroke]);
+    }
+    setCurrentStroke(null);
     setIsDrawing(false);
     lastPoint.current = null;
+  };
+
+  // Render human strokes to a canvas for snapshot
+  const renderStrokesToCanvas = (canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    humanStrokes.forEach((stroke) => {
+      const path = new Path2D(stroke.d);
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.strokeWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke(path);
+    });
   };
 
   const handleYourTurn = async () => {
     // Set all panels to loading
     setPanels((prev) => prev.map((p) => ({ ...p, isLoading: true })));
+
+    // Render human strokes to all canvases before taking snapshot
+    canvasRefs.current.forEach((canvas) => {
+      if (canvas) renderStrokesToCanvas(canvas);
+    });
 
     // Send requests in parallel for each mode
     const requests = MODES.map(async (mode, index) => {
@@ -300,6 +332,8 @@ export default function DrawTestPage() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
     setPanels(MODES.map(() => ({ asciiBlocks: [], shapes: [], isLoading: false })));
+    setHumanStrokes([]);
+    setCurrentStroke(null);
   };
 
   return (
@@ -394,11 +428,9 @@ export default function DrawTestPage() {
               {mode}
               {panels[index].isLoading && <span className="animate-pulse">...</span>}
             </div>
-            {/* Canvas - only first one captures input */}
-            <canvas
-              ref={(el) => { canvasRefs.current[index] = el; }}
-              className={`flex-1 touch-none ${index === 0 ? 'cursor-crosshair' : 'pointer-events-none'}`}
-              style={{ filter: 'url(#wobbleFilter)' }}
+            {/* Canvas container with SVG overlay */}
+            <div
+              className={`flex-1 relative ${index === 0 ? 'cursor-crosshair' : 'pointer-events-none'}`}
               onMouseDown={index === 0 ? startDrawing : undefined}
               onMouseMove={index === 0 ? draw : undefined}
               onMouseUp={index === 0 ? stopDrawing : undefined}
@@ -406,7 +438,41 @@ export default function DrawTestPage() {
               onTouchStart={index === 0 ? startDrawing : undefined}
               onTouchMove={index === 0 ? draw : undefined}
               onTouchEnd={index === 0 ? stopDrawing : undefined}
-            />
+            >
+              {/* Canvas for Claude's drawings and capturing snapshot */}
+              <canvas
+                ref={(el) => { canvasRefs.current[index] = el; }}
+                className="absolute inset-0 w-full h-full touch-none"
+                style={{ filter: 'url(#wobbleFilter)' }}
+              />
+              {/* SVG layer for human strokes */}
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ filter: 'url(#wobbleFilter)' }}
+              >
+                {humanStrokes.map((stroke, i) => (
+                  <path
+                    key={i}
+                    d={stroke.d}
+                    stroke={stroke.color}
+                    strokeWidth={stroke.strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+                {currentStroke && (
+                  <path
+                    d={currentStroke.d}
+                    stroke={currentStroke.color}
+                    strokeWidth={currentStroke.strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+              </svg>
+            </div>
           </div>
         ))}
       </div>
