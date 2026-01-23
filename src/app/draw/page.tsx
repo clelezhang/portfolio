@@ -10,8 +10,10 @@ interface AsciiBlock {
 }
 
 interface Shape {
-  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase';
+  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path';
   color?: string;
+  fill?: string;
+  strokeWidth?: number;
   cx?: number;
   cy?: number;
   r?: number;
@@ -24,77 +26,113 @@ interface Shape {
   width?: number;
   height?: number;
   points?: number[][];
+  // SVG path
+  d?: string;
 }
+
+type DrawMode = 'all' | 'shapes' | 'ascii';
 
 interface Turn {
   who: 'human' | 'claude';
   description?: string;
 }
 
-interface Bubble {
-  id: number;
+interface Comment {
   text: string;
+  x: number;
+  y: number;
   from: 'human' | 'claude';
-  opacity: number;
+}
+
+interface HumanStroke {
+  d: string;
+  color: string;
+  strokeWidth: number;
 }
 
 export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [spacePressed, setSpacePressed] = useState(false);
+  const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [asciiBlocks, setAsciiBlocks] = useState<AsciiBlock[]>([]);
   const [shapes, setShapes] = useState<Shape[]>([]);
+  const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
+  const [currentStroke, setCurrentStroke] = useState<HumanStroke | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
   const [humanHasDrawn, setHumanHasDrawn] = useState(false);
   const [wish, setWish] = useState<string | null>(null);
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const [userMessage, setUserMessage] = useState('');
+  const [comments, setComments] = useState<Comment[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [sayEnabled, setSayEnabled] = useState(false);
   const [autoDrawEnabled, setAutoDrawEnabled] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<string[]>([]);
   const [temperature, setTemperature] = useState(1.0);
   const [maxTokens, setMaxTokens] = useState(1024);
-  const [tool, setTool] = useState<'draw' | 'erase'>('draw');
+  const [tool, setTool] = useState<'draw' | 'erase' | 'comment'>('draw');
+  const [commentInput, setCommentInput] = useState<{ x: number; y: number } | null>(null);
+  const [commentText, setCommentText] = useState('');
   const [prompt, setPrompt] = useState(
-    `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can use ASCII art and/or shapes. You can draw wherever and however you want.`
+    `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
   );
-  const bubbleIdRef = useRef(0);
+  const [drawMode, setDrawMode] = useState<DrawMode>('all');
+  const [asciiStroke, setAsciiStroke] = useState(false);
+  const [strokeSize, setStrokeSize] = useState(2);
+  const [strokeColor, setStrokeColor] = useState('#000000');
+  const [distortionEnabled] = useState(true);
+  const [wiggleEnabled] = useState(true);
+  const [distortionAmount] = useState(2);
+  const [wiggleSpeed] = useState(168);
+  const [filterSeed, setFilterSeed] = useState(1);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const lastDrawnPoint = useRef<{ x: number; y: number } | null>(null);
+  const lastAsciiPoint = useRef<{ x: number; y: number } | null>(null);
   const autoDrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleYourTurnRef = useRef<() => void>(() => {});
 
-  // Add a bubble that fades away
-  const addBubble = useCallback((text: string, from: 'human' | 'claude') => {
-    const id = bubbleIdRef.current++;
-    setBubbles((prev) => [...prev, { id, text, from, opacity: 1 }]);
-
-    // Start fading after 3 seconds
-    setTimeout(() => {
-      const fadeInterval = setInterval(() => {
-        setBubbles((prev) => {
-          const updated = prev.map((b) =>
-            b.id === id ? { ...b, opacity: b.opacity - 0.1 } : b
-          );
-          // Remove when fully faded
-          const bubble = updated.find((b) => b.id === id);
-          if (!bubble || bubble.opacity <= 0) {
-            clearInterval(fadeInterval);
-            return updated.filter((b) => b.id !== id);
-          }
-          return updated;
-        });
-      }, 100);
-    }, 3000);
-  }, []);
-
-  // Set up canvas
-  useEffect(() => {
+  // Add a comment to the canvas
+  const addComment = useCallback((text: string, from: 'human' | 'claude', x?: number, y?: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let commentX = x;
+    let commentY = y;
+
+    if (commentX === undefined) {
+      if (from === 'human' && lastDrawnPoint.current) {
+        // Place human comment near where they last drew
+        commentX = lastDrawnPoint.current.x + 10;
+        commentY = lastDrawnPoint.current.y - 10;
+      } else if (from === 'human') {
+        // Default if no drawing yet
+        commentX = 50;
+        commentY = 50;
+      } else {
+        // Default position for Claude if not specified
+        commentX = canvas.width - 200;
+        commentY = 50;
+      }
+    }
+
+    setComments((prev) => [...prev, { text, x: commentX!, y: commentY!, from }]);
+  }, []);
+
+  // Set up canvas - size based on container
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
     const updateSize = () => {
-      const rect = canvas.getBoundingClientRect();
+      const rect = container.getBoundingClientRect();
+      // Canvas fills the container
       canvas.width = rect.width;
       canvas.height = rect.height;
       redraw();
@@ -111,47 +149,13 @@ export default function DrawPage() {
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
 
-    // Draw shapes
+    // Handle erase shapes on canvas
     shapes.forEach((shape) => {
       if (shape.type === 'erase' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
-        // Erase a rectangular area
         ctx.clearRect(shape.x, shape.y, shape.width, shape.height);
-        return;
-      }
-
-      ctx.strokeStyle = shape.color || '#3b82f6';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-
-      if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
-        ctx.beginPath();
-        ctx.arc(shape.cx, shape.cy, shape.r, 0, Math.PI * 2);
-        ctx.stroke();
-      } else if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
-        ctx.beginPath();
-        ctx.moveTo(shape.x1, shape.y1);
-        ctx.lineTo(shape.x2, shape.y2);
-        ctx.stroke();
-      } else if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
-        ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-      } else if (shape.type === 'curve' && shape.points && shape.points.length >= 2) {
-        ctx.beginPath();
-        ctx.moveTo(shape.points[0][0], shape.points[0][1]);
-        if (shape.points.length === 3) {
-          // Quadratic curve
-          ctx.quadraticCurveTo(shape.points[1][0], shape.points[1][1], shape.points[2][0], shape.points[2][1]);
-        } else if (shape.points.length === 4) {
-          // Bezier curve
-          ctx.bezierCurveTo(shape.points[1][0], shape.points[1][1], shape.points[2][0], shape.points[2][1], shape.points[3][0], shape.points[3][1]);
-        } else {
-          // Just connect points
-          for (let i = 1; i < shape.points.length; i++) {
-            ctx.lineTo(shape.points[i][0], shape.points[i][1]);
-          }
-        }
-        ctx.stroke();
       }
     });
+    // Note: Other shapes are rendered in SVG overlay for filter effects
 
     // Draw ASCII blocks
     asciiBlocks.forEach((block) => {
@@ -162,71 +166,210 @@ export default function DrawPage() {
         ctx.fillText(line, block.x, block.y + i * 18);
       });
     });
+
   }, [asciiBlocks, shapes]);
 
   useEffect(() => {
     redraw();
   }, [asciiBlocks, shapes, redraw]);
 
-  const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
+  // Wiggle animation effect
+  useEffect(() => {
+    if (!wiggleEnabled) return;
 
-    const rect = canvas.getBoundingClientRect();
-    if ('touches' in e) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
+    const interval = setInterval(() => {
+      setFilterSeed((prev) => (prev % 100) + 1);
+    }, wiggleSpeed);
+
+    return () => clearInterval(interval);
+  }, [wiggleEnabled, wiggleSpeed]);
+
+  // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Ctrl/Cmd + scroll = zoom (trackpad pinch gestures set ctrlKey)
+    if (e.ctrlKey || e.metaKey) {
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      // Zoom factor - use actual delta for smoother, more sensitive zooming
+      const zoomFactor = 1 - e.deltaY * 0.01;
+      const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.25), 4);
+
+      // Adjust pan to zoom toward mouse position
+      const mouseOffsetX = mouseX - centerX - pan.x;
+      const mouseOffsetY = mouseY - centerY - pan.y;
+      const newPanX = pan.x - mouseOffsetX * (newZoom / zoom - 1);
+      const newPanY = pan.y - mouseOffsetY * (newZoom / zoom - 1);
+
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+    } else {
+      // Plain scroll/trackpad = pan
+      setPan(prev => ({
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY,
+      }));
     }
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+  }, [zoom, pan]);
+
+  // Attach wheel handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
+  // Spacebar for pan mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        setSpacePressed(true);
+      }
     };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+        setIsPanning(false);
+        panStart.current = null;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Pan handlers
+  const startPan = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsPanning(true);
+    panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+  }, [pan]);
+
+  const doPan = useCallback((e: React.MouseEvent) => {
+    if (!isPanning || !panStart.current) return;
+    const dx = e.clientX - panStart.current.x;
+    const dy = e.clientY - panStart.current.y;
+    setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
+  }, [isPanning]);
+
+  const stopPan = useCallback(() => {
+    setIsPanning(false);
+    panStart.current = null;
+  }, []);
+
+  // Double-click to reset view
+  const handleDoubleClick = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Convert screen coordinates to canvas coordinates (accounting for zoom/pan)
+  const screenToCanvas = useCallback((screenX: number, screenY: number) => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return { x: screenX, y: screenY };
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Get position relative to container center, remove pan, then scale
+    const relX = screenX - rect.left - centerX;
+    const relY = screenY - rect.top - centerY;
+
+    // Reverse the transform: remove pan, then remove zoom, then add back center offset
+    const canvasX = (relX - pan.x) / zoom + centerX;
+    const canvasY = (relY - pan.y) / zoom + centerY;
+
+    return { x: canvasX, y: canvasY };
+  }, [zoom, pan]);
+
+  const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e) {
+      return screenToCanvas(e.touches[0].clientX, e.touches[0].clientY);
+    }
+    return screenToCanvas(e.clientX, e.clientY);
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDrawing(true);
     setHumanHasDrawn(true);
-    lastPoint.current = getPoint(e);
+    const point = getPoint(e);
+    lastPoint.current = point;
+    lastAsciiPoint.current = point; // Set initial anchor for ASCII mode
+
+    // Start a new SVG stroke (draw or erase)
+    if ((tool === 'draw' || tool === 'erase') && !asciiStroke) {
+      setCurrentStroke({
+        d: `M ${point.x} ${point.y}`,
+        color: tool === 'erase' ? '#ffffff' : strokeColor,
+        strokeWidth: tool === 'erase' ? strokeSize * 5 : strokeSize,
+      });
+    }
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || !lastPoint.current) return;
+    if (!isDrawing || !lastPoint.current) return;
 
     const point = getPoint(e);
     if (!point) return;
 
-    if (tool === 'erase') {
-      // Erase mode: clear pixels along the path
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.beginPath();
-      ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.lineWidth = 20;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      ctx.restore();
-    } else {
-      // Draw mode: normal black strokes
-      ctx.beginPath();
-      ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.stroke();
+    if (tool === 'erase' || (tool === 'draw' && !asciiStroke)) {
+      // SVG stroke mode (draw or erase)
+      setCurrentStroke(prev => prev ? {
+        ...prev,
+        d: `${prev.d} L ${point.x} ${point.y}`,
+      } : null);
+    } else if (asciiStroke) {
+      // ASCII stroke mode: draw random ASCII characters along the path (canvas)
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx) return;
+
+      const asciiChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~*+=#@$%&!?<>^.:;-_/\\|[]{}()░▒▓█●○◐◑▲▼◆◇■□★☆♦♣♠♥∞≈≠±×÷«»¤¶§†‡';
+      const charSpacing = Math.max(8, strokeSize * 4);
+
+      // Check distance from last placed character
+      const lastAscii = lastAsciiPoint.current!;
+      const dx = point.x - lastAscii.x;
+      const dy = point.y - lastAscii.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance >= charSpacing) {
+        ctx.font = `${Math.max(10, strokeSize * 5)}px monospace`;
+        ctx.fillStyle = strokeColor;
+        const char = asciiChars[Math.floor(Math.random() * asciiChars.length)];
+        ctx.fillText(char, point.x - strokeSize, point.y + strokeSize);
+        lastAsciiPoint.current = { x: point.x, y: point.y };
+      }
     }
 
     lastPoint.current = point;
   };
 
   const stopDrawing = () => {
+    if (lastPoint.current) {
+      lastDrawnPoint.current = { ...lastPoint.current };
+    }
+    // Save the completed stroke
+    if (currentStroke && currentStroke.d.includes('L')) {
+      setHumanStrokes(prev => [...prev, currentStroke]);
+    }
+    setCurrentStroke(null);
     setIsDrawing(false);
     lastPoint.current = null;
     if (autoDrawEnabled && humanHasDrawn) {
@@ -246,7 +389,24 @@ export default function DrawPage() {
       newHistory.push({ who: 'human' });
     }
 
+    // Track streamed items for history
+    const streamedBlocks: AsciiBlock[] = [];
+    const streamedShapes: Shape[] = [];
+
     try {
+      // Rasterize human SVG strokes to canvas before capturing
+      const ctx = canvas.getContext('2d');
+      if (ctx && humanStrokes.length > 0) {
+        humanStrokes.forEach(stroke => {
+          const path = new Path2D(stroke.d);
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.strokeWidth;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke(path);
+        });
+      }
+
       const image = canvas.toDataURL('image/png');
       const response = await fetch('/api/draw', {
         method: 'POST',
@@ -262,35 +422,71 @@ export default function DrawPage() {
           temperature,
           maxTokens,
           prompt: prompt || undefined,
+          streaming: true,
+          drawMode,
         }),
       });
 
       if (!response.ok) throw new Error('Failed to get response');
 
-      const data = await response.json();
-      let description = '';
+      // Handle SSE stream
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
 
-      if (data.blocks && data.blocks.length > 0) {
-        setAsciiBlocks((prev) => [...prev, ...data.blocks]);
-        description += data.blocks.map((b: AsciiBlock) => b.block).join('\n---\n');
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE events
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep incomplete data in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+
+              if (event.type === 'block') {
+                setAsciiBlocks((prev) => [...prev, event.data]);
+                streamedBlocks.push(event.data);
+              } else if (event.type === 'shape') {
+                setShapes((prev) => [...prev, event.data]);
+                streamedShapes.push(event.data);
+              } else if (event.type === 'say') {
+                addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
+              } else if (event.type === 'wish') {
+                setWish(event.data);
+                console.log('claude wishes:', event.data);
+              } else if (event.type === 'done') {
+                // Build description for history
+                let description = '';
+                if (streamedBlocks.length > 0) {
+                  description += streamedBlocks.map((b) => b.block).join('\n---\n');
+                }
+                if (streamedShapes.length > 0) {
+                  const shapeDesc = streamedShapes.map((s) => `${s.type}`).join(', ');
+                  description += (description ? '\n' : '') + `[shapes: ${shapeDesc}]`;
+                }
+                if (description) {
+                  newHistory.push({ who: 'claude', description });
+                  setHistory(newHistory);
+                  setHumanHasDrawn(false);
+                }
+              } else if (event.type === 'error') {
+                console.error('Stream error:', event.message);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE event:', parseError);
+            }
+          }
+        }
       }
-      if (data.shapes && data.shapes.length > 0) {
-        setShapes((prev) => [...prev, ...data.shapes]);
-        const shapeDesc = data.shapes.map((s: Shape) => `${s.type}`).join(', ');
-        description += (description ? '\n' : '') + `[shapes: ${shapeDesc}]`;
-      }
-      if (description) {
-        newHistory.push({ who: 'claude', description });
-        setHistory(newHistory);
-        setHumanHasDrawn(false);
-      }
-      if (data.say) {
-        addBubble(data.say, 'claude');
-      }
-      if (data.wish) {
-        setWish(data.wish);
-        console.log('claude wishes:', data.wish);
-      }
+
       // Clear pending messages after successful send
       setPendingMessages([]);
     } catch (error) {
@@ -311,18 +507,36 @@ export default function DrawPage() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setAsciiBlocks([]);
     setShapes([]);
+    setHumanStrokes([]);
+    setCurrentStroke(null);
+    setComments([]);
     setHistory([]);
     setHumanHasDrawn(false);
     setWish(null);
-    setBubbles([]);
+    lastDrawnPoint.current = null;
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (tool !== 'comment') return;
+    const point = getPoint(e);
+    if (!point) return;
+    // Open comment input at click position
+    setCommentInput({ x: point.x, y: point.y });
+    setCommentText('');
+  };
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userMessage.trim()) return;
-    addBubble(userMessage.trim(), 'human');
-    setPendingMessages((prev) => [...prev, userMessage.trim()]);
-    setUserMessage('');
+    if (!commentText.trim() || !commentInput) return;
+    addComment(commentText.trim(), 'human', commentInput.x, commentInput.y);
+    setPendingMessages((prev) => [...prev, commentText.trim()]);
+    setCommentInput(null);
+    setCommentText('');
+  };
+
+  const handleCommentCancel = () => {
+    setCommentInput(null);
+    setCommentText('');
   };
 
   // Auto-draw: trigger Claude after user stops drawing
@@ -337,22 +551,290 @@ export default function DrawPage() {
 
   return (
     <div className="h-dvh w-screen flex flex-col bg-white relative overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className={`flex-1 touch-none ${tool === 'erase' ? 'cursor-cell' : 'cursor-crosshair'}`}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
-      />
+      {/* SVG filter definitions (always present) */}
+      <svg className="absolute w-0 h-0" aria-hidden="true">
+        <defs>
+          <filter id="wobbleFilter">
+            <feTurbulence
+              type="turbulence"
+              baseFrequency="0.02"
+              numOctaves="3"
+              seed={filterSeed}
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={distortionAmount}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* Zoom/pan container */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-hidden relative"
+        onMouseDown={(e) => {
+          if (spacePressed || e.button === 1) {
+            startPan(e);
+          } else if (tool !== 'comment') {
+            startDrawing(e);
+          }
+        }}
+        onMouseMove={(e) => {
+          if (isPanning) {
+            doPan(e);
+          } else if (tool !== 'comment') {
+            draw(e);
+          }
+        }}
+        onMouseUp={(e) => {
+          if (isPanning) {
+            stopPan();
+          } else if (tool !== 'comment') {
+            stopDrawing();
+          }
+        }}
+        onMouseLeave={() => {
+          if (isPanning) {
+            stopPan();
+          } else if (tool !== 'comment') {
+            stopDrawing();
+          }
+        }}
+        onClick={handleCanvasClick}
+        onDoubleClick={handleDoubleClick}
+        onTouchStart={tool === 'comment' ? undefined : startDrawing}
+        onTouchMove={tool === 'comment' ? undefined : draw}
+        onTouchEnd={tool === 'comment' ? (e) => {
+          const touch = e.changedTouches[0];
+          const point = screenToCanvas(touch.clientX, touch.clientY);
+          setCommentInput({ x: point.x, y: point.y });
+          setCommentText('');
+        } : stopDrawing}
+        style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : (tool === 'comment' ? 'crosshair' : tool === 'erase' ? 'cell' : 'crosshair') }}
+      >
+        {/* Transform wrapper for zoom/pan */}
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center center',
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            className="touch-none w-full h-full"
+            style={{
+              ...(distortionEnabled || wiggleEnabled) ? { filter: 'url(#wobbleFilter)' } : {},
+              boxShadow: zoom !== 1 ? '0 0 0 1px rgba(0,0,0,0.1)' : undefined,
+            }}
+          />
+
+          {/* SVG layer for human strokes (vector, stays crisp when zoomed) */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: '100%', height: '100%', filter: (distortionEnabled || wiggleEnabled) ? 'url(#wobbleFilter)' : undefined }}
+          >
+            {humanStrokes.map((stroke, i) => (
+              <path
+                key={i}
+                d={stroke.d}
+                stroke={stroke.color}
+                strokeWidth={stroke.strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+            {currentStroke && (
+              <path
+                d={currentStroke.d}
+                stroke={currentStroke.color}
+                strokeWidth={currentStroke.strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </svg>
+
+          {/* SVG overlay for Claude's shapes */}
+          {shapes.length > 0 && (
+            <svg
+              className="absolute inset-0 pointer-events-none"
+              style={{ width: '100%', height: '100%', filter: (distortionEnabled || wiggleEnabled) ? 'url(#wobbleFilter)' : undefined }}
+            >
+          <g>
+            {shapes.map((shape, i) => {
+              if (shape.type === 'path' && shape.d) {
+                return (
+                  <path
+                    key={i}
+                    d={shape.d}
+                    stroke={shape.color || '#3b82f6'}
+                    strokeWidth={shape.strokeWidth || 2}
+                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              }
+              if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
+                return (
+                  <circle
+                    key={i}
+                    cx={shape.cx}
+                    cy={shape.cy}
+                    r={shape.r}
+                    stroke={shape.color || '#3b82f6'}
+                    strokeWidth={shape.strokeWidth || 2}
+                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                  />
+                );
+              }
+              if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
+                return (
+                  <rect
+                    key={i}
+                    x={shape.x}
+                    y={shape.y}
+                    width={shape.width}
+                    height={shape.height}
+                    stroke={shape.color || '#3b82f6'}
+                    strokeWidth={shape.strokeWidth || 2}
+                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                  />
+                );
+              }
+              if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
+                return (
+                  <line
+                    key={i}
+                    x1={shape.x1}
+                    y1={shape.y1}
+                    x2={shape.x2}
+                    y2={shape.y2}
+                    stroke={shape.color || '#3b82f6'}
+                    strokeWidth={shape.strokeWidth || 2}
+                    strokeLinecap="round"
+                  />
+                );
+              }
+              if (shape.type === 'curve' && shape.points && shape.points.length >= 2) {
+                let d = `M ${shape.points[0][0]} ${shape.points[0][1]}`;
+                if (shape.points.length === 3) {
+                  d += ` Q ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]}`;
+                } else if (shape.points.length === 4) {
+                  d += ` C ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]} ${shape.points[3][0]} ${shape.points[3][1]}`;
+                } else {
+                  for (let j = 1; j < shape.points.length; j++) {
+                    d += ` L ${shape.points[j][0]} ${shape.points[j][1]}`;
+                  }
+                }
+                return (
+                  <path
+                    key={i}
+                    d={d}
+                    stroke={shape.color || '#3b82f6'}
+                    strokeWidth={shape.strokeWidth || 2}
+                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              }
+              return null;
+            })}
+          </g>
+        </svg>
+      )}
+        </div>{/* End transform wrapper */}
+
+      {/* Floating comments */}
+      {comments.map((comment, i) => (
+        <div
+          key={i}
+          className={`absolute pointer-events-none ${
+            comment.from === 'human'
+              ? 'bg-gray-800 text-white'
+              : 'bg-blue-500 text-white'
+          } px-2 py-1 rounded text-xs max-w-32 shadow-sm`}
+          style={{ left: comment.x, top: comment.y }}
+        >
+          {comment.text}
+        </div>
+      ))}
+
+      {/* Comment input popup */}
+      {commentInput && (
+        <form
+          onSubmit={handleCommentSubmit}
+          className="absolute bg-white border border-gray-300 rounded-lg shadow-lg p-2 z-20"
+          style={{ left: commentInput.x, top: commentInput.y }}
+        >
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Add comment..."
+            className="px-2 py-1 text-sm border-none outline-none w-40"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') handleCommentCancel();
+            }}
+          />
+          <div className="flex gap-1 mt-1">
+            <button
+              type="submit"
+              className="px-2 py-1 bg-black text-white text-xs rounded"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={handleCommentCancel}
+              className="px-2 py-1 text-gray-500 text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+      </div>{/* End zoom/pan container */}
 
       {/* Settings panel - shows above bottom bar */}
       {showSettings && (
         <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg text-sm z-10 w-72">
           <div className="font-medium mb-3 text-gray-700">Settings</div>
+
+          {/* Draw Mode */}
+          <div className="mb-4">
+            <label className="text-gray-600 mb-2 block">Draw Mode</label>
+            <div className="flex flex-wrap gap-1">
+              {(['all', 'shapes', 'ascii'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setDrawMode(mode)}
+                  className={`px-2 py-1 text-xs rounded ${
+                    drawMode === mode
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {mode === 'all' ? 'All' : mode === 'shapes' ? 'Shapes' : 'ASCII'}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {drawMode === 'shapes' && 'SVG paths and geometric shapes'}
+              {drawMode === 'ascii' && 'Text-based ASCII art characters'}
+              {drawMode === 'all' && 'All drawing methods available'}
+            </p>
+          </div>
 
           {/* Toggles */}
           <div className="space-y-2 mb-4">
@@ -363,7 +845,7 @@ export default function DrawPage() {
                 onChange={(e) => setSayEnabled(e.target.checked)}
                 className="rounded"
               />
-              <span>Say bubble</span>
+              <span>Comments</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -373,6 +855,15 @@ export default function DrawPage() {
                 className="rounded"
               />
               <span>Auto-draw (2s)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={asciiStroke}
+                onChange={(e) => setAsciiStroke(e.target.checked)}
+                className="rounded"
+              />
+              <span>ASCII strokes</span>
             </label>
           </div>
 
@@ -427,73 +918,78 @@ export default function DrawPage() {
               className="w-full h-32 px-2 py-1 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:border-gray-400"
             />
             {sayEnabled && (
-              <p className="text-xs text-gray-400 mt-1">+ say bubble instructions</p>
+              <p className="text-xs text-gray-400 mt-1">+ comment instructions</p>
             )}
           </div>
         </div>
       )}
-
-      {/* Speech bubbles */}
-      <div className="absolute bottom-24 left-4 flex flex-col gap-2 pointer-events-none">
-        {bubbles.filter(b => b.from === 'human').map((bubble) => (
-          <div
-            key={bubble.id}
-            className="bg-gray-100 text-gray-800 px-3 py-2 rounded-2xl rounded-bl-sm text-sm max-w-48"
-            style={{ opacity: bubble.opacity }}
-          >
-            {bubble.text}
-          </div>
-        ))}
-      </div>
-      <div className="absolute bottom-24 right-4 flex flex-col gap-2 items-end pointer-events-none">
-        {bubbles.filter(b => b.from === 'claude').map((bubble) => (
-          <div
-            key={bubble.id}
-            className="bg-blue-500 text-white px-3 py-2 rounded-2xl rounded-br-sm text-sm max-w-48"
-            style={{ opacity: bubble.opacity }}
-          >
-            {bubble.text}
-          </div>
-        ))}
-      </div>
 
       <div className="flex flex-col items-center gap-2 p-4 border-t border-gray-100">
         {wish && (
           <p className="text-sm text-gray-500 italic">&quot;{wish}&quot;</p>
         )}
         <div className="flex gap-2 items-center">
+          {/* Color palette */}
+          <div className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-full">
+            {['#000000', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6'].map((color) => (
+              <button
+                key={color}
+                onClick={() => setStrokeColor(color)}
+                className={`w-5 h-5 rounded-full transition-transform ${
+                  strokeColor === color ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-110'
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          {/* Size selector */}
+          <div className="flex items-center gap-2 px-2 py-1 border border-gray-200 rounded-full">
+            {[2, 6, 12].map((size) => (
+              <button
+                key={size}
+                onClick={() => setStrokeSize(size)}
+                className={`rounded-full bg-current transition-transform ${
+                  strokeSize === size ? 'ring-2 ring-offset-1 ring-gray-400' : 'hover:scale-125'
+                }`}
+                style={{
+                  width: `${size + 4}px`,
+                  height: `${size + 4}px`,
+                  color: strokeColor
+                }}
+                title={`${size}px`}
+              />
+            ))}
+          </div>
           <div className="flex border border-gray-200 rounded-full overflow-hidden">
             <button
               onClick={() => setTool('draw')}
               className={`px-3 py-2 text-sm ${tool === 'draw' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
             >
-              draw
+              ✏️
             </button>
             <button
               onClick={() => setTool('erase')}
               className={`px-3 py-2 text-sm ${tool === 'erase' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
             >
-              erase
+              ⌫
             </button>
+            {sayEnabled && (
+              <button
+                onClick={() => setTool('comment')}
+                className={`px-3 py-2 text-sm ${tool === 'comment' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
+              >
+                💬
+              </button>
+            )}
           </div>
-          {sayEnabled && (
-            <form onSubmit={handleSendMessage} className="flex gap-2">
-              <input
-                type="text"
-                value={userMessage}
-                onChange={(e) => setUserMessage(e.target.value)}
-                placeholder="say something..."
-                className="px-3 py-2 border border-gray-200 rounded-full text-sm w-32 focus:outline-none focus:border-gray-400"
-              />
-            </form>
-          )}
           {!autoDrawEnabled && (
             <button
               onClick={handleYourTurn}
               disabled={isLoading}
-              className="px-6 py-2 bg-black text-white rounded-full text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-black text-white rounded-full text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? '...' : 'your turn'}
+              {isLoading ? '...' : '🫱'}
             </button>
           )}
           {autoDrawEnabled && isLoading && (
@@ -501,9 +997,9 @@ export default function DrawPage() {
           )}
           <button
             onClick={handleClear}
-            className="px-6 py-2 border border-gray-200 rounded-full text-sm hover:bg-gray-50"
+            className="px-3 py-2 border border-gray-200 rounded-full text-sm hover:bg-gray-50"
           >
-            clear
+            🧹
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}

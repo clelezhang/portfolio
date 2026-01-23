@@ -36,8 +36,8 @@ export default function Header() {
     }
   };
 
-  // Hide header completely on draw page
-  if (pathname === '/draw') {
+  // Hide header completely on draw pages (main and tests)
+  if (pathname?.startsWith('/draw')) {
     return null;
   }
 
