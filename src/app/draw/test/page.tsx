@@ -53,7 +53,16 @@ export default function DrawTestPage() {
     `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
   );
   const [showSettings, setShowSettings] = useState(false);
+  const [filterSeed, setFilterSeed] = useState(1);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
+
+  // Wobble animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFilterSeed((prev) => (prev % 100) + 1);
+    }, 168);
+    return () => clearInterval(interval);
+  }, []);
 
   // Set up canvases
   useEffect(() => {
@@ -294,6 +303,28 @@ export default function DrawTestPage() {
 
   return (
     <div className="h-dvh w-screen flex flex-col bg-white">
+      {/* Wobble filter */}
+      <svg className="absolute w-0 h-0" aria-hidden="true">
+        <defs>
+          <filter id="wobbleFilter">
+            <feTurbulence
+              type="turbulence"
+              baseFrequency="0.02"
+              numOctaves={3}
+              seed={filterSeed}
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={2}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
       {/* Settings panel */}
       {showSettings && (
         <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg text-sm z-10 w-72">
@@ -366,6 +397,7 @@ export default function DrawTestPage() {
             <canvas
               ref={(el) => { canvasRefs.current[index] = el; }}
               className={`flex-1 touch-none ${index === 0 ? 'cursor-crosshair' : 'pointer-events-none'}`}
+              style={{ filter: 'url(#wobbleFilter)' }}
               onMouseDown={index === 0 ? startDrawing : undefined}
               onMouseMove={index === 0 ? draw : undefined}
               onMouseUp={index === 0 ? stopDrawing : undefined}
