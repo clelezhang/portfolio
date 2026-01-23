@@ -30,6 +30,7 @@ export default function AsciiTestPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [strokeSize, setStrokeSize] = useState(2);
+  const [tool, setTool] = useState<'draw' | 'erase'>('draw');
   const [filterSeed, setFilterSeed] = useState(1);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
@@ -119,8 +120,8 @@ export default function AsciiTestPage() {
       ctx.beginPath();
       ctx.moveTo(lastPoint.current!.x, lastPoint.current!.y);
       ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = strokeSize;
+      ctx.strokeStyle = tool === 'erase' ? '#ffffff' : strokeColor;
+      ctx.lineWidth = tool === 'erase' ? strokeSize * 5 : strokeSize;
       ctx.lineCap = 'round';
       ctx.stroke();
     });
@@ -361,6 +362,21 @@ export default function AsciiTestPage() {
                 title={`${size}px`}
               />
             ))}
+          </div>
+          {/* Tool selector */}
+          <div className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-full">
+            <button
+              onClick={() => setTool('draw')}
+              className={`px-2 py-1 text-xs rounded-full ${tool === 'draw' ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
+            >
+              draw
+            </button>
+            <button
+              onClick={() => setTool('erase')}
+              className={`px-2 py-1 text-xs rounded-full ${tool === 'erase' ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
+            >
+              erase
+            </button>
           </div>
           {/* Temperature */}
           <div className="flex items-center gap-2 px-3 py-1 border border-gray-200 rounded-full">
