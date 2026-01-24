@@ -50,6 +50,14 @@ interface HumanStroke {
   strokeWidth: number;
 }
 
+// Unified drawing element for proper z-ordering
+interface DrawingElement {
+  id: string;
+  source: 'human' | 'claude';
+  type: 'stroke' | 'shape';
+  data: HumanStroke | Shape;
+}
+
 export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +91,13 @@ export default function DrawPage() {
     `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
   );
   const [drawMode, setDrawMode] = useState<DrawMode>('all');
+  // Thinking panel state
+  const [thinkingEnabled, setThinkingEnabled] = useState(false);
+  const [thinkingText, setThinkingText] = useState('');
+  const [showThinkingPanel, setShowThinkingPanel] = useState(true);
+  // Unified drawing elements for proper z-ordering (human + claude)
+  const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
+  const elementIdCounter = useRef(0);
   const [asciiStroke, setAsciiStroke] = useState(false);
   const [strokeSize, setStrokeSize] = useState(2);
   const [strokeColor, setStrokeColor] = useState('#000000');
@@ -124,25 +139,6 @@ export default function DrawPage() {
     setComments((prev) => [...prev, { text, x: commentX!, y: commentY!, from }]);
   }, []);
 
-  // Set up canvas - size based on container
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const updateSize = () => {
-      const rect = container.getBoundingClientRect();
-      // Canvas fills the container
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      redraw();
-    };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
   // Redraw ASCII blocks and shapes
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -168,6 +164,25 @@ export default function DrawPage() {
     });
 
   }, [asciiBlocks, shapes]);
+
+  // Set up canvas - size based on container
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const updateSize = () => {
+      const rect = container.getBoundingClientRect();
+      // Canvas fills the container
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      redraw();
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [redraw]);
 
   useEffect(() => {
     redraw();
@@ -365,9 +380,17 @@ export default function DrawPage() {
     if (lastPoint.current) {
       lastDrawnPoint.current = { ...lastPoint.current };
     }
-    // Save the completed stroke
+    // Save the completed stroke to both arrays
     if (currentStroke && currentStroke.d.includes('L')) {
       setHumanStrokes(prev => [...prev, currentStroke]);
+      // Also add to unified drawing elements for proper z-ordering
+      const id = `human-${elementIdCounter.current++}`;
+      setDrawingElements(prev => [...prev, {
+        id,
+        source: 'human',
+        type: 'stroke',
+        data: currentStroke,
+      }]);
     }
     setCurrentStroke(null);
     setIsDrawing(false);
@@ -382,6 +405,10 @@ export default function DrawPage() {
     if (!canvas) return;
 
     setIsLoading(true);
+    // Clear previous thinking when starting new turn
+    if (thinkingEnabled) {
+      setThinkingText('');
+    }
 
     // Build updated history
     const newHistory = [...history];
@@ -424,6 +451,8 @@ export default function DrawPage() {
           prompt: prompt || undefined,
           streaming: true,
           drawMode,
+          thinkingEnabled,
+          thinkingBudget: 10000,
         }),
       });
 
@@ -451,12 +480,23 @@ export default function DrawPage() {
             try {
               const event = JSON.parse(line.slice(6));
 
-              if (event.type === 'block') {
+              if (event.type === 'thinking') {
+                // Append thinking text incrementally
+                setThinkingText((prev) => prev + event.data);
+              } else if (event.type === 'block') {
                 setAsciiBlocks((prev) => [...prev, event.data]);
                 streamedBlocks.push(event.data);
               } else if (event.type === 'shape') {
                 setShapes((prev) => [...prev, event.data]);
                 streamedShapes.push(event.data);
+                // Add to unified drawing elements for proper z-ordering
+                const id = `claude-${elementIdCounter.current++}`;
+                setDrawingElements(prev => [...prev, {
+                  id,
+                  source: 'claude',
+                  type: 'shape',
+                  data: event.data as Shape,
+                }]);
               } else if (event.type === 'say') {
                 addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
               } else if (event.type === 'wish') {
@@ -513,6 +553,8 @@ export default function DrawPage() {
     setHistory([]);
     setHumanHasDrawn(false);
     setWish(null);
+    setDrawingElements([]);
+    setThinkingText('');
     lastDrawnPoint.current = null;
   };
 
@@ -573,6 +615,8 @@ export default function DrawPage() {
         </defs>
       </svg>
 
+      {/* Main content area with optional thinking panel */}
+      <div className="flex-1 flex overflow-hidden">
       {/* Zoom/pan container */}
       <div
         ref={containerRef}
@@ -634,46 +678,32 @@ export default function DrawPage() {
             }}
           />
 
-          {/* SVG layer for human strokes (vector, stays crisp when zoomed) */}
+          {/* Unified SVG layer for all drawings (human + claude) with proper z-ordering */}
           <svg
             className="absolute inset-0 pointer-events-none"
             style={{ width: '100%', height: '100%', filter: (distortionEnabled || wiggleEnabled) ? 'url(#wobbleFilter)' : undefined }}
           >
-            {humanStrokes.map((stroke, i) => (
-              <path
-                key={i}
-                d={stroke.d}
-                stroke={stroke.color}
-                strokeWidth={stroke.strokeWidth}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            ))}
-            {currentStroke && (
-              <path
-                d={currentStroke.d}
-                stroke={currentStroke.color}
-                strokeWidth={currentStroke.strokeWidth}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
-          </svg>
-
-          {/* SVG overlay for Claude's shapes */}
-          {shapes.length > 0 && (
-            <svg
-              className="absolute inset-0 pointer-events-none"
-              style={{ width: '100%', height: '100%', filter: (distortionEnabled || wiggleEnabled) ? 'url(#wobbleFilter)' : undefined }}
-            >
-          <g>
-            {shapes.map((shape, i) => {
+            {drawingElements.map((element) => {
+              if (element.type === 'stroke') {
+                const stroke = element.data as HumanStroke;
+                return (
+                  <path
+                    key={element.id}
+                    d={stroke.d}
+                    stroke={stroke.color}
+                    strokeWidth={stroke.strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              }
+              // Render Claude's shapes
+              const shape = element.data as Shape;
               if (shape.type === 'path' && shape.d) {
                 return (
                   <path
-                    key={i}
+                    key={element.id}
                     d={shape.d}
                     stroke={shape.color || '#3b82f6'}
                     strokeWidth={shape.strokeWidth || 2}
@@ -686,7 +716,7 @@ export default function DrawPage() {
               if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
                 return (
                   <circle
-                    key={i}
+                    key={element.id}
                     cx={shape.cx}
                     cy={shape.cy}
                     r={shape.r}
@@ -699,7 +729,7 @@ export default function DrawPage() {
               if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
                 return (
                   <rect
-                    key={i}
+                    key={element.id}
                     x={shape.x}
                     y={shape.y}
                     width={shape.width}
@@ -713,7 +743,7 @@ export default function DrawPage() {
               if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
                 return (
                   <line
-                    key={i}
+                    key={element.id}
                     x1={shape.x1}
                     y1={shape.y1}
                     x2={shape.x2}
@@ -737,7 +767,7 @@ export default function DrawPage() {
                 }
                 return (
                   <path
-                    key={i}
+                    key={element.id}
                     d={d}
                     stroke={shape.color || '#3b82f6'}
                     strokeWidth={shape.strokeWidth || 2}
@@ -749,9 +779,18 @@ export default function DrawPage() {
               }
               return null;
             })}
-          </g>
-        </svg>
-      )}
+            {/* Current stroke being drawn */}
+            {currentStroke && (
+              <path
+                d={currentStroke.d}
+                stroke={currentStroke.color}
+                strokeWidth={currentStroke.strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </svg>
         </div>{/* End transform wrapper */}
 
       {/* Floating comments */}
@@ -805,6 +844,35 @@ export default function DrawPage() {
         </form>
       )}
       </div>{/* End zoom/pan container */}
+
+      {/* Thinking Panel - right side */}
+      {thinkingEnabled && showThinkingPanel && (
+        <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-white">
+            <span className="text-sm font-medium text-gray-700">Claude&apos;s Thoughts</span>
+            <button
+              onClick={() => setShowThinkingPanel(false)}
+              className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto p-3">
+            {thinkingText ? (
+              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">
+                {thinkingText}
+              </pre>
+            ) : isLoading ? (
+              <p className="text-xs text-gray-400 italic">Thinking...</p>
+            ) : (
+              <p className="text-xs text-gray-400 italic">
+                Claude&apos;s reasoning will appear here when drawing.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      </div>{/* End main content area */}
 
       {/* Settings panel - shows above bottom bar */}
       {showSettings && (
@@ -865,13 +933,25 @@ export default function DrawPage() {
               />
               <span>ASCII strokes</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={thinkingEnabled}
+                onChange={(e) => {
+                  setThinkingEnabled(e.target.checked);
+                  if (e.target.checked) setShowThinkingPanel(true);
+                }}
+                className="rounded"
+              />
+              <span>Show thinking</span>
+            </label>
           </div>
 
           {/* Temperature */}
           <div className="mb-3">
             <label className="flex justify-between text-gray-600 mb-1">
               <span>Temperature</span>
-              <span>{temperature.toFixed(1)}</span>
+              <span>{thinkingEnabled ? 'N/A' : temperature.toFixed(1)}</span>
             </label>
             <input
               type="range"
@@ -881,11 +961,15 @@ export default function DrawPage() {
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
               className="w-full"
+              disabled={thinkingEnabled}
             />
             <div className="flex justify-between text-xs text-gray-400">
               <span>predictable</span>
               <span>creative</span>
             </div>
+            {thinkingEnabled && (
+              <p className="text-xs text-amber-500 mt-1">Disabled when thinking is enabled</p>
+            )}
           </div>
 
           {/* Max Tokens */}
@@ -1007,6 +1091,15 @@ export default function DrawPage() {
           >
             ⚙
           </button>
+          {thinkingEnabled && !showThinkingPanel && (
+            <button
+              onClick={() => setShowThinkingPanel(true)}
+              className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm"
+              title="Show thinking panel"
+            >
+              💭
+            </button>
+          )}
         </div>
       </div>
     </div>
