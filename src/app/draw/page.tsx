@@ -50,6 +50,14 @@ interface HumanStroke {
   strokeWidth: number;
 }
 
+interface HumanAsciiChar {
+  char: string;
+  x: number;
+  y: number;
+  color: string;
+  fontSize: number;
+}
+
 // Unified drawing element for proper z-ordering
 interface DrawingElement {
   id: string;
@@ -99,6 +107,7 @@ export default function DrawPage() {
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
   const elementIdCounter = useRef(0);
   const [asciiStroke, setAsciiStroke] = useState(false);
+  const [humanAsciiChars, setHumanAsciiChars] = useState<HumanAsciiChar[]>([]);
   const [strokeSize, setStrokeSize] = useState(2);
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [distortionEnabled] = useState(true);
@@ -153,7 +162,14 @@ export default function DrawPage() {
     });
     // Note: Other shapes are rendered in SVG overlay for filter effects
 
-    // Draw ASCII blocks
+    // Draw user's ASCII stroke characters
+    humanAsciiChars.forEach((charData) => {
+      ctx.font = `${charData.fontSize}px monospace`;
+      ctx.fillStyle = charData.color;
+      ctx.fillText(charData.char, charData.x, charData.y);
+    });
+
+    // Draw Claude's ASCII blocks
     asciiBlocks.forEach((block) => {
       ctx.font = '16px monospace';
       ctx.fillStyle = block.color || '#3b82f6';
@@ -163,7 +179,7 @@ export default function DrawPage() {
       });
     });
 
-  }, [asciiBlocks, shapes]);
+  }, [asciiBlocks, shapes, humanAsciiChars]);
 
   // Set up canvas - size based on container
   useEffect(() => {
@@ -350,11 +366,7 @@ export default function DrawPage() {
         d: `${prev.d} L ${point.x} ${point.y}`,
       } : null);
     } else if (asciiStroke) {
-      // ASCII stroke mode: draw random ASCII characters along the path (canvas)
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!ctx) return;
-
+      // ASCII stroke mode: draw random ASCII characters along the path
       const asciiChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~*+=#@$%&!?<>^.:;-_/\\|[]{}()░▒▓█●○◐◑▲▼◆◇■□★☆♦♣♠♥∞≈≠±×÷«»¤¶§†‡';
       const charSpacing = Math.max(8, strokeSize * 4);
 
@@ -365,10 +377,16 @@ export default function DrawPage() {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance >= charSpacing) {
-        ctx.font = `${Math.max(10, strokeSize * 5)}px monospace`;
-        ctx.fillStyle = strokeColor;
+        const fontSize = Math.max(10, strokeSize * 5);
         const char = asciiChars[Math.floor(Math.random() * asciiChars.length)];
-        ctx.fillText(char, point.x - strokeSize, point.y + strokeSize);
+        // Store in state so it persists on resize
+        setHumanAsciiChars(prev => [...prev, {
+          char,
+          x: point.x - strokeSize,
+          y: point.y + strokeSize,
+          color: strokeColor,
+          fontSize,
+        }]);
         lastAsciiPoint.current = { x: point.x, y: point.y };
       }
     }
@@ -548,6 +566,7 @@ export default function DrawPage() {
     setAsciiBlocks([]);
     setShapes([]);
     setHumanStrokes([]);
+    setHumanAsciiChars([]);
     setCurrentStroke(null);
     setComments([]);
     setHistory([]);

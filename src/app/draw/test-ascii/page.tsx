@@ -50,23 +50,6 @@ export default function AsciiTestPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Set up canvases
-  useEffect(() => {
-    const updateSizes = () => {
-      canvasRefs.current.forEach((canvas, i) => {
-        if (!canvas) return;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        redrawPanel(i);
-      });
-    };
-
-    updateSizes();
-    window.addEventListener('resize', updateSizes);
-    return () => window.removeEventListener('resize', updateSizes);
-  }, []);
-
   // Redraw a panel's Claude content
   const redrawPanel = useCallback((index: number) => {
     const canvas = canvasRefs.current[index];
@@ -85,6 +68,23 @@ export default function AsciiTestPage() {
       });
     });
   }, [panels]);
+
+  // Set up canvases
+  useEffect(() => {
+    const updateSizes = () => {
+      canvasRefs.current.forEach((canvas, i) => {
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        redrawPanel(i);
+      });
+    };
+
+    updateSizes();
+    window.addEventListener('resize', updateSizes);
+    return () => window.removeEventListener('resize', updateSizes);
+  }, [redrawPanel]);
 
   useEffect(() => {
     panels.forEach((_, i) => redrawPanel(i));
