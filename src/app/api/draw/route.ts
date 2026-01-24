@@ -109,7 +109,7 @@ Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all' } = await req.json();
+    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000 } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -189,10 +189,14 @@ export async function POST(req: NextRequest) {
     // Get mode-specific instructions
     const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled);
 
-    const messageParams = {
+    // When thinking is enabled, max_tokens must be greater than thinking budget
+    const effectiveMaxTokens = thinkingEnabled
+      ? Math.max(maxTokens || 1024, thinkingBudget + 1024)
+      : (maxTokens || 1024);
+
+    const messageParams: Anthropic.MessageCreateParams = {
       model: 'claude-opus-4-20250514',
-      max_tokens: maxTokens || 1024,
-      temperature: temperature ?? 1.0,
+      max_tokens: effectiveMaxTokens,
       messages: [
         {
           role: 'user' as const,
@@ -216,6 +220,10 @@ ${drawingInstructions}`,
           ],
         },
       ],
+      // Extended thinking - when enabled, temperature must not be set
+      ...(thinkingEnabled
+        ? { thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget } }
+        : { temperature: temperature ?? 1.0 }),
     };
 
     // Streaming mode
@@ -225,15 +233,34 @@ ${drawingInstructions}`,
       const stream = new ReadableStream({
         async start(controller) {
           let fullText = '';
+          let thinkingText = '';
           let sentBlocksCount = 0;
           let sentShapesCount = 0;
           let sentSay = false;
           let sentWish = false;
+          let currentBlockType: 'thinking' | 'text' | null = null;
 
           try {
             const messageStream = anthropic.messages.stream(messageParams);
 
             for await (const event of messageStream) {
+              // Track which content block we're in
+              if (event.type === 'content_block_start') {
+                if (event.content_block.type === 'thinking') {
+                  currentBlockType = 'thinking';
+                } else if (event.content_block.type === 'text') {
+                  currentBlockType = 'text';
+                }
+              } else if (event.type === 'content_block_stop') {
+                currentBlockType = null;
+              }
+
+              // Handle thinking deltas
+              if (event.type === 'content_block_delta' && event.delta.type === 'thinking_delta') {
+                thinkingText += event.delta.thinking;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'thinking', data: event.delta.thinking })}\n\n`));
+              }
+
               if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                 fullText += event.delta.text;
 
