@@ -109,7 +109,7 @@ Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000 } = await req.json();
+    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -194,8 +194,16 @@ export async function POST(req: NextRequest) {
       ? Math.max(maxTokens || 1024, thinkingBudget + 1024)
       : (maxTokens || 1024);
 
+    // Model selection - default to Opus
+    const modelMap: Record<string, string> = {
+      'haiku': 'claude-haiku-4-20250514',
+      'sonnet': 'claude-sonnet-4-20250514',
+      'opus': 'claude-opus-4-20250514',
+    };
+    const selectedModel = modelMap[model] || 'claude-opus-4-20250514';
+
     const messageParams: Anthropic.MessageCreateParams = {
-      model: 'claude-opus-4-20250514',
+      model: selectedModel,
       max_tokens: effectiveMaxTokens,
       messages: [
         {
