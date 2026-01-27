@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
 
     // Model selection - default to Opus
     const modelMap: Record<string, string> = {
-      'haiku': 'claude-haiku-4-20250514',
+      'haiku': 'claude-3-5-haiku-20241022',
       'sonnet': 'claude-sonnet-4-20250514',
       'opus': 'claude-opus-4-20250514',
     };

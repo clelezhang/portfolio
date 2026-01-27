@@ -1,152 +1,140 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect } from 'react';
+import './draw.css';
 
-interface AsciiBlock {
-  block: string;
-  x: number;
-  y: number;
-  color?: string;
-}
+// Types
+import {
+  AsciiBlock,
+  Shape,
+  DrawMode,
+  Turn,
+  HumanStroke,
+  HumanAsciiChar,
+  DrawingElement,
+  Point,
+  CanvasBackground,
+  Tool,
+} from './types';
 
-interface Shape {
-  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path';
-  color?: string;
-  fill?: string;
-  strokeWidth?: number;
-  cx?: number;
-  cy?: number;
-  r?: number;
-  x1?: number;
-  y1?: number;
-  x2?: number;
-  y2?: number;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  points?: number[][];
-  // SVG path
-  d?: string;
-}
+// Constants
+import {
+  ASCII_CHARS,
+  DEFAULT_STROKE_SIZE,
+  DEFAULT_STROKE_COLOR,
+  DEFAULT_GRID_SIZE,
+  DEFAULT_PROMPT,
+  AUTO_DRAW_DELAY,
+  WIGGLE_SPEED,
+  DISTORTION_AMOUNT,
+} from './constants';
 
-type DrawMode = 'all' | 'shapes' | 'ascii';
+// Hooks
+import { useZoomPan } from './hooks/useZoomPan';
+import { useComments } from './hooks/useComments';
 
-interface Turn {
-  who: 'human' | 'claude';
-  description?: string;
-}
-
-interface Comment {
-  text: string;
-  x: number;
-  y: number;
-  from: 'human' | 'claude';
-}
-
-interface HumanStroke {
-  d: string;
-  color: string;
-  strokeWidth: number;
-}
-
-interface HumanAsciiChar {
-  char: string;
-  x: number;
-  y: number;
-  color: string;
-  fontSize: number;
-}
-
-// Unified drawing element for proper z-ordering
-interface DrawingElement {
-  id: string;
-  source: 'human' | 'claude';
-  type: 'stroke' | 'shape';
-  data: HumanStroke | Shape;
-}
+// Components
+import { DrawToolbar } from './components/DrawToolbar';
+import { CustomCursor } from './components/CustomCursor';
+import { CommentSystem } from './components/CommentSystem';
+import { CommentInput } from './components/CommentInput';
 
 export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastDrawnPoint = useRef<Point | null>(null);
+
+  // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Zoom and pan state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [spacePressed, setSpacePressed] = useState(false);
-  const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [asciiBlocks, setAsciiBlocks] = useState<AsciiBlock[]>([]);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<HumanStroke | null>(null);
+  const [humanAsciiChars, setHumanAsciiChars] = useState<HumanAsciiChar[]>([]);
+  const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
+  const elementIdCounter = useRef(0);
+
+  // History and state
   const [history, setHistory] = useState<Turn[]>([]);
   const [humanHasDrawn, setHumanHasDrawn] = useState(false);
   const [wish, setWish] = useState<string | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<string[]>([]);
+
+  // Tool state
+  const [tool, setTool] = useState<Tool>('draw');
+  const [asciiStroke, setAsciiStroke] = useState(false);
+  const [strokeSize, setStrokeSize] = useState(DEFAULT_STROKE_SIZE);
+  const [strokeColor, setStrokeColor] = useState(DEFAULT_STROKE_COLOR);
+  const [paletteIndex, setPaletteIndex] = useState(0);
+
+  // Settings state
   const [showSettings, setShowSettings] = useState(false);
   const [sayEnabled, setSayEnabled] = useState(false);
   const [autoDrawEnabled, setAutoDrawEnabled] = useState(false);
-  const [pendingMessages, setPendingMessages] = useState<string[]>([]);
   const [temperature, setTemperature] = useState(1.0);
   const [maxTokens, setMaxTokens] = useState(1024);
-  const [tool, setTool] = useState<'draw' | 'erase' | 'comment'>('draw');
-  const [commentInput, setCommentInput] = useState<{ x: number; y: number } | null>(null);
-  const [commentText, setCommentText] = useState('');
-  const [prompt, setPrompt] = useState(
-    `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
-  );
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [drawMode, setDrawMode] = useState<DrawMode>('all');
+
   // Thinking panel state
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [thinkingText, setThinkingText] = useState('');
   const [showThinkingPanel, setShowThinkingPanel] = useState(true);
-  // Unified drawing elements for proper z-ordering (human + claude)
-  const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
-  const elementIdCounter = useRef(0);
-  const [asciiStroke, setAsciiStroke] = useState(false);
-  const [humanAsciiChars, setHumanAsciiChars] = useState<HumanAsciiChar[]>([]);
-  const [strokeSize, setStrokeSize] = useState(2);
-  const [strokeColor, setStrokeColor] = useState('#000000');
+
+  // Visual effects state
   const [distortionEnabled] = useState(true);
   const [wiggleEnabled] = useState(true);
-  const [distortionAmount] = useState(2);
-  const [wiggleSpeed] = useState(168);
   const [filterSeed, setFilterSeed] = useState(1);
-  const lastPoint = useRef<{ x: number; y: number } | null>(null);
-  const lastDrawnPoint = useRef<{ x: number; y: number } | null>(null);
-  const lastAsciiPoint = useRef<{ x: number; y: number } | null>(null);
+
+  // Canvas options
+  const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>('none');
+  const [canvasBorder, setCanvasBorder] = useState(false);
+  const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
+
+  // Cursor position
+  const [cursorPos, setCursorPos] = useState<Point | null>(null);
+
+  // Refs
+  const lastPoint = useRef<Point | null>(null);
+  const lastAsciiPoint = useRef<Point | null>(null);
   const autoDrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleYourTurnRef = useRef<() => void>(() => {});
 
-  // Add a comment to the canvas
-  const addComment = useCallback((text: string, from: 'human' | 'claude', x?: number, y?: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Use custom hooks
+  const {
+    zoom,
+    pan,
+    isPanning,
+    spacePressed,
+    startPan,
+    doPan,
+    stopPan,
+    handleDoubleClick,
+    screenToCanvas,
+    canvasToScreen,
+  } = useZoomPan({ containerRef, canvasRef });
 
-    let commentX = x;
-    let commentY = y;
-
-    if (commentX === undefined) {
-      if (from === 'human' && lastDrawnPoint.current) {
-        // Place human comment near where they last drew
-        commentX = lastDrawnPoint.current.x + 10;
-        commentY = lastDrawnPoint.current.y - 10;
-      } else if (from === 'human') {
-        // Default if no drawing yet
-        commentX = 50;
-        commentY = 50;
-      } else {
-        // Default position for Claude if not specified
-        commentX = canvas.width - 200;
-        commentY = 50;
-      }
-    }
-
-    setComments((prev) => [...prev, { text, x: commentX!, y: commentY!, from }]);
-  }, []);
+  const {
+    comments,
+    setComments,
+    openCommentIndex,
+    setOpenCommentIndex,
+    hoveredCommentIndex,
+    setHoveredCommentIndex,
+    replyingToIndex,
+    setReplyingToIndex,
+    replyText,
+    setReplyText,
+    commentInput,
+    setCommentInput,
+    commentText,
+    setCommentText,
+    addComment,
+    deleteComment,
+    addReplyToComment,
+    handleCommentCancel,
+  } = useComments({ canvasRef, lastDrawnPoint });
 
   // Redraw ASCII blocks and shapes
   const redraw = useCallback(() => {
@@ -154,22 +142,18 @@ export default function DrawPage() {
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
 
-    // Handle erase shapes on canvas
     shapes.forEach((shape) => {
       if (shape.type === 'erase' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
         ctx.clearRect(shape.x, shape.y, shape.width, shape.height);
       }
     });
-    // Note: Other shapes are rendered in SVG overlay for filter effects
 
-    // Draw user's ASCII stroke characters
     humanAsciiChars.forEach((charData) => {
       ctx.font = `${charData.fontSize}px monospace`;
       ctx.fillStyle = charData.color;
       ctx.fillText(charData.char, charData.x, charData.y);
     });
 
-    // Draw Claude's ASCII blocks
     asciiBlocks.forEach((block) => {
       ctx.font = '16px monospace';
       ctx.fillStyle = block.color || '#3b82f6';
@@ -178,10 +162,9 @@ export default function DrawPage() {
         ctx.fillText(line, block.x, block.y + i * 18);
       });
     });
-
   }, [asciiBlocks, shapes, humanAsciiChars]);
 
-  // Set up canvas - size based on container
+  // Set up canvas size
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -189,7 +172,6 @@ export default function DrawPage() {
 
     const updateSize = () => {
       const rect = container.getBoundingClientRect();
-      // Canvas fills the container
       canvas.width = rect.width;
       canvas.height = rect.height;
       redraw();
@@ -204,130 +186,14 @@ export default function DrawPage() {
     redraw();
   }, [asciiBlocks, shapes, redraw]);
 
-  // Wiggle animation effect
+  // Wiggle animation
   useEffect(() => {
     if (!wiggleEnabled) return;
-
     const interval = setInterval(() => {
       setFilterSeed((prev) => (prev % 100) + 1);
-    }, wiggleSpeed);
-
+    }, WIGGLE_SPEED);
     return () => clearInterval(interval);
-  }, [wiggleEnabled, wiggleSpeed]);
-
-  // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom
-  const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Ctrl/Cmd + scroll = zoom (trackpad pinch gestures set ctrlKey)
-    if (e.ctrlKey || e.metaKey) {
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-
-      // Zoom factor - use actual delta for smoother, more sensitive zooming
-      const zoomFactor = 1 - e.deltaY * 0.01;
-      const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.25), 4);
-
-      // Adjust pan to zoom toward mouse position
-      const mouseOffsetX = mouseX - centerX - pan.x;
-      const mouseOffsetY = mouseY - centerY - pan.y;
-      const newPanX = pan.x - mouseOffsetX * (newZoom / zoom - 1);
-      const newPanY = pan.y - mouseOffsetY * (newZoom / zoom - 1);
-
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
-    } else {
-      // Plain scroll/trackpad = pan
-      setPan(prev => ({
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY,
-      }));
-    }
-  }, [zoom, pan]);
-
-  // Attach wheel handler
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
-
-  // Spacebar for pan mode
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        setSpacePressed(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        setSpacePressed(false);
-        setIsPanning(false);
-        panStart.current = null;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
-  // Pan handlers
-  const startPan = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsPanning(true);
-    panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-  }, [pan]);
-
-  const doPan = useCallback((e: React.MouseEvent) => {
-    if (!isPanning || !panStart.current) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
-    setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
-  }, [isPanning]);
-
-  const stopPan = useCallback(() => {
-    setIsPanning(false);
-    panStart.current = null;
-  }, []);
-
-  // Double-click to reset view
-  const handleDoubleClick = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
-
-  // Convert screen coordinates to canvas coordinates (accounting for zoom/pan)
-  const screenToCanvas = useCallback((screenX: number, screenY: number) => {
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return { x: screenX, y: screenY };
-
-    const rect = container.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    // Get position relative to container center, remove pan, then scale
-    const relX = screenX - rect.left - centerX;
-    const relY = screenY - rect.top - centerY;
-
-    // Reverse the transform: remove pan, then remove zoom, then add back center offset
-    const canvasX = (relX - pan.x) / zoom + centerX;
-    const canvasY = (relY - pan.y) / zoom + centerY;
-
-    return { x: canvasX, y: canvasY };
-  }, [zoom, pan]);
+  }, [wiggleEnabled]);
 
   const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) {
@@ -341,10 +207,9 @@ export default function DrawPage() {
     setHumanHasDrawn(true);
     const point = getPoint(e);
     lastPoint.current = point;
-    lastAsciiPoint.current = point; // Set initial anchor for ASCII mode
+    lastAsciiPoint.current = point;
 
-    // Start a new SVG stroke (draw or erase)
-    if ((tool === 'draw' || tool === 'erase') && !asciiStroke) {
+    if (tool === 'erase' || (tool === 'draw' && !asciiStroke)) {
       setCurrentStroke({
         d: `M ${point.x} ${point.y}`,
         color: tool === 'erase' ? '#ffffff' : strokeColor,
@@ -360,17 +225,12 @@ export default function DrawPage() {
     if (!point) return;
 
     if (tool === 'erase' || (tool === 'draw' && !asciiStroke)) {
-      // SVG stroke mode (draw or erase)
       setCurrentStroke(prev => prev ? {
         ...prev,
         d: `${prev.d} L ${point.x} ${point.y}`,
       } : null);
     } else if (asciiStroke) {
-      // ASCII stroke mode: draw random ASCII characters along the path
-      const asciiChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~*+=#@$%&!?<>^.:;-_/\\|[]{}()░▒▓█●○◐◑▲▼◆◇■□★☆♦♣♠♥∞≈≠±×÷«»¤¶§†‡';
       const charSpacing = Math.max(8, strokeSize * 4);
-
-      // Check distance from last placed character
       const lastAscii = lastAsciiPoint.current!;
       const dx = point.x - lastAscii.x;
       const dy = point.y - lastAscii.y;
@@ -378,8 +238,7 @@ export default function DrawPage() {
 
       if (distance >= charSpacing) {
         const fontSize = Math.max(10, strokeSize * 5);
-        const char = asciiChars[Math.floor(Math.random() * asciiChars.length)];
-        // Store in state so it persists on resize
+        const char = ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
         setHumanAsciiChars(prev => [...prev, {
           char,
           x: point.x - strokeSize,
@@ -398,10 +257,8 @@ export default function DrawPage() {
     if (lastPoint.current) {
       lastDrawnPoint.current = { ...lastPoint.current };
     }
-    // Save the completed stroke to both arrays
     if (currentStroke && currentStroke.d.includes('L')) {
       setHumanStrokes(prev => [...prev, currentStroke]);
-      // Also add to unified drawing elements for proper z-ordering
       const id = `human-${elementIdCounter.current++}`;
       setDrawingElements(prev => [...prev, {
         id,
@@ -423,23 +280,19 @@ export default function DrawPage() {
     if (!canvas) return;
 
     setIsLoading(true);
-    // Clear previous thinking when starting new turn
     if (thinkingEnabled) {
       setThinkingText('');
     }
 
-    // Build updated history
     const newHistory = [...history];
     if (humanHasDrawn) {
       newHistory.push({ who: 'human' });
     }
 
-    // Track streamed items for history
     const streamedBlocks: AsciiBlock[] = [];
     const streamedShapes: Shape[] = [];
 
     try {
-      // Rasterize human SVG strokes to canvas before capturing
       const ctx = canvas.getContext('2d');
       if (ctx && humanStrokes.length > 0) {
         humanStrokes.forEach(stroke => {
@@ -476,7 +329,6 @@ export default function DrawPage() {
 
       if (!response.ok) throw new Error('Failed to get response');
 
-      // Handle SSE stream
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader available');
 
@@ -488,10 +340,8 @@ export default function DrawPage() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-
-        // Process complete SSE events
         const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep incomplete data in buffer
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -499,7 +349,6 @@ export default function DrawPage() {
               const event = JSON.parse(line.slice(6));
 
               if (event.type === 'thinking') {
-                // Append thinking text incrementally
                 setThinkingText((prev) => prev + event.data);
               } else if (event.type === 'block') {
                 setAsciiBlocks((prev) => [...prev, event.data]);
@@ -507,7 +356,6 @@ export default function DrawPage() {
               } else if (event.type === 'shape') {
                 setShapes((prev) => [...prev, event.data]);
                 streamedShapes.push(event.data);
-                // Add to unified drawing elements for proper z-ordering
                 const id = `claude-${elementIdCounter.current++}`;
                 setDrawingElements(prev => [...prev, {
                   id,
@@ -521,7 +369,6 @@ export default function DrawPage() {
                 setWish(event.data);
                 console.log('claude wishes:', event.data);
               } else if (event.type === 'done') {
-                // Build description for history
                 let description = '';
                 if (streamedBlocks.length > 0) {
                   description += streamedBlocks.map((b) => b.block).join('\n---\n');
@@ -545,7 +392,6 @@ export default function DrawPage() {
         }
       }
 
-      // Clear pending messages after successful send
       setPendingMessages([]);
     } catch (error) {
       console.error('Error:', error);
@@ -554,7 +400,6 @@ export default function DrawPage() {
     }
   };
 
-  // Keep ref in sync for auto-draw
   handleYourTurnRef.current = handleYourTurn;
 
   const handleClear = () => {
@@ -577,11 +422,41 @@ export default function DrawPage() {
     lastDrawnPoint.current = null;
   };
 
+  const handleSave = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = 'drawing.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  };
+
   const handleCanvasClick = (e: React.MouseEvent) => {
+    // If there's an open comment, just close it and don't do anything else
+    if (openCommentIndex !== null) {
+      setOpenCommentIndex(null);
+      setReplyingToIndex(null);
+      return;
+    }
+
+    // If there's a comment input open, just close it and don't do anything else
+    if (commentInput !== null) {
+      setCommentInput(null);
+      setCommentText('');
+      return;
+    }
+
+    // If hovering a comment, clear hover and don't do anything else
+    if (hoveredCommentIndex !== null) {
+      setHoveredCommentIndex(null);
+      return;
+    }
+
+    // Only create new comment input if in comment mode
     if (tool !== 'comment') return;
     const point = getPoint(e);
     if (!point) return;
-    // Open comment input at click position
     setCommentInput({ x: point.x, y: point.y });
     setCommentText('');
   };
@@ -595,24 +470,18 @@ export default function DrawPage() {
     setCommentText('');
   };
 
-  const handleCommentCancel = () => {
-    setCommentInput(null);
-    setCommentText('');
-  };
-
-  // Auto-draw: trigger Claude after user stops drawing
   const triggerAutoDraw = useCallback(() => {
     if (autoDrawTimeoutRef.current) {
       clearTimeout(autoDrawTimeoutRef.current);
     }
     autoDrawTimeoutRef.current = setTimeout(() => {
       handleYourTurnRef.current();
-    }, 2000); // 2 second pause triggers Claude
+    }, AUTO_DRAW_DELAY);
   }, []);
 
   return (
-    <div className="h-dvh w-screen flex flex-col bg-white relative overflow-hidden">
-      {/* SVG filter definitions (always present) */}
+    <div className="draw-page relative overflow-hidden">
+      {/* SVG filter definitions */}
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           <filter id="wobbleFilter">
@@ -626,7 +495,7 @@ export default function DrawPage() {
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
-              scale={distortionAmount}
+              scale={DISTORTION_AMOUNT}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -634,271 +503,311 @@ export default function DrawPage() {
         </defs>
       </svg>
 
-      {/* Main content area with optional thinking panel */}
-      <div className="flex-1 flex overflow-hidden">
-      {/* Zoom/pan container */}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-hidden relative"
-        onMouseDown={(e) => {
-          if (spacePressed || e.button === 1) {
-            startPan(e);
-          } else if (tool !== 'comment') {
-            startDrawing(e);
-          }
-        }}
-        onMouseMove={(e) => {
-          if (isPanning) {
-            doPan(e);
-          } else if (tool !== 'comment') {
-            draw(e);
-          }
-        }}
-        onMouseUp={(e) => {
-          if (isPanning) {
-            stopPan();
-          } else if (tool !== 'comment') {
-            stopDrawing();
-          }
-        }}
-        onMouseLeave={() => {
-          if (isPanning) {
-            stopPan();
-          } else if (tool !== 'comment') {
-            stopDrawing();
-          }
-        }}
-        onClick={handleCanvasClick}
-        onDoubleClick={handleDoubleClick}
-        onTouchStart={tool === 'comment' ? undefined : startDrawing}
-        onTouchMove={tool === 'comment' ? undefined : draw}
-        onTouchEnd={tool === 'comment' ? (e) => {
-          const touch = e.changedTouches[0];
-          const point = screenToCanvas(touch.clientX, touch.clientY);
-          setCommentInput({ x: point.x, y: point.y });
-          setCommentText('');
-        } : stopDrawing}
-        style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : (tool === 'comment' ? 'crosshair' : tool === 'erase' ? 'cell' : 'crosshair') }}
-      >
-        {/* Transform wrapper for zoom/pan */}
+      {/* Main content area */}
+      <div className="draw-main">
+        {/* Canvas container */}
         <div
-          className="absolute inset-0"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'center center',
+          ref={containerRef}
+          className="draw-canvas-container"
+          style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : 'none' }}
+          onMouseDown={(e) => {
+            // Don't start drawing if there's an open comment or comment input
+            if (openCommentIndex !== null || commentInput !== null) {
+              return;
+            }
+            if (spacePressed || e.button === 1) {
+              startPan(e);
+            } else if (tool !== 'comment') {
+              startDrawing(e);
+            }
           }}
+          onMouseMove={(e) => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+              setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            }
+            if (isPanning) {
+              doPan(e);
+            } else if (tool !== 'comment') {
+              draw(e);
+            }
+          }}
+          onMouseUp={() => {
+            if (isPanning) {
+              stopPan();
+            } else if (tool !== 'comment') {
+              stopDrawing();
+            }
+          }}
+          onMouseLeave={() => {
+            setCursorPos(null);
+            if (isPanning) {
+              stopPan();
+            } else if (tool !== 'comment') {
+              stopDrawing();
+            }
+          }}
+          onClick={handleCanvasClick}
+          onDoubleClick={handleDoubleClick}
+          onTouchStart={tool === 'comment' ? undefined : startDrawing}
+          onTouchMove={tool === 'comment' ? undefined : draw}
+          onTouchEnd={tool === 'comment' ? (e) => {
+            const touch = e.changedTouches[0];
+            const point = screenToCanvas(touch.clientX, touch.clientY);
+            setCommentInput({ x: point.x, y: point.y });
+            setCommentText('');
+          } : stopDrawing}
         >
-          <canvas
-            ref={canvasRef}
-            className="touch-none w-full h-full"
+          {/* Transform wrapper for zoom/pan */}
+          <div
+            className="absolute inset-0 rounded-lg overflow-hidden"
             style={{
-              ...(distortionEnabled || wiggleEnabled) ? { filter: 'url(#wobbleFilter)' } : {},
-              boxShadow: zoom !== 1 ? '0 0 0 1px rgba(0,0,0,0.1)' : undefined,
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+              backgroundColor: 'white',
+              ...(!canvasBorder && canvasBackground === 'grid' ? {
+                backgroundImage: `
+                  linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+                  linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
+                `,
+                backgroundSize: `${gridSize}px ${gridSize}px`,
+              } : !canvasBorder && canvasBackground === 'dots' ? {
+                backgroundImage: 'radial-gradient(circle, #d4d4d4 1px, transparent 1px)',
+                backgroundSize: `${gridSize}px ${gridSize}px`,
+              } : {}),
+              ...((distortionEnabled || wiggleEnabled) && canvasBackground !== 'none' && !canvasBorder ? {
+                filter: 'url(#wobbleFilter)',
+              } : {}),
             }}
-          />
-
-          {/* Unified SVG layer for all drawings (human + claude) with proper z-ordering */}
-          <svg
-            className="absolute inset-0 pointer-events-none"
-            style={{ width: '100%', height: '100%', filter: (distortionEnabled || wiggleEnabled) ? 'url(#wobbleFilter)' : undefined }}
           >
-            {drawingElements.map((element) => {
-              if (element.type === 'stroke') {
-                const stroke = element.data as HumanStroke;
-                return (
-                  <path
-                    key={element.id}
-                    d={stroke.d}
-                    stroke={stroke.color}
-                    strokeWidth={stroke.strokeWidth}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                );
-              }
-              // Render Claude's shapes
-              const shape = element.data as Shape;
-              if (shape.type === 'path' && shape.d) {
-                return (
-                  <path
-                    key={element.id}
-                    d={shape.d}
-                    stroke={shape.color || '#3b82f6'}
-                    strokeWidth={shape.strokeWidth || 2}
-                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                );
-              }
-              if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
-                return (
-                  <circle
-                    key={element.id}
-                    cx={shape.cx}
-                    cy={shape.cy}
-                    r={shape.r}
-                    stroke={shape.color || '#3b82f6'}
-                    strokeWidth={shape.strokeWidth || 2}
-                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                  />
-                );
-              }
-              if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
-                return (
-                  <rect
-                    key={element.id}
-                    x={shape.x}
-                    y={shape.y}
-                    width={shape.width}
-                    height={shape.height}
-                    stroke={shape.color || '#3b82f6'}
-                    strokeWidth={shape.strokeWidth || 2}
-                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                  />
-                );
-              }
-              if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
-                return (
-                  <line
-                    key={element.id}
-                    x1={shape.x1}
-                    y1={shape.y1}
-                    x2={shape.x2}
-                    y2={shape.y2}
-                    stroke={shape.color || '#3b82f6'}
-                    strokeWidth={shape.strokeWidth || 2}
-                    strokeLinecap="round"
-                  />
-                );
-              }
-              if (shape.type === 'curve' && shape.points && shape.points.length >= 2) {
-                let d = `M ${shape.points[0][0]} ${shape.points[0][1]}`;
-                if (shape.points.length === 3) {
-                  d += ` Q ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]}`;
-                } else if (shape.points.length === 4) {
-                  d += ` C ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]} ${shape.points[3][0]} ${shape.points[3][1]}`;
-                } else {
-                  for (let j = 1; j < shape.points.length; j++) {
-                    d += ` L ${shape.points[j][0]} ${shape.points[j][1]}`;
-                  }
-                }
-                return (
-                  <path
-                    key={element.id}
-                    d={d}
-                    stroke={shape.color || '#3b82f6'}
-                    strokeWidth={shape.strokeWidth || 2}
-                    fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                );
-              }
-              return null;
-            })}
-            {/* Current stroke being drawn */}
-            {currentStroke && (
-              <path
-                d={currentStroke.d}
-                stroke={currentStroke.color}
-                strokeWidth={currentStroke.strokeWidth}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {canvasBorder && (
+              <div
+                className="absolute inset-6 rounded border border-neutral-300"
+                style={{
+                  ...(canvasBackground === 'grid' ? {
+                    backgroundImage: `
+                      linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+                      linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
+                    `,
+                    backgroundSize: `${gridSize}px ${gridSize}px`,
+                  } : canvasBackground === 'dots' ? {
+                    backgroundImage: 'radial-gradient(circle, #d4d4d4 1px, transparent 1px)',
+                    backgroundSize: `${gridSize}px ${gridSize}px`,
+                  } : {}),
+                  ...((distortionEnabled || wiggleEnabled) ? {
+                    filter: 'url(#wobbleFilter)',
+                  } : {}),
+                }}
               />
             )}
-          </svg>
-        </div>{/* End transform wrapper */}
+            <canvas
+              ref={canvasRef}
+              className="touch-none w-full h-full rounded-xl"
+              style={{
+                ...(distortionEnabled || wiggleEnabled) ? { filter: 'url(#wobbleFilter)' } : {},
+                boxShadow: zoom !== 1 ? '0 0 0 1px rgba(0,0,0,0.1)' : undefined,
+              }}
+            />
 
-      {/* Floating comments */}
-      {comments.map((comment, i) => (
-        <div
-          key={i}
-          className={`absolute pointer-events-none ${
-            comment.from === 'human'
-              ? 'bg-gray-800 text-white'
-              : 'bg-blue-500 text-white'
-          } px-2 py-1 rounded text-xs max-w-32 shadow-sm`}
-          style={{ left: comment.x, top: comment.y }}
-        >
-          {comment.text}
-        </div>
-      ))}
+            {/* SVG layer for drawings */}
+            <svg
+              className="absolute inset-0"
+              style={{ width: '100%', height: '100%' }}
+            >
+              {drawingElements.map((element) => {
+                if (element.type === 'stroke') {
+                  const stroke = element.data as HumanStroke;
+                  return (
+                    <path
+                      key={element.id}
+                      className="draw-stroke"
+                      d={stroke.d}
+                      stroke={stroke.color}
+                      strokeWidth={stroke.strokeWidth}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                }
+                const shape = element.data as Shape;
+                if (shape.type === 'path' && shape.d) {
+                  return (
+                    <path
+                      key={element.id}
+                      className="draw-stroke"
+                      d={shape.d}
+                      stroke={shape.color || '#3b82f6'}
+                      strokeWidth={shape.strokeWidth || 2}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                }
+                if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
+                  return (
+                    <circle
+                      key={element.id}
+                      className="draw-stroke"
+                      cx={shape.cx}
+                      cy={shape.cy}
+                      r={shape.r}
+                      stroke={shape.color || '#3b82f6'}
+                      strokeWidth={shape.strokeWidth || 2}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                    />
+                  );
+                }
+                if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
+                  return (
+                    <rect
+                      key={element.id}
+                      className="draw-stroke"
+                      x={shape.x}
+                      y={shape.y}
+                      width={shape.width}
+                      height={shape.height}
+                      stroke={shape.color || '#3b82f6'}
+                      strokeWidth={shape.strokeWidth || 2}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                    />
+                  );
+                }
+                if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
+                  return (
+                    <line
+                      key={element.id}
+                      className="draw-stroke"
+                      x1={shape.x1}
+                      y1={shape.y1}
+                      x2={shape.x2}
+                      y2={shape.y2}
+                      stroke={shape.color || '#3b82f6'}
+                      strokeWidth={shape.strokeWidth || 2}
+                      strokeLinecap="round"
+                    />
+                  );
+                }
+                if (shape.type === 'curve' && shape.points && shape.points.length >= 2) {
+                  let d = `M ${shape.points[0][0]} ${shape.points[0][1]}`;
+                  if (shape.points.length === 3) {
+                    d += ` Q ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]}`;
+                  } else if (shape.points.length === 4) {
+                    d += ` C ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]} ${shape.points[3][0]} ${shape.points[3][1]}`;
+                  } else {
+                    for (let j = 1; j < shape.points.length; j++) {
+                      d += ` L ${shape.points[j][0]} ${shape.points[j][1]}`;
+                    }
+                  }
+                  return (
+                    <path
+                      key={element.id}
+                      className="draw-stroke"
+                      d={d}
+                      stroke={shape.color || '#3b82f6'}
+                      strokeWidth={shape.strokeWidth || 2}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                }
+                return null;
+              })}
+              {currentStroke && (
+                <path
+                  d={currentStroke.d}
+                  stroke={currentStroke.color}
+                  strokeWidth={currentStroke.strokeWidth}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+            </svg>
+          </div>
 
-      {/* Comment input popup */}
-      {commentInput && (
-        <form
-          onSubmit={handleCommentSubmit}
-          className="absolute bg-white border border-gray-300 rounded-lg shadow-lg p-2 z-20"
-          style={{ left: commentInput.x, top: commentInput.y }}
-        >
-          <input
-            type="text"
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Add comment..."
-            className="px-2 py-1 text-sm border-none outline-none w-40"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') handleCommentCancel();
+          {/* Custom cursor */}
+          <CustomCursor
+            cursorPos={cursorPos}
+            isPanning={isPanning}
+            spacePressed={spacePressed}
+            tool={tool}
+            asciiStroke={asciiStroke}
+            strokeColor={strokeColor}
+          />
+
+          {/* Comment system */}
+          <CommentSystem
+            comments={comments}
+            strokeColor={strokeColor}
+            openCommentIndex={openCommentIndex}
+            setOpenCommentIndex={setOpenCommentIndex}
+            hoveredCommentIndex={hoveredCommentIndex}
+            setHoveredCommentIndex={setHoveredCommentIndex}
+            replyingToIndex={replyingToIndex}
+            setReplyingToIndex={setReplyingToIndex}
+            replyText={replyText}
+            setReplyText={setReplyText}
+            deleteComment={deleteComment}
+            addReplyToComment={addReplyToComment}
+            canvasToScreen={canvasToScreen}
+            hasCommentInput={commentInput !== null}
+            onCloseCommentInput={() => {
+              setCommentInput(null);
+              setCommentText('');
             }}
           />
-          <div className="flex gap-1 mt-1">
-            <button
-              type="submit"
-              className="px-2 py-1 bg-black text-white text-xs rounded"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={handleCommentCancel}
-              className="px-2 py-1 text-gray-500 text-xs"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-      </div>{/* End zoom/pan container */}
 
-      {/* Thinking Panel - right side */}
-      {thinkingEnabled && showThinkingPanel && (
-        <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-white">
-            <span className="text-sm font-medium text-gray-700">Claude&apos;s Thoughts</span>
-            <button
-              onClick={() => setShowThinkingPanel(false)}
-              className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto p-3">
-            {thinkingText ? (
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">
-                {thinkingText}
-              </pre>
-            ) : isLoading ? (
-              <p className="text-xs text-gray-400 italic">Thinking...</p>
-            ) : (
-              <p className="text-xs text-gray-400 italic">
-                Claude&apos;s reasoning will appear here when drawing.
-              </p>
-            )}
-          </div>
+          {/* Comment input */}
+          {commentInput && (
+            <CommentInput
+              position={commentInput}
+              screenPosition={canvasToScreen(commentInput.x, commentInput.y)}
+              commentText={commentText}
+              setCommentText={setCommentText}
+              strokeColor={strokeColor}
+              onSubmit={handleCommentSubmit}
+              onCancel={handleCommentCancel}
+            />
+          )}
         </div>
-      )}
-      </div>{/* End main content area */}
 
-      {/* Settings panel - shows above bottom bar */}
+        {/* Thinking Panel */}
+        {thinkingEnabled && showThinkingPanel && (
+          <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-white">
+              <span className="text-sm font-medium text-gray-700">Claude&apos;s Thoughts</span>
+              <button
+                onClick={() => setShowThinkingPanel(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-3">
+              {thinkingText ? (
+                <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">
+                  {thinkingText}
+                </pre>
+              ) : isLoading ? (
+                <p className="text-xs text-gray-400 italic">Thinking...</p>
+              ) : (
+                <p className="text-xs text-gray-400 italic">
+                  Claude&apos;s reasoning will appear here when drawing.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Settings panel */}
       {showSettings && (
-        <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg text-sm z-10 w-72">
+        <div className="absolute bottom-16 right-3 bg-white border border-black/10 rounded-xl p-4 shadow-lg text-sm z-10 w-72">
           <div className="font-medium mb-3 text-gray-700">Settings</div>
 
-          {/* Draw Mode */}
           <div className="mb-4">
             <label className="text-gray-600 mb-2 block">Draw Mode</label>
             <div className="flex flex-wrap gap-1">
@@ -923,7 +832,51 @@ export default function DrawPage() {
             </p>
           </div>
 
-          {/* Toggles */}
+          <div className="mb-4">
+            <label className="text-gray-600 mb-2 block">Canvas Background</label>
+            <div className="flex flex-wrap gap-1">
+              {(['none', 'grid', 'dots'] as const).map((bg) => (
+                <button
+                  key={bg}
+                  onClick={() => setCanvasBackground(bg)}
+                  className={`px-2 py-1 text-xs rounded ${
+                    canvasBackground === bg
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {bg === 'none' ? 'None' : bg === 'grid' ? 'Grid' : 'Dots'}
+                </button>
+              ))}
+            </div>
+            {canvasBackground !== 'none' && (
+              <div className="mt-2">
+                <label className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Grid size</span>
+                  <span>{gridSize}px</span>
+                </label>
+                <input
+                  type="range"
+                  min="8"
+                  max="64"
+                  step="4"
+                  value={gridSize}
+                  onChange={(e) => setGridSize(parseInt(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            )}
+            <label className="flex items-center gap-2 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={canvasBorder}
+                onChange={(e) => setCanvasBorder(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-xs">Border + padding</span>
+            </label>
+          </div>
+
           <div className="space-y-2 mb-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -966,7 +919,6 @@ export default function DrawPage() {
             </label>
           </div>
 
-          {/* Temperature */}
           <div className="mb-3">
             <label className="flex justify-between text-gray-600 mb-1">
               <span>Temperature</span>
@@ -991,7 +943,6 @@ export default function DrawPage() {
             )}
           </div>
 
-          {/* Max Tokens */}
           <div className="mb-3">
             <label className="flex justify-between text-gray-600 mb-1">
               <span>Max tokens</span>
@@ -1012,7 +963,6 @@ export default function DrawPage() {
             </div>
           </div>
 
-          {/* Editable Prompt */}
           <div>
             <label className="text-gray-600 mb-1 block">Prompt</label>
             <textarea
@@ -1027,100 +977,25 @@ export default function DrawPage() {
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-2 p-4 border-t border-gray-100">
-        {wish && (
-          <p className="text-sm text-gray-500 italic">&quot;{wish}&quot;</p>
-        )}
-        <div className="flex gap-2 items-center">
-          {/* Color palette */}
-          <div className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-full">
-            {['#000000', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6'].map((color) => (
-              <button
-                key={color}
-                onClick={() => setStrokeColor(color)}
-                className={`w-5 h-5 rounded-full transition-transform ${
-                  strokeColor === color ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-110'
-                }`}
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-          {/* Size selector */}
-          <div className="flex items-center gap-2 px-2 py-1 border border-gray-200 rounded-full">
-            {[2, 6, 12].map((size) => (
-              <button
-                key={size}
-                onClick={() => setStrokeSize(size)}
-                className={`rounded-full bg-current transition-transform ${
-                  strokeSize === size ? 'ring-2 ring-offset-1 ring-gray-400' : 'hover:scale-125'
-                }`}
-                style={{
-                  width: `${size + 4}px`,
-                  height: `${size + 4}px`,
-                  color: strokeColor
-                }}
-                title={`${size}px`}
-              />
-            ))}
-          </div>
-          <div className="flex border border-gray-200 rounded-full overflow-hidden">
-            <button
-              onClick={() => setTool('draw')}
-              className={`px-3 py-2 text-sm ${tool === 'draw' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
-            >
-              ✏️
-            </button>
-            <button
-              onClick={() => setTool('erase')}
-              className={`px-3 py-2 text-sm ${tool === 'erase' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
-            >
-              ⌫
-            </button>
-            {sayEnabled && (
-              <button
-                onClick={() => setTool('comment')}
-                className={`px-3 py-2 text-sm ${tool === 'comment' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
-              >
-                💬
-              </button>
-            )}
-          </div>
-          {!autoDrawEnabled && (
-            <button
-              onClick={handleYourTurn}
-              disabled={isLoading}
-              className="px-3 py-2 bg-black text-white rounded-full text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? '...' : '🫱'}
-            </button>
-          )}
-          {autoDrawEnabled && isLoading && (
-            <span className="text-sm text-gray-400">drawing...</span>
-          )}
-          <button
-            onClick={handleClear}
-            className="px-3 py-2 border border-gray-200 rounded-full text-sm hover:bg-gray-50"
-          >
-            🧹
-          </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm"
-          >
-            ⚙
-          </button>
-          {thinkingEnabled && !showThinkingPanel && (
-            <button
-              onClick={() => setShowThinkingPanel(true)}
-              className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm"
-              title="Show thinking panel"
-            >
-              💭
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Bottom toolbar */}
+      <DrawToolbar
+        tool={tool}
+        setTool={setTool}
+        asciiStroke={asciiStroke}
+        setAsciiStroke={setAsciiStroke}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+        strokeSize={strokeSize}
+        setStrokeSize={setStrokeSize}
+        paletteIndex={paletteIndex}
+        setPaletteIndex={setPaletteIndex}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        isLoading={isLoading}
+        onYourTurn={handleYourTurn}
+        onClear={handleClear}
+        onSave={handleSave}
+      />
     </div>
   );
 }

@@ -691,8 +691,8 @@ html {
   will-change: transform;
 }
 
-/* Image fade-in animation for smoother loading */
-img {
+/* Image fade-in animation for smoother loading - opt-in with class */
+img.fade-in {
   animation: fadeInImage 0.3s ease-in;
 }
 
@@ -785,4 +785,31 @@ img {
 
 .cd-ring-center {
   will-change: transform;
+}
+
+/* Comment animations for draw page */
+@keyframes commentScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes commentBounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
