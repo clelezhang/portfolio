@@ -45,10 +45,20 @@
 .draw-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh; /* Fallback for older browsers */
+  height: 100dvh; /* Dynamic viewport height - accounts for mobile browser UI */
+  height: calc(100vh - env(safe-area-inset-bottom, 0px)); /* Account for home indicator */
+  max-height: -webkit-fill-available; /* Safari fallback */
   background-color: var(--draw-bg-page);
   padding: var(--draw-padding);
+  padding-bottom: max(var(--draw-padding), env(safe-area-inset-bottom, 0px));
   gap: var(--draw-gap);
+  overflow: hidden; /* Prevent any overflow */
+  touch-action: none; /* Prevent browser gestures interfering */
+  -webkit-overflow-scrolling: touch;
+  position: fixed; /* Prevent iOS bounce scroll */
+  inset: 0;
+  box-sizing: border-box;
 }
 
 .draw-main {
