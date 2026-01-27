@@ -39,6 +39,8 @@ interface AsciiResponse {
   say?: string;
   sayX?: number;
   sayY?: number;
+  replyTo?: number; // Index of comment to reply to (1-indexed to match display)
+  setPaletteIndex?: number;
 }
 
 interface PreviousDrawing {
@@ -52,10 +54,41 @@ interface Turn {
   description?: string;
 }
 
+interface CommentReply {
+  text: string;
+  from: 'human' | 'claude';
+}
+
+interface Comment {
+  text: string;
+  x: number;
+  y: number;
+  from: 'human' | 'claude';
+  replies?: CommentReply[];
+}
+
 type DrawMode = 'all' | 'shapes' | 'ascii';
 
-function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean): string {
-  const sayInstructions = sayEnabled ? ',\n  "say": "comment", "sayX": 300, "sayY": 100' : '';
+function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], paletteIndex?: number, totalPalettes?: number, hasComments?: boolean): string {
+  // Comment instructions: new comment OR reply to existing
+  let sayInstructions = '';
+  let commentNote = '';
+  if (sayEnabled) {
+    if (hasComments) {
+      // Show reply format when there are existing comments
+      sayInstructions = ',\n  "say": "your reply", "replyTo": 1';
+      commentNote = `\n\nComments: To reply to an existing comment, use "say" with "replyTo" (the comment number). To leave a new comment, use "say" with "sayX"/"sayY" coordinates.`;
+    } else {
+      sayInstructions = ',\n  "say": "comment", "sayX": 300, "sayY": 100';
+    }
+  }
+
+  // Palette instructions
+  let paletteInstructions = '';
+  if (paletteColors && paletteColors.length > 0) {
+    paletteInstructions = `\n\nAvailable colors (current palette): ${paletteColors.join(', ')}
+Use these colors for your drawings. You can also set "setPaletteIndex": ${(paletteIndex ?? 0) + 1 < (totalPalettes ?? 6) ? (paletteIndex ?? 0) + 1 : 0} to change to the next palette (0-${(totalPalettes ?? 6) - 1}).`;
+  }
 
   if (drawMode === 'shapes') {
     return `Draw using SVG paths and geometric shapes.
@@ -73,7 +106,7 @@ JSON format:
 
 Path commands: M (move), L (line), C (cubic bezier), Q (quadratic), A (arc), Z (close).
 Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
+Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentNote}${paletteInstructions}`;
   }
 
   if (drawMode === 'ascii') {
@@ -85,7 +118,7 @@ JSON format:
 }
 
 Use \\n for newlines. You can draw/create drawings with any character (text, symbols, patterns, or more).
-Available: letters, numbers, punctuation, unicode symbols (░▒▓█ ╔╗╚╝║═ ●○ ▲▼ ★☆ ♦♣♠♥ ≈∼ etc), kaomoji, diagrams, shapes, box drawing, and more.`;
+Available: letters, numbers, punctuation, unicode symbols (░▒▓█ ╔╗╚╝║═ ●○ ▲▼ ★☆ ♦♣♠♥ ≈∼ etc), kaomoji, diagrams, shapes, box drawing, and more.${commentNote}${paletteInstructions}`;
   }
 
   // 'all' mode
@@ -104,12 +137,12 @@ JSON format:
 }
 
 Path commands: M, L, C, Q, A, Z. Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
+Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentNote}${paletteInstructions}`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model } = await req.json();
+    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, comments, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model, paletteColors, paletteIndex, totalPalettes } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -177,9 +210,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Add human messages if any
+    // Build comment thread context
     let messageContext = '';
-    if (humanMessages && humanMessages.length > 0) {
+    if (comments && Array.isArray(comments) && comments.length > 0) {
+      messageContext = `\n\nComments on the canvas:\n`;
+      (comments as Comment[]).forEach((comment, i) => {
+        const speaker = comment.from === 'human' ? 'Human' : 'You';
+        messageContext += `${i + 1}. ${speaker}: "${comment.text}"\n`;
+        if (comment.replies && comment.replies.length > 0) {
+          comment.replies.forEach((reply) => {
+            const replySpeaker = reply.from === 'human' ? 'Human' : 'You';
+            messageContext += `   ↳ ${replySpeaker} replied: "${reply.text}"\n`;
+          });
+        }
+      });
+    } else if (humanMessages && humanMessages.length > 0) {
+      // Fallback to old format if comments not provided
       messageContext = `\n\nThe human said: "${humanMessages.join('" and "')}"`;
     }
 
@@ -187,7 +233,8 @@ export async function POST(req: NextRequest) {
     const basePrompt = prompt || `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`;
 
     // Get mode-specific instructions
-    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled);
+    const hasComments = comments && Array.isArray(comments) && comments.length > 0;
+    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments);
 
     // When thinking is enabled, max_tokens must be greater than thinking budget
     const effectiveMaxTokens = thinkingEnabled
@@ -246,6 +293,8 @@ ${drawingInstructions}`,
           let sentShapesCount = 0;
           let sentSay = false;
           let sentWish = false;
+          let sentSetPalette = false;
+          let sentReplyTo = false;
           let currentBlockType: 'thinking' | 'text' | null = null;
 
           try {
@@ -325,17 +374,30 @@ ${drawingInstructions}`,
                     }
                   }
 
-                  // Extract say
-                  if (!sentSay) {
+                  // Extract say (new comment or reply)
+                  if (!sentSay && !sentReplyTo) {
                     const sayMatch = partialJson.match(/"say"\s*:\s*"([^"]*)"/);
-                    const sayXMatch = partialJson.match(/"sayX"\s*:\s*(\d+)/);
-                    const sayYMatch = partialJson.match(/"sayY"\s*:\s*(\d+)/);
-                    if (sayMatch && sayXMatch && sayYMatch) {
+                    const replyToMatch = partialJson.match(/"replyTo"\s*:\s*(\d+)/);
+
+                    if (sayMatch && replyToMatch) {
+                      // Reply to existing comment
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                        type: 'say',
-                        data: { say: sayMatch[1], sayX: parseInt(sayXMatch[1]), sayY: parseInt(sayYMatch[1]) }
+                        type: 'reply',
+                        data: { text: sayMatch[1], replyTo: parseInt(replyToMatch[1]) }
                       })}\n\n`));
+                      sentReplyTo = true;
                       sentSay = true;
+                    } else if (sayMatch) {
+                      const sayXMatch = partialJson.match(/"sayX"\s*:\s*(\d+)/);
+                      const sayYMatch = partialJson.match(/"sayY"\s*:\s*(\d+)/);
+                      if (sayXMatch && sayYMatch) {
+                        // New comment at position
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                          type: 'say',
+                          data: { say: sayMatch[1], sayX: parseInt(sayXMatch[1]), sayY: parseInt(sayYMatch[1]) }
+                        })}\n\n`));
+                        sentSay = true;
+                      }
                     }
                   }
 
@@ -345,6 +407,15 @@ ${drawingInstructions}`,
                     if (wishMatch) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'wish', data: wishMatch[1] })}\n\n`));
                       sentWish = true;
+                    }
+                  }
+
+                  // Extract setPaletteIndex
+                  if (!sentSetPalette) {
+                    const setPaletteMatch = partialJson.match(/"setPaletteIndex"\s*:\s*(\d+)/);
+                    if (setPaletteMatch) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'setPalette', data: parseInt(setPaletteMatch[1]) })}\n\n`));
+                      sentSetPalette = true;
                     }
                   }
                 }

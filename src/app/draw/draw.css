@@ -110,7 +110,7 @@
 .draw-comment-dot {
   position: absolute;
   border-radius: 50%;
-  box-shadow: 0 1px 3px var(--draw-shadow-medium);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15), 0 1px 1px 1px rgba(0, 0, 0, 0.1);
   border: 1.5px solid white;
   pointer-events: none;
   z-index: 1;
@@ -833,7 +833,7 @@
 }
 
 .draw-dice-rolling {
-  animation: diceRoll 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: diceRoll 210ms ease;
 }
 
 /* -----------------------------------------------------------------------------
@@ -889,21 +889,33 @@
   font-weight: 500;
 }
 
-/* Slide Animation - reel scrolls up through stacked colors */
+/* Slide Animation - new color slides down over current
+   Reel has 3 items: [next (top), new (middle), current (bottom)]
+   Start showing current (-3rem), end showing new (-1.5rem) */
 @keyframes reelSlide {
   0% {
-    transform: translateY(0); /* shows first item (oldest) */
-  }
-  70% {
-    transform: translateY(calc(-100% + 1.5rem - 3px)); /* slight overshoot */
+    transform: translateY(-3rem); /* shows current (bottom) */
   }
   100% {
-    transform: translateY(calc(-100% + 1.5rem)); /* shows last item (target) */
+    transform: translateY(-1.5rem); /* shows new (middle) */
   }
 }
 
 .draw-reel-slide {
-  animation: reelSlide 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  --slide-duration: 300ms;
+  --slide-easing: cubic-bezier(0.33, 1, 0.68, 1); /* ease-out-cubic */
+  transform: translateY(-3rem); /* initial: show current */
+  animation: reelSlide var(--slide-duration) var(--slide-easing) forwards;
+}
+
+/* Slide with Bounce - simple spring easing */
+@keyframes reelSlideBounce {
+  from { transform: translateY(-3rem); }
+  to { transform: translateY(-1.5rem); }
+}
+
+.draw-reel-slide-bounce {
+  animation: reelSlideBounce var(--slide-duration, 500ms) cubic-bezier(0.34, 1.9, 0.64, 1) forwards;
 }
 
 /* Slot Animation - reel spins rapidly then settles */

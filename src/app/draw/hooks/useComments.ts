@@ -56,7 +56,14 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
       }
     }
 
-    setComments((prev) => [...prev, { text, x: commentX!, y: commentY!, from }]);
+    setComments((prev) => {
+      const newComments = [...prev, { text, x: commentX!, y: commentY!, from }];
+      // Auto-open Claude's comments
+      if (from === 'claude') {
+        setOpenCommentIndex(newComments.length - 1);
+      }
+      return newComments;
+    });
   }, [canvasRef, lastDrawnPoint]);
 
   const deleteComment = useCallback((index: number) => {

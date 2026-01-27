@@ -33,6 +33,10 @@ interface DrawToolbarProps {
   onClear: () => void;
   onSave: () => void;
   animationType: AnimationType;
+  // Slide animation tuning
+  slideDuration?: number;
+  slideStagger?: number;
+  slideBounce?: boolean;
 }
 
 export function DrawToolbar({
@@ -53,6 +57,9 @@ export function DrawToolbar({
   onClear,
   onSave,
   animationType,
+  slideDuration = 500,
+  slideStagger = 30,
+  slideBounce = true,
 }: DrawToolbarProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [targetPaletteIndex, setTargetPaletteIndex] = useState<number | null>(null);
@@ -184,13 +191,19 @@ export function DrawToolbar({
               // Use targetPaletteIndex when rolling to keep colors stable during animation
               const targetIdx = targetPaletteIndex ?? paletteIndex;
               const targetColor = COLOR_PALETTES[targetIdx][index];
-              const reelColors = isRolling && targetPaletteIndex !== null && (animationType === 'slide' || animationType === 'slot')
+              // For slide: 3 colors - next, new, current (slides up to show new)
+              // For slot: keep multiple colors for spinning effect
+              const nextIdx = (targetIdx + 1) % COLOR_PALETTES.length;
+              const nextColor = COLOR_PALETTES[nextIdx][index];
+              const reelColors = isRolling && targetPaletteIndex !== null && animationType === 'slide'
+                ? [nextColor, targetColor, color] // next on top, new in middle, current at bottom
+                : isRolling && targetPaletteIndex !== null && animationType === 'slot'
                 ? [
                     COLOR_PALETTES[(targetIdx + 3) % COLOR_PALETTES.length][index],
                     COLOR_PALETTES[(targetIdx + 2) % COLOR_PALETTES.length][index],
                     COLOR_PALETTES[(targetIdx + 1) % COLOR_PALETTES.length][index],
-                    COLOR_PALETTES[targetIdx === 0 ? COLOR_PALETTES.length - 1 : targetIdx - 1][index], // previous palette
-                    targetColor, // final target color at bottom
+                    COLOR_PALETTES[targetIdx === 0 ? COLOR_PALETTES.length - 1 : targetIdx - 1][index],
+                    targetColor,
                   ]
                 : [color];
 
@@ -199,14 +212,15 @@ export function DrawToolbar({
                   key={`${paletteIndex}-${index}`}
                   onClick={() => setStrokeColor(color)}
                   className={`draw-color-btn ${isRolling && animationType === 'confetti' ? 'draw-color-anim-confetti' : ''}`}
-                  style={{ animationDelay: isRolling ? `${index * 50}ms` : '0ms' }}
+                  style={{ animationDelay: isRolling ? `${index * slideStagger}ms` : '0ms' }}
                   aria-label={`Color ${color}`}
                 >
                   <div
-                    className={`draw-color-reel ${isRolling && (animationType === 'slide' || animationType === 'slot') ? `draw-reel-${animationType}` : ''}`}
+                    className={`draw-color-reel ${isRolling && animationType === 'slide' ? (slideBounce ? 'draw-reel-slide-bounce' : 'draw-reel-slide') : ''} ${isRolling && animationType === 'slot' ? 'draw-reel-slot' : ''}`}
                     style={{
-                      animationDelay: isRolling ? `${index * 50}ms` : '0ms',
-                    }}
+                      '--slide-duration': `${slideDuration}ms`,
+                      animationDelay: isRolling ? `${index * slideStagger}ms` : '0ms',
+                    } as React.CSSProperties}
                   >
                     {reelColors.map((reelColor, ri) => (
                       <div
