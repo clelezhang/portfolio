@@ -680,10 +680,10 @@ export default function DrawPage() {
 
   return (
     <div className="draw-page relative overflow-hidden">
-      {/* SVG filter definitions */}
+      {/* SVG filter definitions - no userSpaceOnUse for Safari compatibility */}
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
-          <filter id="wobbleFilter" filterUnits="userSpaceOnUse" x="-20%" y="-20%" width="140%" height="140%">
+          <filter id="wobbleFilter" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence
               type="turbulence"
               baseFrequency="0.03"
@@ -796,7 +796,7 @@ export default function DrawPage() {
             }
           }}
         >
-          {/* Transform wrapper for zoom/pan - filter applied here for entire canvas */}
+          {/* Transform wrapper for zoom/pan - filter applied here for entire canvas including grid */}
           <div
             className="absolute inset-0 overflow-hidden rounded-xl"
             style={{
