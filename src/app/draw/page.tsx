@@ -20,13 +20,14 @@ import {
 // Constants
 import {
   ASCII_CHARS,
+  COLOR_PALETTES,
   DEFAULT_STROKE_SIZE,
-  DEFAULT_STROKE_COLOR,
   DEFAULT_GRID_SIZE,
+  DEFAULT_DOT_SIZE,
   DEFAULT_PROMPT,
   AUTO_DRAW_DELAY,
-  WIGGLE_SPEED,
-  DISTORTION_AMOUNT,
+  DEFAULT_PAN_SENSITIVITY,
+  DEFAULT_ZOOM_SENSITIVITY,
 } from './constants';
 
 // Hooks
@@ -65,15 +66,15 @@ export default function DrawPage() {
   const [tool, setTool] = useState<Tool>('draw');
   const [asciiStroke, setAsciiStroke] = useState(false);
   const [strokeSize, setStrokeSize] = useState(DEFAULT_STROKE_SIZE);
-  const [strokeColor, setStrokeColor] = useState(DEFAULT_STROKE_COLOR);
+  const [strokeColor, setStrokeColor] = useState<string>(COLOR_PALETTES[0][0]);
   const [paletteIndex, setPaletteIndex] = useState(0);
 
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
-  const [sayEnabled, setSayEnabled] = useState(false);
+  const [sayEnabled, setSayEnabled] = useState(true);
   const [autoDrawEnabled, setAutoDrawEnabled] = useState(false);
   const [temperature, setTemperature] = useState(1.0);
-  const [maxTokens, setMaxTokens] = useState(1024);
+  const [maxTokens, setMaxTokens] = useState(768);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [drawMode, setDrawMode] = useState<DrawMode>('all');
 
@@ -83,14 +84,15 @@ export default function DrawPage() {
   const [showThinkingPanel, setShowThinkingPanel] = useState(true);
 
   // Visual effects state
-  const [distortionEnabled] = useState(true);
-  const [wiggleEnabled] = useState(true);
+  const [distortionAmount, setDistortionAmount] = useState(4); // 0-30 range for displacement scale
+  const [wiggleSpeed, setWiggleSpeed] = useState(168); // ms between frames (lower = faster)
   const [filterSeed, setFilterSeed] = useState(1);
 
   // Canvas options
-  const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>('none');
-  const [canvasBorder, setCanvasBorder] = useState(false);
+  const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>('grid');
   const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
+  const [panSensitivity, setPanSensitivity] = useState(DEFAULT_PAN_SENSITIVITY);
+  const [zoomSensitivity, setZoomSensitivity] = useState(DEFAULT_ZOOM_SENSITIVITY);
 
   // Cursor position
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
@@ -98,22 +100,23 @@ export default function DrawPage() {
   // Refs
   const lastPoint = useRef<Point | null>(null);
   const lastAsciiPoint = useRef<Point | null>(null);
+  const lastAsciiStrokeRef = useRef(false); // Remember last brush type for comment mode revert
   const autoDrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleYourTurnRef = useRef<() => void>(() => {});
+  const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
 
   // Use custom hooks
   const {
     zoom,
     pan,
     isPanning,
-    spacePressed,
     startPan,
     doPan,
     stopPan,
     handleDoubleClick,
     screenToCanvas,
     canvasToScreen,
-  } = useZoomPan({ containerRef, canvasRef });
+  } = useZoomPan({ containerRef, canvasRef, panSensitivity, zoomSensitivity });
 
   const {
     comments,
@@ -186,14 +189,27 @@ export default function DrawPage() {
     redraw();
   }, [asciiBlocks, shapes, redraw]);
 
-  // Wiggle animation
+  // Wiggle animation - runs when distortion is visible
   useEffect(() => {
-    if (!wiggleEnabled) return;
+    if (distortionAmount === 0) return;
     const interval = setInterval(() => {
       setFilterSeed((prev) => (prev % 100) + 1);
-    }, WIGGLE_SPEED);
+    }, wiggleSpeed);
     return () => clearInterval(interval);
-  }, [wiggleEnabled]);
+  }, [distortionAmount, wiggleSpeed]);
+
+  // Track last brush type when in draw mode (for reverting from comment mode)
+  useEffect(() => {
+    if (tool === 'draw') {
+      lastAsciiStrokeRef.current = asciiStroke;
+    }
+  }, [tool, asciiStroke]);
+
+  // Set random initial brush color on mount (client-side only to avoid hydration mismatch)
+  useEffect(() => {
+    const palette = COLOR_PALETTES[0];
+    setStrokeColor(palette[Math.floor(Math.random() * palette.length)]);
+  }, []);
 
   const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) {
@@ -484,18 +500,18 @@ export default function DrawPage() {
       {/* SVG filter definitions */}
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
-          <filter id="wobbleFilter">
+          <filter id="wobbleFilter" filterUnits="userSpaceOnUse" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence
               type="turbulence"
-              baseFrequency="0.02"
-              numOctaves="3"
+              baseFrequency="0.03"
+              numOctaves="2"
               seed={filterSeed}
               result="noise"
             />
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
-              scale={DISTORTION_AMOUNT}
+              scale={distortionAmount}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -509,15 +525,18 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : 'none' }}
+          style={{ cursor: isPanning ? 'grabbing' : 'none' }}
           onMouseDown={(e) => {
             // Don't start drawing if there's an open comment or comment input
             if (openCommentIndex !== null || commentInput !== null) {
               return;
             }
-            if (spacePressed || e.button === 1) {
+            if (e.button === 1) {
               startPan(e);
-            } else if (tool !== 'comment') {
+            } else if (tool === 'comment') {
+              // Track drag start position - only switch to draw if user actually drags
+              commentDragStart.current = { x: e.clientX, y: e.clientY };
+            } else {
               startDrawing(e);
             }
           }}
@@ -528,22 +547,36 @@ export default function DrawPage() {
             }
             if (isPanning) {
               doPan(e);
-            } else if (tool !== 'comment') {
+            } else if (tool === 'comment' && commentDragStart.current && !isDrawing) {
+              // Check if user has dragged enough to switch to draw mode
+              const dx = e.clientX - commentDragStart.current.x;
+              const dy = e.clientY - commentDragStart.current.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance > 5) {
+                // Switch to draw mode and start drawing
+                setTool('draw');
+                setAsciiStroke(lastAsciiStrokeRef.current);
+                commentDragStart.current = null;
+                startDrawing(e);
+              }
+            } else if (tool !== 'comment' || isDrawing) {
               draw(e);
             }
           }}
           onMouseUp={() => {
+            commentDragStart.current = null;
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment') {
+            } else if (tool !== 'comment' || isDrawing) {
               stopDrawing();
             }
           }}
           onMouseLeave={() => {
             setCursorPos(null);
+            commentDragStart.current = null;
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment') {
+            } else if (tool !== 'comment' || isDrawing) {
               stopDrawing();
             }
           }}
@@ -558,61 +591,39 @@ export default function DrawPage() {
             setCommentText('');
           } : stopDrawing}
         >
-          {/* Transform wrapper for zoom/pan */}
+          {/* Transform wrapper for zoom/pan - filter applied here for entire canvas */}
           <div
-            className="absolute inset-0 rounded-lg overflow-hidden"
+            className="absolute inset-0 overflow-hidden rounded-xl"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
               backgroundColor: 'white',
-              ...(!canvasBorder && canvasBackground === 'grid' ? {
+              boxShadow: 'inset 0 0 0 1px #E5E5E5',
+              ...(canvasBackground === 'grid' ? {
                 backgroundImage: `
                   linear-gradient(to right, #e5e5e5 1px, transparent 1px),
                   linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
                 `,
                 backgroundSize: `${gridSize}px ${gridSize}px`,
-              } : !canvasBorder && canvasBackground === 'dots' ? {
-                backgroundImage: 'radial-gradient(circle, #d4d4d4 1px, transparent 1px)',
+              } : canvasBackground === 'dots' ? {
+                backgroundImage: 'radial-gradient(circle, #e5e5e5 1.5px, transparent 1.5px)',
                 backgroundSize: `${gridSize}px ${gridSize}px`,
               } : {}),
-              ...((distortionEnabled || wiggleEnabled) && canvasBackground !== 'none' && !canvasBorder ? {
-                filter: 'url(#wobbleFilter)',
-              } : {}),
+              ...(distortionAmount > 0 ? { filter: 'url(#wobbleFilter)' } : {}),
             }}
           >
-            {canvasBorder && (
-              <div
-                className="absolute inset-6 rounded border border-neutral-300"
-                style={{
-                  ...(canvasBackground === 'grid' ? {
-                    backgroundImage: `
-                      linear-gradient(to right, #e5e5e5 1px, transparent 1px),
-                      linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
-                    `,
-                    backgroundSize: `${gridSize}px ${gridSize}px`,
-                  } : canvasBackground === 'dots' ? {
-                    backgroundImage: 'radial-gradient(circle, #d4d4d4 1px, transparent 1px)',
-                    backgroundSize: `${gridSize}px ${gridSize}px`,
-                  } : {}),
-                  ...((distortionEnabled || wiggleEnabled) ? {
-                    filter: 'url(#wobbleFilter)',
-                  } : {}),
-                }}
-              />
-            )}
             <canvas
               ref={canvasRef}
-              className="touch-none w-full h-full rounded-xl"
-              style={{
-                ...(distortionEnabled || wiggleEnabled) ? { filter: 'url(#wobbleFilter)' } : {},
-                boxShadow: zoom !== 1 ? '0 0 0 1px rgba(0,0,0,0.1)' : undefined,
-              }}
+              className="touch-none w-full h-full"
             />
 
             {/* SVG layer for drawings */}
             <svg
               className="absolute inset-0"
-              style={{ width: '100%', height: '100%' }}
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
             >
               {drawingElements.map((element) => {
                 if (element.type === 'stroke') {
@@ -732,7 +743,6 @@ export default function DrawPage() {
           <CustomCursor
             cursorPos={cursorPos}
             isPanning={isPanning}
-            spacePressed={spacePressed}
             tool={tool}
             asciiStroke={asciiStroke}
             strokeColor={strokeColor}
@@ -805,107 +815,77 @@ export default function DrawPage() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="absolute bottom-16 right-3 bg-white border border-black/10 rounded-xl p-4 shadow-lg text-sm z-10 w-72">
-          <div className="font-medium mb-3 text-gray-700">Settings</div>
-
-          <div className="mb-4">
-            <label className="text-gray-600 mb-2 block">Draw Mode</label>
-            <div className="flex flex-wrap gap-1">
-              {(['all', 'shapes', 'ascii'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setDrawMode(mode)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    drawMode === mode
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {mode === 'all' ? 'All' : mode === 'shapes' ? 'Shapes' : 'ASCII'}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {drawMode === 'shapes' && 'SVG paths and geometric shapes'}
-              {drawMode === 'ascii' && 'Text-based ASCII art characters'}
-              {drawMode === 'all' && 'All drawing methods available'}
-            </p>
+        <div className="absolute bottom-16 flex flex-col gap-2 justify-end right-3 bg-black/80 backdrop-blur-xl rounded-xl p-2 text-sm z-10 w-64 border border-white/10">
+          {/* Draw Mode - tab bar */}
+          <div className="flex text-xs bg-white/5 rounded-lg p-1 mb-1">
+            {(['all', 'shapes', 'ascii'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setDrawMode(mode)}
+                className={`flex-1 py-1 rounded-md transition-all ${
+                  drawMode === mode
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                }`}
+              >
+                {mode === 'all' ? 'All' : mode === 'shapes' ? 'Shapes' : 'ASCII'}
+              </button>
+            ))}
           </div>
 
-          <div className="mb-4">
-            <label className="text-gray-600 mb-2 block">Canvas Background</label>
-            <div className="flex flex-wrap gap-1">
-              {(['none', 'grid', 'dots'] as const).map((bg) => (
-                <button
-                  key={bg}
-                  onClick={() => setCanvasBackground(bg)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    canvasBackground === bg
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {bg === 'none' ? 'None' : bg === 'grid' ? 'Grid' : 'Dots'}
-                </button>
-              ))}
-            </div>
-            {canvasBackground !== 'none' && (
-              <div className="mt-2">
-                <label className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Grid size</span>
-                  <span>{gridSize}px</span>
-                </label>
-                <input
-                  type="range"
-                  min="8"
-                  max="64"
-                  step="4"
-                  value={gridSize}
-                  onChange={(e) => setGridSize(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            )}
-            <label className="flex items-center gap-2 cursor-pointer mt-2">
-              <input
-                type="checkbox"
-                checked={canvasBorder}
-                onChange={(e) => setCanvasBorder(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-xs">Border + padding</span>
-            </label>
+          {/* Canvas Background - tab bar */}
+          <div className="flex text-xs bg-white/5 rounded-lg p-1 mb-1">
+            {(['none', 'grid', 'dots'] as const).map((bg) => (
+              <button
+                key={bg}
+                onClick={() => {
+                  setCanvasBackground(bg);
+                  if (bg === 'grid') setGridSize(DEFAULT_GRID_SIZE);
+                  else if (bg === 'dots') setGridSize(DEFAULT_DOT_SIZE);
+                }}
+                className={`flex-1 py-1 rounded-md transition-all ${
+                  canvasBackground === bg
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                }`}
+              >
+                {bg === 'none' ? 'None' : bg === 'grid' ? 'Grid' : 'Dots'}
+              </button>
+            ))}
           </div>
+          {canvasBackground !== 'none' && (
+            <input
+              type="range"
+              min="8"
+              max="64"
+              step="4"
+              value={gridSize}
+              onChange={(e) => setGridSize(parseInt(e.target.value))}
+              className="w-full mb-3 draw-settings-slider"
+            />
+          )}
 
-          <div className="space-y-2 mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+          {/* Checkboxes - all in one row */}
+          <div className="flex items-center gap-4 mb-1 text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
               <input
                 type="checkbox"
                 checked={sayEnabled}
                 onChange={(e) => setSayEnabled(e.target.checked)}
-                className="rounded"
+                className="draw-settings-checkbox"
               />
               <span>Comments</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
               <input
                 type="checkbox"
                 checked={autoDrawEnabled}
                 onChange={(e) => setAutoDrawEnabled(e.target.checked)}
-                className="rounded"
+                className="draw-settings-checkbox"
               />
-              <span>Auto-draw (2s)</span>
+              <span>Auto</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={asciiStroke}
-                onChange={(e) => setAsciiStroke(e.target.checked)}
-                className="rounded"
-              />
-              <span>ASCII strokes</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
               <input
                 type="checkbox"
                 checked={thinkingEnabled}
@@ -913,66 +893,145 @@ export default function DrawPage() {
                   setThinkingEnabled(e.target.checked);
                   if (e.target.checked) setShowThinkingPanel(true);
                 }}
-                className="rounded"
+                className="draw-settings-checkbox"
               />
-              <span>Show thinking</span>
+              <span>Thinking</span>
             </label>
           </div>
 
-          <div className="mb-3">
-            <label className="flex justify-between text-gray-600 mb-1">
-              <span>Temperature</span>
-              <span>{thinkingEnabled ? 'N/A' : temperature.toFixed(1)}</span>
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full"
-              disabled={thinkingEnabled}
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>predictable</span>
-              <span>creative</span>
+          {/* Sliders */}
+          <div className="space-y-2 mb-1">
+            <div>
+              <div className="flex justify-between text-xs text-white/50">
+                <span>Distortion</span>
+                <span>{distortionAmount}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                step="2"
+                value={distortionAmount}
+                onChange={(e) => setDistortionAmount(parseInt(e.target.value))}
+                className="w-full draw-settings-slider"
+              />
             </div>
-            {thinkingEnabled && (
-              <p className="text-xs text-amber-500 mt-1">Disabled when thinking is enabled</p>
+            {distortionAmount > 0 && (
+              <div>
+                <div className="flex justify-between text-xs text-white/50">
+                  <span>Wiggle</span>
+                  <span>{wiggleSpeed}</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="500"
+                  step="10"
+                  value={wiggleSpeed}
+                  onChange={(e) => setWiggleSpeed(parseInt(e.target.value))}
+                  className="w-full draw-settings-slider"
+                />
+              </div>
             )}
-          </div>
-
-          <div className="mb-3">
-            <label className="flex justify-between text-gray-600 mb-1">
-              <span>Max tokens</span>
-              <span>{maxTokens}</span>
-            </label>
-            <input
-              type="range"
-              min="256"
-              max="4096"
-              step="256"
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>short</span>
-              <span>long</span>
+            <div>
+              <div className="flex justify-between text-xs text-white/50">
+                <span>Temperature</span>
+                <span>{temperature.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                className="w-full draw-settings-slider"
+                disabled={thinkingEnabled}
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-white/50">
+                <span>Max tokens</span>
+                <span>{maxTokens}</span>
+              </div>
+              <input
+                type="range"
+                min="256"
+                max="4096"
+                step="256"
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                className="w-full draw-settings-slider"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-white/50">
+                <span>Pan sensitivity</span>
+                <span>{panSensitivity.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.2"
+                max="3"
+                step="0.1"
+                value={panSensitivity}
+                onChange={(e) => setPanSensitivity(parseFloat(e.target.value))}
+                className="w-full draw-settings-slider"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-white/50">
+                <span>Zoom sensitivity</span>
+                <span>{zoomSensitivity.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.2"
+                max="3"
+                step="0.1"
+                value={zoomSensitivity}
+                onChange={(e) => setZoomSensitivity(parseFloat(e.target.value))}
+                className="w-full draw-settings-slider"
+              />
             </div>
           </div>
 
-          <div>
-            <label className="text-gray-600 mb-1 block">Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full h-32 px-2 py-1 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:border-gray-400"
-            />
-            {sayEnabled && (
-              <p className="text-xs text-gray-400 mt-1">+ comment instructions</p>
-            )}
+          {/* Prompt */}
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="System prompt..."
+            className="w-full h-20 px-2 py-1.5 bg-white/10 rounded-lg text-xs text-white/90 placeholder-white/30 resize-none focus:outline-none focus:border-white/30"
+          />
+
+          {/* Copy settings button */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                const settings = {
+                  drawMode,
+                  canvasBackground,
+                  gridSize,
+                  sayEnabled,
+                  autoDrawEnabled,
+                  thinkingEnabled,
+                  distortionAmount,
+                  wiggleSpeed,
+                  temperature,
+                  maxTokens,
+                  panSensitivity,
+                  zoomSensitivity,
+                  prompt,
+                };
+                navigator.clipboard.writeText(JSON.stringify(settings, null, 2));
+              }}
+              className="p-1.5 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              title="Copy settings as JSON"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                <path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/>
+              </svg>
+            </button>
           </div>
         </div>
       )}

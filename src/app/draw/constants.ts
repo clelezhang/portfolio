@@ -1,12 +1,12 @@
 // Draw page constants
 
 export const COLOR_PALETTES = [
-  ['#F3381A', '#0D52BA', '#FDCF3B', '#000000'], // Default: red, blue, yellow, black
-  ['#FCFAB8', '#84D3EB', '#50AF5B', '#34545A'], // Pastel: yellow, cyan, green, teal
-  ['#F9D9EE', '#F698C8', '#50AF5B', '#1B513B'], // Pink: light pink, pink, green, dark green
-  ['#C5DCA9', '#F9BC08', '#E6640D', '#56231C'], // Autumn: light green, gold, orange, brown
-  ['#0D52BA', '#95C4FA', '#FFDECD', '#FFEBC9'], // Ocean: blue, light blue, peach, cream
-  ['#EAFF4B', '#C7CFD6', '#929DAC', '#4E5872'], // Neon gray: yellow-green, grays
+  ['#FECC2D', '#F3381A', '#0260CB', '#000000'], // Primary: yellow, orange, blue, black
+  ['#A6CADD', '#5F9FB8', '#25667F', '#51241A'], // Ocean: light blue, blue, teal, brown
+  ['#FDCDED', '#F793D1', '#50AF5B', '#0D7248'], // Garden: light pink, pink, green, dark green
+  ['#8FCE42', '#FC541A', '#C71B00', '#600000'], // Fire: lime, orange-red, red, maroon
+  ['#FECCFA', '#B1F2B7', '#ACDAFF', '#A9BFFD'], // Pastel: pink, mint, sky, lavender
+  ['#DFFC00', '#C7CFD6', '#929DAC', '#4E5872'], // Neon gray: yellow-green, grays
 ] as const;
 
 export const ASCII_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~*+=#@$%&!?<>^.:;-_/\\|[]{}()░▒▓█●○◐◑▲▼◆◇■□★☆♦♣♠♥∞≈≠±×÷«»¤¶§†‡';
@@ -14,9 +14,9 @@ export const ASCII_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 export const COMMENT_DOT_SIZE = 10;
 export const COMMENT_HIT_AREA_SIZE = 36;
 
-export const DEFAULT_STROKE_SIZE = 2;
-export const DEFAULT_STROKE_COLOR = '#000000';
-export const DEFAULT_GRID_SIZE = 20;
+export const DEFAULT_STROKE_SIZE = 6;
+export const DEFAULT_GRID_SIZE = 32;
+export const DEFAULT_DOT_SIZE = 20;
 
 export const DEFAULT_PROMPT = `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`;
 
@@ -26,3 +26,6 @@ export const DISTORTION_AMOUNT = 2;
 
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 4;
+
+export const DEFAULT_PAN_SENSITIVITY = 1.0;
+export const DEFAULT_ZOOM_SENSITIVITY = 1.0;
