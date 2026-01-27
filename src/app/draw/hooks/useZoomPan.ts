@@ -5,13 +5,14 @@ import { ZOOM_MIN, ZOOM_MAX } from '../constants';
 interface UseZoomPanProps {
   containerRef: RefObject<HTMLDivElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  panSensitivity?: number;
+  zoomSensitivity?: number;
 }
 
 interface UseZoomPanReturn {
   zoom: number;
   pan: Point;
   isPanning: boolean;
-  spacePressed: boolean;
   startPan: (e: React.MouseEvent) => void;
   doPan: (e: React.MouseEvent) => void;
   stopPan: () => void;
@@ -20,11 +21,10 @@ interface UseZoomPanReturn {
   canvasToScreen: (canvasX: number, canvasY: number) => Point;
 }
 
-export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoomPanReturn {
+export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoomSensitivity = 1.0 }: UseZoomPanProps): UseZoomPanReturn {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [spacePressed, setSpacePressed] = useState(false);
   const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom
@@ -40,7 +40,7 @@ export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoo
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
 
-      const zoomFactor = 1 - e.deltaY * 0.01;
+      const zoomFactor = 1 - e.deltaY * 0.01 * zoomSensitivity;
       const newZoom = Math.min(Math.max(zoom * zoomFactor, ZOOM_MIN), ZOOM_MAX);
 
       const mouseOffsetX = mouseX - centerX - pan.x;
@@ -52,11 +52,11 @@ export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoo
       setPan({ x: newPanX, y: newPanY });
     } else {
       setPan(prev => ({
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY,
+        x: prev.x - e.deltaX * panSensitivity,
+        y: prev.y - e.deltaY * panSensitivity,
       }));
     }
-  }, [zoom, pan, containerRef]);
+  }, [zoom, pan, containerRef, panSensitivity, zoomSensitivity]);
 
   // Attach wheel handler
   useEffect(() => {
@@ -67,30 +67,6 @@ export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoo
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel, containerRef]);
 
-  // Spacebar for pan mode
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        setSpacePressed(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        setSpacePressed(false);
-        setIsPanning(false);
-        panStart.current = null;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
   const startPan = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsPanning(true);
@@ -99,10 +75,10 @@ export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoo
 
   const doPan = useCallback((e: React.MouseEvent) => {
     if (!isPanning || !panStart.current) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
+    const dx = (e.clientX - panStart.current.x) * panSensitivity;
+    const dy = (e.clientY - panStart.current.y) * panSensitivity;
     setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
-  }, [isPanning]);
+  }, [isPanning, panSensitivity]);
 
   const stopPan = useCallback(() => {
     setIsPanning(false);
@@ -152,7 +128,6 @@ export function useZoomPan({ containerRef, canvasRef }: UseZoomPanProps): UseZoo
     zoom,
     pan,
     isPanning,
-    spacePressed,
     startPan,
     doPan,
     stopPan,

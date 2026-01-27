@@ -64,10 +64,9 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  border-radius: var(--draw-radius-md);
   border: 1px solid var(--draw-border);
+  border-radius: var(--draw-radius-md);
   background-color: var(--draw-bg-canvas);
-  padding: var(--draw-padding);
 }
 
 .draw-canvas-wrapper {
@@ -75,6 +74,7 @@
   inset: 0;
   border-radius: 0.5rem;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--draw-border);
   background-color: var(--draw-bg-canvas);
 }
 
@@ -86,7 +86,7 @@
 }
 
 .draw-canvas-dots {
-  background-image: radial-gradient(circle, var(--draw-dot-color) 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--draw-dot-color) 1.5px, transparent 1.5px);
   background-size: 20px 20px;
 }
 
@@ -405,7 +405,12 @@
   background-color: var(--draw-hover-bg);
 }
 
-.draw-icon-btn--active {
+.draw-icon-btn--no-hover:hover {
+  background-color: transparent;
+}
+
+.draw-icon-btn--active,
+.draw-icon-btn--active:hover {
   background-color: var(--draw-active-bg);
 }
 
@@ -469,6 +474,81 @@
 }
 
 /* -----------------------------------------------------------------------------
+   Settings Panel Range Sliders
+   ----------------------------------------------------------------------------- */
+.draw-settings-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  outline: none;
+}
+
+.draw-settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.draw-settings-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.draw-settings-slider::-webkit-slider-runnable-track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.draw-settings-slider::-moz-range-track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+/* Settings Panel Checkboxes */
+.draw-settings-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.draw-settings-checkbox:checked {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.draw-settings-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* -----------------------------------------------------------------------------
    Utilities
    ----------------------------------------------------------------------------- */
 .draw-img-no-anim {
@@ -479,17 +559,13 @@
    Wiggle Filter Effects
    ----------------------------------------------------------------------------- */
 .draw-comment-icon:hover,
-.draw-reply-btn-icon:hover {
+.draw-reply-btn-icon:hover,
+.draw-user-icon:hover,
+.draw-stroke-icon:hover {
   filter: url(#wobbleFilter);
 }
 
-/* Stroke hover effects */
+/* Stroke styles - no hover effects to avoid conflicts with canvas filter */
 .draw-stroke {
-  pointer-events: stroke;
-  transition: filter 0.15s ease-out;
-}
-
-.draw-stroke:hover {
-  filter: url(#wobbleFilter);
-  cursor: pointer;
+  pointer-events: none;
 }

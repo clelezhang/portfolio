@@ -67,7 +67,7 @@ export function CommentInput({
             className="draw-comment-submit draw-comment-submit--top"
             style={{
               backgroundColor: strokeColor,
-              opacity: commentText.trim() ? 1 : 0.4,
+              opacity: commentText.trim() ? 1 : 0.6,
             }}
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

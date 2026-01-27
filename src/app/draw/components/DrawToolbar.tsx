@@ -43,8 +43,8 @@ export function DrawToolbar({
     <div className="draw-toolbar">
       {/* Left section: profiles + social */}
       <div className="draw-toolbar-section">
-        <div className="draw-icon-btn">
-          <img src="/draw/user.svg" alt="" className="w-6 h-6 draw-img-no-anim" />
+        <div className="draw-icon-btn draw-icon-btn--no-hover">
+          <img src="/draw/user.svg" alt="" className="w-6 h-6 draw-img-no-anim draw-user-icon" />
         </div>
         <button
           onClick={onYourTurn}
@@ -139,21 +139,21 @@ export function DrawToolbar({
             className={`draw-icon-btn draw-icon-btn--sm ${strokeSize === 2 ? 'draw-icon-btn--active' : ''}`}
             title="Thin"
           >
-            <img src="/draw/thin.svg" alt="" className="w-6 h-6" />
+            <img src="/draw/thin.svg" alt="" className="w-6 h-6 draw-stroke-icon" />
           </button>
           <button
             onClick={() => setStrokeSize(6)}
             className={`draw-icon-btn draw-icon-btn--sm ${strokeSize === 6 ? 'draw-icon-btn--active' : ''}`}
             title="Medium"
           >
-            <img src="/draw/medium.svg" alt="" className="w-6 h-6" />
+            <img src="/draw/medium.svg" alt="" className="w-6 h-6 draw-stroke-icon" />
           </button>
           <button
             onClick={() => setStrokeSize(12)}
             className={`draw-icon-btn draw-icon-btn--sm ${strokeSize === 12 ? 'draw-icon-btn--active' : ''}`}
             title="Thick"
           >
-            <img src="/draw/thick.svg" alt="" className="w-6 h-6" />
+            <img src="/draw/thick.svg" alt="" className="w-6 h-6 draw-stroke-icon" />
           </button>
         </div>
       </div>

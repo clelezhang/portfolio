@@ -238,7 +238,7 @@ function CommentPopup({
               className="draw-comment-submit"
               style={{
                 backgroundColor: strokeColor,
-                opacity: replyText?.trim() ? 1 : 0.4,
+                opacity: replyText?.trim() ? 1 : 0.6,
               }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
