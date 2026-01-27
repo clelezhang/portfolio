@@ -70,74 +70,66 @@ interface Comment {
 type DrawMode = 'all' | 'shapes' | 'ascii';
 
 function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], paletteIndex?: number, totalPalettes?: number, hasComments?: boolean): string {
-  // Comment instructions: new comment OR reply to existing
-  let sayInstructions = '';
-  let commentNote = '';
-  if (sayEnabled) {
-    if (hasComments) {
-      // Show reply format when there are existing comments
-      sayInstructions = ',\n  "say": "your reply", "replyTo": 1';
-      commentNote = `\n\nComments: To reply to an existing comment, use "say" with "replyTo" (the comment number). To leave a new comment, use "say" with "sayX"/"sayY" coordinates.`;
-    } else {
-      sayInstructions = ',\n  "say": "comment", "sayX": 300, "sayY": 100';
-    }
-  }
-
   // Palette instructions
   let paletteInstructions = '';
   if (paletteColors && paletteColors.length > 0) {
-    paletteInstructions = `\n\nAvailable colors (current palette): ${paletteColors.join(', ')}
-Use these colors for your drawings. You can also set "setPaletteIndex": ${(paletteIndex ?? 0) + 1 < (totalPalettes ?? 6) ? (paletteIndex ?? 0) + 1 : 0} to change to the next palette (0-${(totalPalettes ?? 6) - 1}).`;
+    paletteInstructions = `\n\nAvailable colors: ${paletteColors.join(', ')}
+You can set "setPaletteIndex": ${(paletteIndex ?? 0) + 1 < (totalPalettes ?? 6) ? (paletteIndex ?? 0) + 1 : 0} to change palette (0-${(totalPalettes ?? 6) - 1}).`;
+  }
+
+  // Comment instructions
+  let commentInstructions = '';
+  if (sayEnabled) {
+    if (hasComments) {
+      commentInstructions = `
+
+To comment: Reply to existing with "say" + "replyTo" (comment number), or new comment with "say" + "sayX"/"sayY".
+You can JUST comment without drawing - responding to the human's comment is a valid turn.`;
+    } else {
+      commentInstructions = `
+
+To comment: Use "say" with "sayX"/"sayY" coordinates. You can JUST comment without drawing.`;
+    }
   }
 
   if (drawMode === 'shapes') {
-    return `Draw using SVG paths and geometric shapes.
+    return `You can draw shapes, comment, or both. All fields are optional.
 
 JSON format:
 {
-  "shapes": [
-    {"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd", "strokeWidth": 2},
-    {"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"},
-    {"type": "rect", "x": 100, "y": 100, "width": 50, "height": 30, "color": "#3b82f6"},
-    {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#000"},
-    {"type": "curve", "points": [[0,0], [50,25], [100,0]], "color": "#10b981"}
-  ]${sayInstructions}
+  "shapes": [{"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd", "strokeWidth": 2}],
+  "say": "optional comment", "sayX": 300, "sayY": 100
 }
 
-Path commands: M (move), L (line), C (cubic bezier), Q (quadratic), A (arc), Z (close).
 Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentNote}${paletteInstructions}`;
+Path commands: M (move), L (line), C (cubic bezier), Q (quadratic), A (arc), Z (close).
+Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentInstructions}${paletteInstructions}`;
   }
 
   if (drawMode === 'ascii') {
-    return `Draw using text and characters.
+    return `You can draw text/ASCII, comment, or both. All fields are optional.
 
 JSON format:
 {
-  "blocks": [{"block": "your text here", "x": 100, "y": 150, "color": "#3b82f6"}]${sayInstructions}
+  "blocks": [{"block": "your text here", "x": 100, "y": 150, "color": "#3b82f6"}],
+  "say": "optional comment", "sayX": 300, "sayY": 100
 }
 
-Use \\n for newlines. You can draw/create drawings with any character (text, symbols, patterns, or more).
-Available: letters, numbers, punctuation, unicode symbols (░▒▓█ ╔╗╚╝║═ ●○ ▲▼ ★☆ ♦♣♠♥ ≈∼ etc), kaomoji, diagrams, shapes, box drawing, and more.${commentNote}${paletteInstructions}`;
+Use \\n for newlines. Available: letters, numbers, unicode symbols (░▒▓█ ●○ ▲▼ ★☆ ♦♣♠♥ etc), kaomoji, box drawing, and more.${commentInstructions}${paletteInstructions}`;
   }
 
   // 'all' mode
-  return `Draw using SVG paths, shapes, or ASCII art.
+  return `You can draw (shapes or ASCII), comment, or both. All fields are optional.
 
 JSON format:
 {
   "blocks": [{"block": "ASCII art", "x": 100, "y": 150, "color": "#3b82f6"}],
-  "shapes": [
-    {"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd"},
-    {"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"},
-    {"type": "rect", "x": 100, "y": 100, "width": 50, "height": 30, "color": "#3b82f6"},
-    {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#000"},
-    {"type": "curve", "points": [[0,0], [50,25], [100,0]], "color": "#10b981"}
-  ]${sayInstructions}
+  "shapes": [{"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"}],
+  "say": "optional comment", "sayX": 300, "sayY": 100
 }
 
-Path commands: M, L, C, Q, A, Z. Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentNote}${paletteInstructions}`;
+Shape types: path, circle, line, rect, curve, erase.
+Path commands: M, L, C, Q, A, Z. Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentInstructions}${paletteInstructions}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -297,6 +289,12 @@ ${drawingInstructions}`,
           let sentReplyTo = false;
           let currentBlockType: 'thinking' | 'text' | null = null;
 
+          // Streaming comment state
+          let sayStarted = false;
+          let lastSentSayLength = 0;
+          let sayPositionSent = false;
+          let replyToValue: number | null = null;
+
           try {
             const messageStream = anthropic.messages.stream(messageParams);
 
@@ -374,29 +372,94 @@ ${drawingInstructions}`,
                     }
                   }
 
-                  // Extract say (new comment or reply)
-                  if (!sentSay && !sentReplyTo) {
-                    const sayMatch = partialJson.match(/"say"\s*:\s*"([^"]*)"/);
-                    const replyToMatch = partialJson.match(/"replyTo"\s*:\s*(\d+)/);
+                  // Extract say (new comment or reply) - with streaming support
+                  if (!sentSay) {
+                    // Check for replyTo first
+                    if (!replyToValue) {
+                      const replyToMatch = partialJson.match(/"replyTo"\s*:\s*(\d+)/);
+                      if (replyToMatch) {
+                        replyToValue = parseInt(replyToMatch[1]);
+                      }
+                    }
 
-                    if (sayMatch && replyToMatch) {
-                      // Reply to existing comment
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                        type: 'reply',
-                        data: { text: sayMatch[1], replyTo: parseInt(replyToMatch[1]) }
-                      })}\n\n`));
-                      sentReplyTo = true;
-                      sentSay = true;
-                    } else if (sayMatch) {
-                      const sayXMatch = partialJson.match(/"sayX"\s*:\s*(\d+)/);
-                      const sayYMatch = partialJson.match(/"sayY"\s*:\s*(\d+)/);
-                      if (sayXMatch && sayYMatch) {
-                        // New comment at position
+                    // Look for "say" field - extract partial content even before closing quote
+                    const sayFieldMatch = partialJson.match(/"say"\s*:\s*"/);
+                    if (sayFieldMatch) {
+                      // Find where the string value starts
+                      const sayStart = partialJson.indexOf(sayFieldMatch[0]) + sayFieldMatch[0].length;
+                      // Find the end - either closing quote or end of string
+                      let sayEnd = sayStart;
+                      let escaped = false;
+                      let foundEnd = false;
+                      for (let i = sayStart; i < partialJson.length; i++) {
+                        if (escaped) {
+                          escaped = false;
+                          continue;
+                        }
+                        if (partialJson[i] === '\\') {
+                          escaped = true;
+                          continue;
+                        }
+                        if (partialJson[i] === '"') {
+                          sayEnd = i;
+                          foundEnd = true;
+                          break;
+                        }
+                        sayEnd = i + 1;
+                      }
+
+                      // Get current say content (handle escape sequences)
+                      const rawSayContent = partialJson.slice(sayStart, sayEnd);
+                      let sayContent = rawSayContent;
+                      try {
+                        // Parse escape sequences
+                        sayContent = JSON.parse(`"${rawSayContent}"`);
+                      } catch {
+                        // If parsing fails, use raw content
+                        sayContent = rawSayContent;
+                      }
+
+                      // Check if we need to send position info first
+                      if (!sayPositionSent && !sayStarted) {
+                        if (replyToValue) {
+                          // Reply - send start with replyTo
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                            type: 'replyStart',
+                            data: { replyTo: replyToValue }
+                          })}\n\n`));
+                          sayStarted = true;
+                          sayPositionSent = true;
+                        } else {
+                          // New comment - need position
+                          const sayXMatch = partialJson.match(/"sayX"\s*:\s*(\d+)/);
+                          const sayYMatch = partialJson.match(/"sayY"\s*:\s*(\d+)/);
+                          if (sayXMatch && sayYMatch) {
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                              type: 'sayStart',
+                              data: { sayX: parseInt(sayXMatch[1]), sayY: parseInt(sayYMatch[1]) }
+                            })}\n\n`));
+                            sayStarted = true;
+                            sayPositionSent = true;
+                          }
+                        }
+                      }
+
+                      // Send new chunks of text
+                      if (sayStarted && sayContent.length > lastSentSayLength) {
+                        const newChunk = sayContent.slice(lastSentSayLength);
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                          type: 'say',
-                          data: { say: sayMatch[1], sayX: parseInt(sayXMatch[1]), sayY: parseInt(sayYMatch[1]) }
+                          type: 'sayChunk',
+                          data: { text: newChunk }
                         })}\n\n`));
+                        lastSentSayLength = sayContent.length;
+                      }
+
+                      // Mark as complete when we find the closing quote
+                      if (foundEnd && sayStarted) {
                         sentSay = true;
+                        if (replyToValue) {
+                          sentReplyTo = true;
+                        }
                       }
                     }
                   }
