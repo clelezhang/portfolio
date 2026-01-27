@@ -11,7 +11,7 @@
   --draw-bg-canvas: #FFFFFF;
   --draw-text-primary: rgba(15, 25, 49, 1);
   --draw-text-secondary: #9CA3AF;
-  --draw-border: rgba(0, 0, 0, 0.1);
+  --draw-border: #0000001a;
   --draw-shadow: rgba(0, 0, 0, 0.05);
   --draw-shadow-medium: rgba(0, 0, 0, 0.2);
   --draw-grid-color: #e5e5e5;
@@ -388,7 +388,26 @@
 .draw-color-btn {
   width: 1.5rem;
   height: 1.5rem;
+  overflow: hidden;
+  position: relative;
   transition: all 0.2s;
+}
+
+.draw-color-reel {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Start showing the last item (target color) */
+  transform: translateY(calc(-100% + 1.5rem));
+}
+
+.draw-color-reel-item {
+  width: 100%;
+  height: 1.5rem;
+  flex-shrink: 0;
 }
 
 .draw-icon-btn {
@@ -568,4 +587,412 @@
 /* Stroke styles - no hover effects to avoid conflicts with canvas filter */
 .draw-stroke {
   pointer-events: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Curve Editor
+   ----------------------------------------------------------------------------- */
+.draw-curve-editor {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--draw-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+  min-width: 200px;
+}
+
+.draw-curve-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.draw-curve-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-curve-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-curve-duration-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.draw-curve-duration-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.draw-curve-duration-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.draw-curve-duration-value {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 42px;
+  text-align: right;
+}
+
+.draw-curve-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.15s;
+}
+
+.draw-curve-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.draw-curve-canvas {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  justify-content: center;
+}
+
+.draw-curve-canvas svg {
+  display: block;
+}
+
+.draw-curve-canvas line {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.draw-curve-canvas path {
+  stroke: white;
+}
+
+.draw-curve-canvas circle {
+  fill: white;
+}
+
+.draw-curve-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.draw-curve-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draw-curve-slider-row label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  min-width: 52px;
+}
+
+.draw-curve-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.draw-curve-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.draw-curve-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.draw-curve-slider-value {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  min-width: 28px;
+  text-align: right;
+}
+
+.draw-curve-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draw-curve-field label {
+  font-size: 12px;
+  color: #6b7280;
+  min-width: 48px;
+}
+
+.draw-curve-range {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e5e5;
+  border-radius: 2px;
+  outline: none;
+}
+
+.draw-curve-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #0f1931;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.draw-curve-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #0f1931;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.draw-curve-value {
+  font-size: 12px;
+  color: #0f1931;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: right;
+}
+
+/* -----------------------------------------------------------------------------
+   Dice Roll Animation
+   ----------------------------------------------------------------------------- */
+.draw-dice {
+  transform: scale(1.2);
+}
+
+@keyframes diceRoll {
+  0% {
+    transform: rotate(0deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(180deg) scale(1.2);
+  }
+}
+
+.draw-dice-rolling {
+  animation: diceRoll 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* -----------------------------------------------------------------------------
+   Color Palette Animations
+   ----------------------------------------------------------------------------- */
+
+/* Animation Picker */
+.draw-animation-picker {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
+  min-width: 120px;
+}
+
+.draw-animation-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.draw-animation-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.draw-animation-option--active {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.draw-animation-icon {
+  font-size: 14px;
+}
+
+.draw-animation-label {
+  font-weight: 500;
+}
+
+/* Slide Animation - reel scrolls up through stacked colors */
+@keyframes reelSlide {
+  0% {
+    transform: translateY(0); /* shows first item (oldest) */
+  }
+  70% {
+    transform: translateY(calc(-100% + 1.5rem - 3px)); /* slight overshoot */
+  }
+  100% {
+    transform: translateY(calc(-100% + 1.5rem)); /* shows last item (target) */
+  }
+}
+
+.draw-reel-slide {
+  animation: reelSlide 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slot Animation - reel spins rapidly then settles */
+@keyframes reelSlot {
+  0% {
+    transform: translateY(0); /* shows first item */
+  }
+  18% {
+    transform: translateY(calc(-100% + 1.5rem)); /* to last */
+  }
+  22% {
+    transform: translateY(0); /* back to first */
+  }
+  40% {
+    transform: translateY(calc(-100% + 1.5rem)); /* to last */
+  }
+  44% {
+    transform: translateY(calc(-40%)); /* partial */
+  }
+  62% {
+    transform: translateY(calc(-100% + 1.5rem)); /* to last */
+  }
+  68% {
+    transform: translateY(calc(-70%)); /* partial */
+  }
+  85% {
+    transform: translateY(calc(-100% + 1.5rem - 4px)); /* overshoot */
+  }
+  100% {
+    transform: translateY(calc(-100% + 1.5rem)); /* settle at last */
+  }
+}
+
+.draw-reel-slot {
+  animation: reelSlot 0.75s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Confetti Animation - confetti bursts then colors change */
+@keyframes confettiBurst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform:
+      translate(
+        calc(cos(var(--angle)) * var(--velocity) * 30px),
+        calc(sin(var(--angle)) * var(--velocity) * 30px - 40px)
+      )
+      rotate(var(--spin))
+      scale(0.5);
+  }
+}
+
+.draw-confetti-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  animation: confettiBurst 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes colorConfettiPop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.draw-color-anim-confetti {
+  animation: colorConfettiPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.draw-palette-confetti {
+  overflow: visible;
 }
