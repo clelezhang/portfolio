@@ -97,7 +97,11 @@ export default function DrawPage() {
   const [wiggleSpeed, setWiggleSpeed] = useState(168); // ms between frames (lower = faster)
   const [filterSeed, setFilterSeed] = useState(1);
   const [bounceIntensity, setBounceIntensity] = useState(1.0); // 0-2 range for animation bounce
-  const [animationType, setAnimationType] = useState<AnimationType>('slide');
+  // Palette animation settings (fixed values)
+  const animationType: AnimationType = 'slide';
+  const slideDuration = 500; // ms
+  const slideStagger = 30; // ms between each color
+  const slideBounce = true; // enable bounce effect
 
   // Canvas options
   const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>('grid');
@@ -405,6 +409,8 @@ export default function DrawPage() {
       }
 
       const image = canvas.toDataURL('image/png');
+      // Use user's tool selection to determine Claude's draw mode
+      const effectiveDrawMode = asciiStroke ? 'ascii' : 'shapes';
       const response = await fetch('/api/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -414,15 +420,19 @@ export default function DrawPage() {
           canvasHeight: canvas.height,
           previousDrawings: asciiBlocks,
           history: newHistory,
-          humanMessages: pendingMessages.length > 0 ? pendingMessages : undefined,
+          comments: comments.length > 0 ? comments : undefined,
           sayEnabled,
           temperature,
           maxTokens,
           prompt: prompt || undefined,
           streaming: true,
-          drawMode,
+          drawMode: effectiveDrawMode,
           thinkingEnabled,
           thinkingBudget: 10000,
+          // Palette info for Claude
+          paletteColors: COLOR_PALETTES[paletteIndex],
+          paletteIndex,
+          totalPalettes: COLOR_PALETTES.length,
         }),
       });
 
@@ -464,9 +474,22 @@ export default function DrawPage() {
                 }]);
               } else if (event.type === 'say') {
                 addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
+              } else if (event.type === 'reply') {
+                // Claude is replying to an existing comment (1-indexed)
+                const commentIndex = event.data.replyTo - 1;
+                if (commentIndex >= 0 && commentIndex < comments.length) {
+                  addReplyToComment(commentIndex, event.data.text, 'claude');
+                }
               } else if (event.type === 'wish') {
                 setWish(event.data);
                 console.log('claude wishes:', event.data);
+              } else if (event.type === 'setPalette') {
+                // Claude wants to change the palette - trigger animation
+                const newIndex = event.data;
+                if (typeof newIndex === 'number' && newIndex >= 0 && newIndex < COLOR_PALETTES.length) {
+                  setPaletteIndex(newIndex);
+                  setStrokeColor(COLOR_PALETTES[newIndex][0]);
+                }
               } else if (event.type === 'done') {
                 let description = '';
                 if (streamedBlocks.length > 0) {
@@ -982,31 +1005,6 @@ export default function DrawPage() {
             </label>
           </div>
 
-          {/* Palette Animation Style */}
-          <div className="mb-1">
-            <div className="text-xs text-white/50 mb-1">Palette Animation</div>
-            <div className="flex text-xs bg-white/5 rounded-lg p-1">
-              {([
-                { type: 'slide' as const, label: 'Slide', icon: '↓' },
-                { type: 'slot' as const, label: 'Slot', icon: '🎰' },
-                { type: 'confetti' as const, label: 'Confetti', icon: '🎉' },
-              ]).map(({ type, label, icon }) => (
-                <button
-                  key={type}
-                  onClick={() => setAnimationType(type)}
-                  className={`flex-1 py-1 px-2 rounded-md transition-all flex items-center justify-center gap-1 ${
-                    animationType === type
-                      ? 'bg-white/15 text-white'
-                      : 'text-white/40 hover:text-white/70 hover:bg-white/5'
-                  }`}
-                  title={label}
-                >
-                  <span>{icon}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Sliders */}
           <div className="space-y-2 mb-1">
             <div>
@@ -1134,6 +1132,9 @@ export default function DrawPage() {
         onClear={handleClear}
         onSave={handleSave}
         animationType={animationType}
+        slideDuration={slideDuration}
+        slideStagger={slideStagger}
+        slideBounce={slideBounce}
       />
     </div>
   );

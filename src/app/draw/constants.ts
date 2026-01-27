@@ -18,7 +18,15 @@ export const DEFAULT_STROKE_SIZE = 6;
 export const DEFAULT_GRID_SIZE = 32;
 export const DEFAULT_DOT_SIZE = 20;
 
-export const DEFAULT_PROMPT = `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`;
+export const DEFAULT_PROMPT = `You are claude, drawing with a human. The canvas shows what exists so far. You and the human can also use comments.
+
+Available to you:
+- Draw svgs/shapes (paths, circles, lines, rectangles, curves)
+- Draw text/ASCII art
+- Leave a comment/question/suggestion  (set say, sayX, sayY)
+- Express a wish for the collaboration (set wish)
+
+You can: draw shapes, draw text, comment, or express a wish.`;
 
 export const AUTO_DRAW_DELAY = 2000;
 export const WIGGLE_SPEED = 168;
