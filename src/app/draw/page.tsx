@@ -264,20 +264,8 @@ export default function DrawPage() {
 
     const updateSize = () => {
       const rect = container.getBoundingClientRect();
-      // Use device pixel ratio for sharper rendering on retina/iPad displays
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Scale context for retina displays
-        ctx.scale(dpr, dpr);
-        // Ensure transparent canvas background
-        ctx.clearRect(0, 0, rect.width, rect.height);
-      }
+      canvas.width = rect.width;
+      canvas.height = rect.height;
       redraw();
     };
 
