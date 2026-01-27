@@ -1,6 +1,8 @@
 import { Point, Tool } from '../types';
 import { PencilCursor } from './icons/PencilCursor';
 import { CommentCursor } from './icons/CommentCursor';
+import { AsciiCursor } from './icons/AsciiCursor';
+import { EraserCursor } from './icons/EraserCursor';
 
 interface CustomCursorProps {
   cursorPos: Point | null;
@@ -32,15 +34,12 @@ export function CustomCursor({
         <PencilCursor color={strokeColor} />
       )}
       {tool === 'draw' && asciiStroke && (
-        <img
-          src="/draw/asciicursor.svg"
-          alt=""
-          className="w-[34px] h-[34px]"
-          style={{ transform: 'translate(-5px, -5px)' }}
-        />
+        <div style={{ transform: 'translate(-5px, -5px)' }}>
+          <AsciiCursor />
+        </div>
       )}
       {tool === 'erase' && (
-        <img src="/draw/erasercursor..svg" alt="" className="w-6 h-6" />
+        <EraserCursor />
       )}
       {tool === 'comment' && (
         <CommentCursor color={strokeColor} />

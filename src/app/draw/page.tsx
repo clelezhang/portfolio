@@ -126,9 +126,13 @@ export default function DrawPage() {
     zoom,
     pan,
     isPanning,
+    isTouchGesture,
     startPan,
     doPan,
     stopPan,
+    handleTouchStart: handleZoomPanTouchStart,
+    handleTouchMove: handleZoomPanTouchMove,
+    handleTouchEnd: handleZoomPanTouchEnd,
     handleDoubleClick,
     screenToCanvas,
     canvasToScreen,
@@ -260,8 +264,20 @@ export default function DrawPage() {
 
     const updateSize = () => {
       const rect = container.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      // Use device pixel ratio for sharper rendering on retina/iPad displays
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Scale context for retina displays
+        ctx.scale(dpr, dpr);
+        // Ensure transparent canvas background
+        ctx.clearRect(0, 0, rect.width, rect.height);
+      }
       redraw();
     };
 
@@ -292,7 +308,9 @@ export default function DrawPage() {
 
   // Set random initial brush color on mount (client-side only to avoid hydration mismatch)
   useEffect(() => {
-    const palette = COLOR_PALETTES[0];
+    const randomPaletteIndex = Math.floor(Math.random() * COLOR_PALETTES.length);
+    const palette = COLOR_PALETTES[randomPaletteIndex];
+    setPaletteIndex(randomPaletteIndex);
     setStrokeColor(palette[Math.floor(Math.random() * palette.length)]);
   }, []);
 
@@ -759,14 +777,36 @@ export default function DrawPage() {
           }}
           onClick={handleCanvasClick}
           onDoubleClick={handleDoubleClick}
-          onTouchStart={tool === 'comment' ? undefined : startDrawing}
-          onTouchMove={tool === 'comment' ? undefined : draw}
-          onTouchEnd={tool === 'comment' ? (e) => {
-            const touch = e.changedTouches[0];
-            const point = screenToCanvas(touch.clientX, touch.clientY);
-            setCommentInput({ x: point.x, y: point.y });
-            setCommentText('');
-          } : stopDrawing}
+          onTouchStart={(e) => {
+            // Always check for multi-touch first
+            handleZoomPanTouchStart(e);
+            // Single finger: draw (unless in comment mode or gesture in progress)
+            if (e.touches.length === 1 && tool !== 'comment' && !isTouchGesture) {
+              startDrawing(e);
+            }
+          }}
+          onTouchMove={(e) => {
+            // Always update gesture tracking
+            handleZoomPanTouchMove(e);
+            // Single finger drawing (only if not in gesture mode)
+            if (e.touches.length === 1 && tool !== 'comment' && !isTouchGesture) {
+              draw(e);
+            }
+          }}
+          onTouchEnd={(e) => {
+            handleZoomPanTouchEnd(e);
+            if (tool === 'comment') {
+              // Comment mode: place comment on tap
+              if (e.changedTouches.length === 1 && !isTouchGesture) {
+                const touch = e.changedTouches[0];
+                const point = screenToCanvas(touch.clientX, touch.clientY);
+                setCommentInput({ x: point.x, y: point.y });
+                setCommentText('');
+              }
+            } else if (!isTouchGesture) {
+              stopDrawing();
+            }
+          }}
         >
           {/* Transform wrapper for zoom/pan - filter applied here for entire canvas */}
           <div
