@@ -35,7 +35,7 @@ import { useZoomPan } from './hooks/useZoomPan';
 import { useComments } from './hooks/useComments';
 
 // Components
-import { DrawToolbar } from './components/DrawToolbar';
+import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { CustomCursor } from './components/CustomCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
@@ -56,6 +56,15 @@ export default function DrawPage() {
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
   const elementIdCounter = useRef(0);
 
+  // Undo/redo state
+  type DrawingSnapshot = {
+    drawingElements: DrawingElement[];
+    humanStrokes: HumanStroke[];
+    humanAsciiChars: HumanAsciiChar[];
+  };
+  const [undoStack, setUndoStack] = useState<DrawingSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<DrawingSnapshot[]>([]);
+
   // History and state
   const [history, setHistory] = useState<Turn[]>([]);
   const [humanHasDrawn, setHumanHasDrawn] = useState(false);
@@ -66,8 +75,8 @@ export default function DrawPage() {
   const [tool, setTool] = useState<Tool>('draw');
   const [asciiStroke, setAsciiStroke] = useState(false);
   const [strokeSize, setStrokeSize] = useState(DEFAULT_STROKE_SIZE);
-  const [strokeColor, setStrokeColor] = useState<string>(COLOR_PALETTES[0][0]);
-  const [paletteIndex, setPaletteIndex] = useState(0);
+  const [strokeColor, setStrokeColor] = useState<string>(COLOR_PALETTES[4][0]);
+  const [paletteIndex, setPaletteIndex] = useState(4);
 
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -87,12 +96,14 @@ export default function DrawPage() {
   const [distortionAmount, setDistortionAmount] = useState(4); // 0-30 range for displacement scale
   const [wiggleSpeed, setWiggleSpeed] = useState(168); // ms between frames (lower = faster)
   const [filterSeed, setFilterSeed] = useState(1);
+  const [bounceIntensity, setBounceIntensity] = useState(1.0); // 0-2 range for animation bounce
+  const [animationType, setAnimationType] = useState<AnimationType>('slide');
 
   // Canvas options
   const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>('grid');
   const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
-  const [panSensitivity, setPanSensitivity] = useState(DEFAULT_PAN_SENSITIVITY);
-  const [zoomSensitivity, setZoomSensitivity] = useState(DEFAULT_ZOOM_SENSITIVITY);
+  const [panSensitivity] = useState(DEFAULT_PAN_SENSITIVITY);
+  const [zoomSensitivity] = useState(DEFAULT_ZOOM_SENSITIVITY);
 
   // Cursor position
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
@@ -138,6 +149,75 @@ export default function DrawPage() {
     addReplyToComment,
     handleCommentCancel,
   } = useComments({ canvasRef, lastDrawnPoint });
+
+  // Save current state to undo stack
+  const saveToUndoStack = useCallback(() => {
+    setUndoStack(prev => [...prev, {
+      drawingElements: [...drawingElements],
+      humanStrokes: [...humanStrokes],
+      humanAsciiChars: [...humanAsciiChars],
+    }]);
+    setRedoStack([]); // Clear redo stack on new action
+  }, [drawingElements, humanStrokes, humanAsciiChars]);
+
+  // Undo function
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+
+    // Save current state to redo stack
+    setRedoStack(prev => [...prev, {
+      drawingElements: [...drawingElements],
+      humanStrokes: [...humanStrokes],
+      humanAsciiChars: [...humanAsciiChars],
+    }]);
+
+    // Restore previous state
+    const previousState = undoStack[undoStack.length - 1];
+    setDrawingElements(previousState.drawingElements);
+    setHumanStrokes(previousState.humanStrokes);
+    setHumanAsciiChars(previousState.humanAsciiChars);
+    setUndoStack(prev => prev.slice(0, -1));
+  }, [undoStack, drawingElements, humanStrokes, humanAsciiChars]);
+
+  // Redo function
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+
+    // Save current state to undo stack
+    setUndoStack(prev => [...prev, {
+      drawingElements: [...drawingElements],
+      humanStrokes: [...humanStrokes],
+      humanAsciiChars: [...humanAsciiChars],
+    }]);
+
+    // Restore next state
+    const nextState = redoStack[redoStack.length - 1];
+    setDrawingElements(nextState.drawingElements);
+    setHumanStrokes(nextState.humanStrokes);
+    setHumanAsciiChars(nextState.humanAsciiChars);
+    setRedoStack(prev => prev.slice(0, -1));
+  }, [redoStack, drawingElements, humanStrokes, humanAsciiChars]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   // Redraw ASCII blocks and shapes
   const redraw = useCallback(() => {
@@ -219,6 +299,9 @@ export default function DrawPage() {
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    // Save state for undo before starting a new stroke
+    saveToUndoStack();
+
     setIsDrawing(true);
     setHumanHasDrawn(true);
     const point = getPoint(e);
@@ -899,6 +982,31 @@ export default function DrawPage() {
             </label>
           </div>
 
+          {/* Palette Animation Style */}
+          <div className="mb-1">
+            <div className="text-xs text-white/50 mb-1">Palette Animation</div>
+            <div className="flex text-xs bg-white/5 rounded-lg p-1">
+              {([
+                { type: 'slide' as const, label: 'Slide', icon: '↓' },
+                { type: 'slot' as const, label: 'Slot', icon: '🎰' },
+                { type: 'confetti' as const, label: 'Confetti', icon: '🎉' },
+              ]).map(({ type, label, icon }) => (
+                <button
+                  key={type}
+                  onClick={() => setAnimationType(type)}
+                  className={`flex-1 py-1 px-2 rounded-md transition-all flex items-center justify-center gap-1 ${
+                    animationType === type
+                      ? 'bg-white/15 text-white'
+                      : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                  }`}
+                  title={label}
+                >
+                  <span>{icon}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Sliders */}
           <div className="space-y-2 mb-1">
             <div>
@@ -964,36 +1072,6 @@ export default function DrawPage() {
                 className="w-full draw-settings-slider"
               />
             </div>
-            <div>
-              <div className="flex justify-between text-xs text-white/50">
-                <span>Pan sensitivity</span>
-                <span>{panSensitivity.toFixed(1)}</span>
-              </div>
-              <input
-                type="range"
-                min="0.2"
-                max="3"
-                step="0.1"
-                value={panSensitivity}
-                onChange={(e) => setPanSensitivity(parseFloat(e.target.value))}
-                className="w-full draw-settings-slider"
-              />
-            </div>
-            <div>
-              <div className="flex justify-between text-xs text-white/50">
-                <span>Zoom sensitivity</span>
-                <span>{zoomSensitivity.toFixed(1)}</span>
-              </div>
-              <input
-                type="range"
-                min="0.2"
-                max="3"
-                step="0.1"
-                value={zoomSensitivity}
-                onChange={(e) => setZoomSensitivity(parseFloat(e.target.value))}
-                className="w-full draw-settings-slider"
-              />
-            </div>
           </div>
 
           {/* Prompt */}
@@ -1017,6 +1095,7 @@ export default function DrawPage() {
                   thinkingEnabled,
                   distortionAmount,
                   wiggleSpeed,
+                  bounceIntensity,
                   temperature,
                   maxTokens,
                   panSensitivity,
@@ -1054,6 +1133,7 @@ export default function DrawPage() {
         onYourTurn={handleYourTurn}
         onClear={handleClear}
         onSave={handleSave}
+        animationType={animationType}
       />
     </div>
   );
