@@ -100,6 +100,28 @@
   background-size: 20px 20px;
 }
 
+/* Canvas element - ensure transparent background and proper rendering */
+.draw-canvas-container canvas {
+  display: block;
+  background: transparent;
+  /* Force GPU acceleration on iPad */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* Prevent canvas from being stretched */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* SVG layer for strokes */
+.draw-canvas-container svg {
+  /* Ensure SVG renders on top of canvas without gaps */
+  display: block;
+  background: transparent;
+  /* Force GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
 /* -----------------------------------------------------------------------------
    Cursor
    ----------------------------------------------------------------------------- */

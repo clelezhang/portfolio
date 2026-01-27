@@ -13,19 +13,51 @@ interface UseZoomPanReturn {
   zoom: number;
   pan: Point;
   isPanning: boolean;
+  isTouchGesture: boolean;
   startPan: (e: React.MouseEvent) => void;
   doPan: (e: React.MouseEvent) => void;
   stopPan: () => void;
+  handleTouchStart: (e: React.TouchEvent) => void;
+  handleTouchMove: (e: React.TouchEvent) => void;
+  handleTouchEnd: (e: React.TouchEvent) => void;
   handleDoubleClick: () => void;
   screenToCanvas: (screenX: number, screenY: number) => Point;
   canvasToScreen: (canvasX: number, canvasY: number) => Point;
+}
+
+interface TouchGestureState {
+  initialDistance: number;
+  initialZoom: number;
+  initialPan: Point;
+  initialCenter: Point;
 }
 
 export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoomSensitivity = 1.0 }: UseZoomPanProps): UseZoomPanReturn {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [isTouchGesture, setIsTouchGesture] = useState(false);
   const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const touchGestureState = useRef<TouchGestureState | null>(null);
+
+  // Helper to get distance between two touch points
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Helper to get center point between two touches
+  const getTouchCenter = (touches: React.TouchList): Point => {
+    if (touches.length < 2) {
+      return { x: touches[0].clientX, y: touches[0].clientY };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
 
   // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -85,6 +117,63 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     panStart.current = null;
   }, []);
 
+  // Touch gesture handlers for pinch-to-zoom and two-finger pan
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length >= 2) {
+      // Two or more fingers - start gesture
+      setIsTouchGesture(true);
+      touchGestureState.current = {
+        initialDistance: getTouchDistance(e.touches),
+        initialZoom: zoom,
+        initialPan: { ...pan },
+        initialCenter: getTouchCenter(e.touches),
+      };
+    }
+  }, [zoom, pan]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length >= 2 && touchGestureState.current) {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const containerCenterX = rect.width / 2;
+      const containerCenterY = rect.height / 2;
+
+      const currentDistance = getTouchDistance(e.touches);
+      const currentCenter = getTouchCenter(e.touches);
+      const { initialDistance, initialZoom, initialPan, initialCenter } = touchGestureState.current;
+
+      // Calculate new zoom based on pinch
+      const scale = currentDistance / initialDistance;
+      const newZoom = Math.min(Math.max(initialZoom * scale, ZOOM_MIN), ZOOM_MAX);
+
+      // Calculate pan based on finger movement
+      const dx = currentCenter.x - initialCenter.x;
+      const dy = currentCenter.y - initialCenter.y;
+
+      // Also adjust pan to keep the pinch center point stationary
+      const pinchCenterX = initialCenter.x - rect.left;
+      const pinchCenterY = initialCenter.y - rect.top;
+      const pinchOffsetX = pinchCenterX - containerCenterX - initialPan.x;
+      const pinchOffsetY = pinchCenterY - containerCenterY - initialPan.y;
+
+      const newPanX = initialPan.x + dx - pinchOffsetX * (newZoom / initialZoom - 1);
+      const newPanY = initialPan.y + dy - pinchOffsetY * (newZoom / initialZoom - 1);
+
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+    }
+  }, [containerRef]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      // Less than 2 fingers remaining - end gesture
+      setIsTouchGesture(false);
+      touchGestureState.current = null;
+    }
+  }, []);
+
   const handleDoubleClick = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -128,9 +217,13 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     zoom,
     pan,
     isPanning,
+    isTouchGesture,
     startPan,
     doPan,
     stopPan,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
     handleDoubleClick,
     screenToCanvas,
     canvasToScreen,
