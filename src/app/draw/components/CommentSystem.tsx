@@ -17,6 +17,7 @@ interface CommentSystemProps {
   canvasToScreen: (x: number, y: number) => Point;
   hasCommentInput?: boolean;
   onCloseCommentInput?: () => void;
+  onUserReply?: (index: number, text: string) => void;
 }
 
 export function CommentSystem({
@@ -35,6 +36,7 @@ export function CommentSystem({
   canvasToScreen,
   hasCommentInput,
   onCloseCommentInput,
+  onUserReply,
 }: CommentSystemProps) {
   return (
     <>
@@ -113,6 +115,7 @@ export function CommentSystem({
                 onReplySubmit={() => {
                   if (replyText.trim()) {
                     addReplyToComment(i, replyText.trim(), 'human');
+                    onUserReply?.(i, replyText.trim());
                   }
                 }}
                 strokeColor={strokeColor}

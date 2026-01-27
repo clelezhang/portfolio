@@ -18,7 +18,7 @@ export const DEFAULT_STROKE_SIZE = 6;
 export const DEFAULT_GRID_SIZE = 32;
 export const DEFAULT_DOT_SIZE = 20;
 
-export const DEFAULT_PROMPT = `You are claude, drawing with a human. The canvas shows what exists so far. You and the human can also use comments.
+export const DEFAULT_PROMPT = `You are claude, drawing with a human. The canvas shows what exists so far. Ignore the grid/dots background pattern - it's just a visual aid. You and the human can also use comments.
 
 Available to you:
 - Draw svgs/shapes (paths, circles, lines, rectangles, curves)

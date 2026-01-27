@@ -68,6 +68,7 @@ export default function DrawPage() {
   // History and state
   const [history, setHistory] = useState<Turn[]>([]);
   const [humanHasDrawn, setHumanHasDrawn] = useState(false);
+  const [humanHasCommented, setHumanHasCommented] = useState(false);
   const [wish, setWish] = useState<string | null>(null);
   const [pendingMessages, setPendingMessages] = useState<string[]>([]);
 
@@ -388,12 +389,16 @@ export default function DrawPage() {
     }
 
     const newHistory = [...history];
-    if (humanHasDrawn) {
+    if (humanHasDrawn || humanHasCommented) {
       newHistory.push({ who: 'human' });
     }
 
     const streamedBlocks: AsciiBlock[] = [];
     const streamedShapes: Shape[] = [];
+    let claudeCommented = false;
+    // Track streaming comment target
+    let streamingCommentIndex: number | null = null;
+    let streamingReplyTarget: number | null = null; // Index of comment being replied to
 
     try {
       const ctx = canvas.getContext('2d');
@@ -473,12 +478,68 @@ export default function DrawPage() {
                   data: event.data as Shape,
                 }]);
               } else if (event.type === 'say') {
+                // Legacy: full comment at once
                 addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
+                claudeCommented = true;
+              } else if (event.type === 'sayStart') {
+                // Streaming: create comment with empty text and track index
+                setComments((prev) => {
+                  streamingCommentIndex = prev.length;
+                  streamingReplyTarget = null;
+                  return [...prev, { text: '', x: event.data.sayX, y: event.data.sayY, from: 'claude' as const }];
+                });
+                // Auto-open the new comment
+                setOpenCommentIndex(comments.length);
+                claudeCommented = true;
+              } else if (event.type === 'replyStart') {
+                // Streaming: create empty reply
+                const commentIndex = event.data.replyTo - 1;
+                if (commentIndex >= 0) {
+                  setComments((prev) => {
+                    if (commentIndex >= prev.length) return prev;
+                    streamingReplyTarget = commentIndex;
+                    streamingCommentIndex = null;
+                    const updated = [...prev];
+                    updated[commentIndex] = {
+                      ...updated[commentIndex],
+                      replies: [...(updated[commentIndex].replies || []), { text: '', from: 'claude' as const }]
+                    };
+                    return updated;
+                  });
+                  claudeCommented = true;
+                }
+              } else if (event.type === 'sayChunk') {
+                // Streaming: append text to the tracked target
+                setComments((prev) => {
+                  const updated = [...prev];
+                  if (streamingReplyTarget !== null && streamingReplyTarget < updated.length) {
+                    // Appending to a reply
+                    const comment = updated[streamingReplyTarget];
+                    if (comment.replies && comment.replies.length > 0) {
+                      const lastReply = comment.replies[comment.replies.length - 1];
+                      updated[streamingReplyTarget] = {
+                        ...comment,
+                        replies: [
+                          ...comment.replies.slice(0, -1),
+                          { ...lastReply, text: lastReply.text + event.data.text }
+                        ]
+                      };
+                    }
+                  } else if (streamingCommentIndex !== null && streamingCommentIndex < updated.length) {
+                    // Appending to a new comment
+                    updated[streamingCommentIndex] = {
+                      ...updated[streamingCommentIndex],
+                      text: updated[streamingCommentIndex].text + event.data.text
+                    };
+                  }
+                  return updated;
+                });
               } else if (event.type === 'reply') {
-                // Claude is replying to an existing comment (1-indexed)
+                // Legacy: full reply at once
                 const commentIndex = event.data.replyTo - 1;
                 if (commentIndex >= 0 && commentIndex < comments.length) {
                   addReplyToComment(commentIndex, event.data.text, 'claude');
+                  claudeCommented = true;
                 }
               } else if (event.type === 'wish') {
                 setWish(event.data);
@@ -499,10 +560,15 @@ export default function DrawPage() {
                   const shapeDesc = streamedShapes.map((s) => `${s.type}`).join(', ');
                   description += (description ? '\n' : '') + `[shapes: ${shapeDesc}]`;
                 }
+                if (claudeCommented) {
+                  description += (description ? '\n' : '') + '[commented]';
+                }
+                // Record turn if Claude did anything (drew or commented)
                 if (description) {
                   newHistory.push({ who: 'claude', description });
                   setHistory(newHistory);
                   setHumanHasDrawn(false);
+                  setHumanHasCommented(false);
                 }
               } else if (event.type === 'error') {
                 console.error('Stream error:', event.message);
@@ -590,6 +656,11 @@ export default function DrawPage() {
     setPendingMessages((prev) => [...prev, commentText.trim()]);
     setCommentInput(null);
     setCommentText('');
+    setHumanHasCommented(true);
+    // Trigger auto-draw on comment if enabled
+    if (autoDrawEnabled) {
+      triggerAutoDraw();
+    }
   };
 
   const triggerAutoDraw = useCallback(() => {
@@ -873,6 +944,13 @@ export default function DrawPage() {
             onCloseCommentInput={() => {
               setCommentInput(null);
               setCommentText('');
+            }}
+            onUserReply={(_index, text) => {
+              setPendingMessages((prev) => [...prev, text]);
+              setHumanHasCommented(true);
+              if (autoDrawEnabled) {
+                triggerAutoDraw();
+              }
             }}
           />
 
