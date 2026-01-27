@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Miss_Fajardose, Caveat } from "next/font/google";
 import localFont from "next/font/local";
 import Header from "./components/Header";
+import AgentationWrapper from "./components/AgentationWrapper";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -191,6 +192,7 @@ export default function RootLayout({
         />
         <Header />
         {children}
+        <AgentationWrapper />
       </body>
     </html>
   );

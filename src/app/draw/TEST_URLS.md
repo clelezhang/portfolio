@@ -23,7 +23,12 @@
 ### `/draw/test-models`
 **Purpose:** Compare different Claude models side-by-side
 **Panels:** 3 (Haiku | Sonnet | Opus)
-**How it works:** Draw on left panel, all 3 models receive identical requests. Shows response time for each model. Useful for comparing quality vs speed tradeoffs.
+**How it works:** Draw on left panel, all 3 models receive identical requests. Shows response time and token usage for each model. Useful for comparing quality vs speed tradeoffs.
+
+### `/draw/test-google`
+**Purpose:** Compare Google Gemini models side-by-side
+**Panels:** 3 (Flash 2.0 | Flash Lite | 1.5 Pro)
+**How it works:** Draw on left panel, all 3 Gemini models receive identical requests. Shows response time and token usage. Requires `GOOGLE_AI_API_KEY` in `.env.local`.
 
 ## Development URLs (localhost:3000)
 ```
@@ -32,4 +37,5 @@ http://localhost:3000/draw/test
 http://localhost:3000/draw/test-ascii
 http://localhost:3000/draw/test-context
 http://localhost:3000/draw/test-models
+http://localhost:3000/draw/test-google
 ```

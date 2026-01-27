@@ -36,6 +36,7 @@ interface PanelState {
   responseTime?: number;
   inputTokens?: number;
   outputTokens?: number;
+  error?: string;
 }
 
 interface HumanStroke {
@@ -44,15 +45,15 @@ interface HumanStroke {
   strokeWidth: number;
 }
 
-type ModelType = 'haiku' | 'sonnet' | 'opus';
+type ModelType = 'flash' | 'flash-lite' | 'pro';
 
-const MODELS: { id: ModelType; label: string; color: string }[] = [
-  { id: 'haiku', label: 'Haiku', color: '#22c55e' },
-  { id: 'sonnet', label: 'Sonnet', color: '#3b82f6' },
-  { id: 'opus', label: 'Opus', color: '#8b5cf6' },
+const MODELS: { id: ModelType; label: string; color: string; description: string }[] = [
+  { id: 'flash', label: '2.5 Flash', color: '#4285f4', description: 'Fast & capable' },
+  { id: 'flash-lite', label: '2.5 Flash-Lite', color: '#34a853', description: 'Fastest' },
+  { id: 'pro', label: '2.5 Pro', color: '#ea4335', description: 'Most capable' },
 ];
 
-export default function ModelTestPage() {
+export default function GoogleTestPage() {
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([null, null, null]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [panels, setPanels] = useState<PanelState[]>(
@@ -61,15 +62,13 @@ export default function ModelTestPage() {
   const [temperature, setTemperature] = useState(1.0);
   const [maxTokens, setMaxTokens] = useState(1024);
   const [prompt, setPrompt] = useState(
-    `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
+    `You are an AI able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`
   );
   const [showSettings, setShowSettings] = useState(false);
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [strokeSize, setStrokeSize] = useState(2);
   const [tool, setTool] = useState<'draw' | 'erase'>('draw');
   const [drawMode, setDrawMode] = useState<'all' | 'shapes' | 'ascii'>('all');
-  const [sayEnabled, setSayEnabled] = useState(false);
-  const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [filterSeed, setFilterSeed] = useState(1);
   const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<HumanStroke | null>(null);
@@ -83,7 +82,7 @@ export default function ModelTestPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redraw a panel's Claude content
+  // Redraw a panel's content
   const redrawPanel = useCallback((index: number) => {
     const canvas = canvasRefs.current[index];
     const ctx = canvas?.getContext('2d');
@@ -242,7 +241,7 @@ export default function ModelTestPage() {
 
   const handleYourTurn = async () => {
     // Set all panels to loading
-    setPanels((prev) => prev.map((p) => ({ ...p, isLoading: true, responseTime: undefined })));
+    setPanels((prev) => prev.map((p) => ({ ...p, isLoading: true, responseTime: undefined, error: undefined })));
 
     // Render human strokes to all canvases before taking snapshot
     canvasRefs.current.forEach((canvas) => {
@@ -258,7 +257,7 @@ export default function ModelTestPage() {
 
       try {
         const image = canvas.toDataURL('image/png');
-        const response = await fetch('/api/draw', {
+        const response = await fetch('/api/draw-gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -266,18 +265,18 @@ export default function ModelTestPage() {
             canvasWidth: canvas.width,
             canvasHeight: canvas.height,
             drawMode,
-            sayEnabled,
             temperature,
             maxTokens,
             prompt,
             streaming: true,
             model: model.id,
-            thinkingEnabled,
-            thinkingBudget: 10000,
           }),
         });
 
-        if (!response.ok) throw new Error('Failed to get response');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get response');
+        }
 
         const reader = response.body?.getReader();
         if (!reader) throw new Error('No reader available');
@@ -326,6 +325,15 @@ export default function ModelTestPage() {
                     };
                     return newPanels;
                   });
+                } else if (event.type === 'error') {
+                  setPanels((prev) => {
+                    const newPanels = [...prev];
+                    newPanels[index] = {
+                      ...newPanels[index],
+                      error: event.message,
+                    };
+                    return newPanels;
+                  });
                 }
               } catch { /* skip */ }
             }
@@ -340,6 +348,14 @@ export default function ModelTestPage() {
         });
       } catch (error) {
         console.error(`Error for ${model.label}:`, error);
+        setPanels((prev) => {
+          const newPanels = [...prev];
+          newPanels[index] = {
+            ...newPanels[index],
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+          return newPanels;
+        });
       } finally {
         setPanels((prev) => {
           const newPanels = [...prev];
@@ -411,58 +427,27 @@ export default function ModelTestPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {drawMode === 'shapes' && 'SVG paths and geometric shapes'}
-              {drawMode === 'ascii' && 'Text-based ASCII art characters'}
-              {drawMode === 'all' && 'All drawing methods available'}
-            </p>
-          </div>
-
-          {/* Toggles */}
-          <div className="space-y-2 mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sayEnabled}
-                onChange={(e) => setSayEnabled(e.target.checked)}
-                className="rounded"
-              />
-              <span>Comments</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={thinkingEnabled}
-                onChange={(e) => setThinkingEnabled(e.target.checked)}
-                className="rounded"
-              />
-              <span>Extended thinking</span>
-            </label>
           </div>
 
           {/* Temperature */}
           <div className="mb-3">
             <label className="flex justify-between text-gray-600 mb-1">
               <span>Temperature</span>
-              <span>{thinkingEnabled ? 'N/A' : temperature.toFixed(1)}</span>
+              <span>{temperature.toFixed(1)}</span>
             </label>
             <input
               type="range"
               min="0"
-              max="1"
+              max="2"
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
               className="w-full"
-              disabled={thinkingEnabled}
             />
             <div className="flex justify-between text-xs text-gray-400">
               <span>predictable</span>
               <span>creative</span>
             </div>
-            {thinkingEnabled && (
-              <p className="text-xs text-amber-500 mt-1">Disabled when thinking is enabled</p>
-            )}
           </div>
 
           {/* Max Tokens */}
@@ -480,10 +465,6 @@ export default function ModelTestPage() {
               onChange={(e) => setMaxTokens(parseInt(e.target.value))}
               className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>short</span>
-              <span>long</span>
-            </div>
           </div>
 
           {/* Editable Prompt */}
@@ -494,9 +475,6 @@ export default function ModelTestPage() {
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full h-32 px-2 py-1 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:border-gray-400"
             />
-            {sayEnabled && (
-              <p className="text-xs text-gray-400 mt-1">+ comment instructions</p>
-            )}
           </div>
         </div>
       )}
@@ -519,7 +497,11 @@ export default function ModelTestPage() {
                   </span>
                 )}
               </div>
-              {(panels[index].inputTokens || panels[index].outputTokens) && (
+              {panels[index].error ? (
+                <div className="text-red-500 font-normal normal-case tracking-normal text-xs">
+                  {panels[index].error}
+                </div>
+              ) : (panels[index].inputTokens || panels[index].outputTokens) && (
                 <div className="text-gray-400 font-normal normal-case tracking-normal">
                   {panels[index].inputTokens}→{panels[index].outputTokens} tokens
                 </div>
@@ -536,7 +518,7 @@ export default function ModelTestPage() {
               onTouchMove={index === 0 ? draw : undefined}
               onTouchEnd={index === 0 ? stopDrawing : undefined}
             >
-              {/* Canvas for Claude's drawings and capturing snapshot */}
+              {/* Canvas for drawings and capturing snapshot */}
               <canvas
                 ref={(el) => { canvasRefs.current[index] = el; }}
                 className="absolute inset-0 w-full h-full touch-none"
@@ -658,7 +640,7 @@ export default function ModelTestPage() {
           </button>
         </div>
         <p className="text-xs text-gray-400">
-          Model comparison: <span style={{ color: '#22c55e' }}>Haiku</span> vs <span style={{ color: '#3b82f6' }}>Sonnet</span> vs <span style={{ color: '#8b5cf6' }}>Opus</span>
+          Google Gemini: <span style={{ color: '#4285f4' }}>Flash 2.0</span> vs <span style={{ color: '#34a853' }}>Flash Lite</span> vs <span style={{ color: '#ea4335' }}>1.5 Pro</span>
         </p>
       </div>
     </div>
