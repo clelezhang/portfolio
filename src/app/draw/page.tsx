@@ -42,6 +42,7 @@ import { useComments } from './hooks/useComments';
 // Components
 import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { CustomCursor } from './components/CustomCursor';
+import { PencilCursor } from './components/icons/PencilCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 
@@ -132,6 +133,19 @@ export default function DrawPage() {
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
   const [isTouch, setIsTouch] = useState(false);
 
+  // Claude cursor state
+  const [claudeCursorPos, setClaudeCursorPos] = useState<Point | null>(null);
+  const [claudeIsDrawing, setClaudeIsDrawing] = useState(false);
+  const claudeAnimationQueue = useRef<{ shape: Shape; id: string }[]>([]);
+  const isAnimatingClaude = useRef(false);
+
+  // Currently animating shape (for progressive reveal)
+  const [animatingShape, setAnimatingShape] = useState<{ shape: Shape; id: string; progress: number } | null>(null);
+
+  // Test mode for cursor animation debugging
+  const [testModeEnabled, setTestModeEnabled] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(1); // 0.5x to 3x speed multiplier
+
   // Refs
   const lastPoint = useRef<Point | null>(null);
   const lastAsciiPoint = useRef<Point | null>(null);
@@ -139,6 +153,363 @@ export default function DrawPage() {
   const autoDrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
+
+  // Interpolate points along a quadratic bezier curve
+  const quadraticBezier = useCallback((p0: Point, p1: Point, p2: Point, t: number): Point => {
+    const mt = 1 - t;
+    return {
+      x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+      y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y,
+    };
+  }, []);
+
+  // Interpolate points along a cubic bezier curve
+  const cubicBezier = useCallback((p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point => {
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return {
+      x: mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
+      y: mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y,
+    };
+  }, []);
+
+  // Parse SVG path d attribute into array of points (with curve interpolation)
+  const parsePathToPoints = useCallback((d: string): Point[] => {
+    const points: Point[] = [];
+    const regex = /([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)/g;
+    let match;
+    let currentX = 0;
+    let currentY = 0;
+    let startX = 0; // Track path start for Z command
+    let startY = 0;
+    const CURVE_STEPS = 16; // Number of points to sample along curves
+
+    while ((match = regex.exec(d)) !== null) {
+      const command = match[1];
+      const args = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+
+      switch (command) {
+        case 'M': // Move to absolute
+          currentX = args[0];
+          currentY = args[1];
+          startX = currentX; // Remember start for Z
+          startY = currentY;
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'm': // Move to relative
+          currentX += args[0];
+          currentY += args[1];
+          startX = currentX; // Remember start for Z
+          startY = currentY;
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'L': // Line to absolute
+          currentX = args[0];
+          currentY = args[1];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'l': // Line to relative
+          currentX += args[0];
+          currentY += args[1];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'H': // Horizontal line absolute
+          currentX = args[0];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'h': // Horizontal line relative
+          currentX += args[0];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'V': // Vertical line absolute
+          currentY = args[0];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'v': // Vertical line relative
+          currentY += args[0];
+          points.push({ x: currentX, y: currentY });
+          break;
+        case 'Q': { // Quadratic curve absolute - interpolate along curve
+          const p0 = { x: currentX, y: currentY };
+          const p1 = { x: args[0], y: args[1] }; // control point
+          const p2 = { x: args[2], y: args[3] }; // end point
+          for (let i = 1; i <= CURVE_STEPS; i++) {
+            points.push(quadraticBezier(p0, p1, p2, i / CURVE_STEPS));
+          }
+          currentX = args[2];
+          currentY = args[3];
+          break;
+        }
+        case 'C': { // Cubic curve absolute - interpolate along curve
+          const p0 = { x: currentX, y: currentY };
+          const p1 = { x: args[0], y: args[1] }; // control point 1
+          const p2 = { x: args[2], y: args[3] }; // control point 2
+          const p3 = { x: args[4], y: args[5] }; // end point
+          for (let i = 1; i <= CURVE_STEPS; i++) {
+            points.push(cubicBezier(p0, p1, p2, p3, i / CURVE_STEPS));
+          }
+          currentX = args[4];
+          currentY = args[5];
+          break;
+        }
+        case 'Z': // Close path - line back to start
+        case 'z':
+          if (currentX !== startX || currentY !== startY) {
+            points.push({ x: startX, y: startY });
+            currentX = startX;
+            currentY = startY;
+          }
+          break;
+        default:
+          // For other commands, try to extract any coordinate pairs
+          for (let i = 0; i < args.length - 1; i += 2) {
+            if (!isNaN(args[i]) && !isNaN(args[i + 1])) {
+              points.push({ x: args[i], y: args[i + 1] });
+            }
+          }
+      }
+    }
+    return points;
+  }, [quadraticBezier, cubicBezier]);
+
+  // Extract points from a shape for cursor animation
+  const getShapePoints = useCallback((shape: Shape): Point[] => {
+    switch (shape.type) {
+      case 'path':
+        if (shape.d) return parsePathToPoints(shape.d);
+        break;
+      case 'line':
+        if (shape.x1 !== undefined && shape.y1 !== undefined &&
+            shape.x2 !== undefined && shape.y2 !== undefined) {
+          return [
+            { x: shape.x1, y: shape.y1 },
+            { x: shape.x2, y: shape.y2 }
+          ];
+        }
+        break;
+      case 'circle':
+        if (shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
+          // Generate points around the circle
+          const points: Point[] = [];
+          const steps = 32;
+          for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI * 2;
+            points.push({
+              x: shape.cx + Math.cos(angle) * shape.r,
+              y: shape.cy + Math.sin(angle) * shape.r
+            });
+          }
+          return points;
+        }
+        break;
+      case 'rect':
+        if (shape.x !== undefined && shape.y !== undefined &&
+            shape.width !== undefined && shape.height !== undefined) {
+          return [
+            { x: shape.x, y: shape.y },
+            { x: shape.x + shape.width, y: shape.y },
+            { x: shape.x + shape.width, y: shape.y + shape.height },
+            { x: shape.x, y: shape.y + shape.height },
+            { x: shape.x, y: shape.y } // close the rect
+          ];
+        }
+        break;
+      case 'curve':
+        if (shape.points && shape.points.length >= 2) {
+          return shape.points.map(p => ({ x: p[0], y: p[1] }));
+        }
+        break;
+    }
+    return [];
+  }, [parsePathToPoints]);
+
+  // Calculate total path length from points
+  const calculatePathLength = useCallback((points: Point[]): number => {
+    let length = 0;
+    for (let i = 1; i < points.length; i++) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      length += Math.sqrt(dx * dx + dy * dy);
+    }
+    return length;
+  }, []);
+
+  // Animate Claude's cursor along points with progress callback
+  const animateClaudeCursor = useCallback(async (
+    points: Point[],
+    onProgress?: (progress: number) => void
+  ) => {
+    if (points.length === 0) return;
+
+    // Calculate duration based on path length for consistent speed
+    // Base speed: ~300 pixels per second, adjusted by animationSpeed
+    const pathLength = calculatePathLength(points);
+    const baseSpeed = 300; // pixels per second
+    const baseDuration = Math.min(3000, Math.max(300, (pathLength / baseSpeed) * 1000));
+    const duration = baseDuration / animationSpeed;
+    const startTime = performance.now();
+
+    return new Promise<void>((resolve) => {
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(1, elapsed / duration);
+
+        // Handle edge case: single point or empty array
+        if (points.length <= 1) {
+          if (points.length === 1) {
+            setClaudeCursorPos(points[0]);
+          }
+          onProgress?.(progress);
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            resolve();
+          }
+          return;
+        }
+
+        // Interpolate position along points
+        const pointIndex = Math.min(
+          Math.floor(progress * (points.length - 1)),
+          points.length - 2  // Ensure we never exceed bounds for p2
+        );
+        const pointProgress = (progress * (points.length - 1)) % 1;
+
+        const p1 = points[pointIndex];
+        const p2 = points[pointIndex + 1];
+
+        // Safety check
+        if (p1 && p2) {
+          setClaudeCursorPos({
+            x: p1.x + (p2.x - p1.x) * pointProgress,
+            y: p1.y + (p2.y - p1.y) * pointProgress
+          });
+        } else if (p1) {
+          setClaudeCursorPos(p1);
+        }
+
+        onProgress?.(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(animate);
+    });
+  }, [animationSpeed, calculatePathLength]);
+
+  // Process queued shapes with cursor animation and progressive reveal
+  const processClaudeAnimationQueue = useCallback(async () => {
+    if (isAnimatingClaude.current || claudeAnimationQueue.current.length === 0) return;
+
+    isAnimatingClaude.current = true;
+    setClaudeIsDrawing(true);
+
+    while (claudeAnimationQueue.current.length > 0) {
+      const { shape, id } = claudeAnimationQueue.current.shift()!;
+      const points = getShapePoints(shape);
+
+      if (points.length > 0) {
+        // Show cursor at start position and start animating shape
+        setClaudeCursorPos(points[0]);
+        setAnimatingShape({ shape, id, progress: 0 });
+
+        // Animate cursor along the path, updating progress for stroke reveal
+        await animateClaudeCursor(points, (progress) => {
+          setAnimatingShape({ shape, id, progress });
+        });
+
+        // Animation complete - add to permanent drawing elements
+        setAnimatingShape(null);
+        setDrawingElements(prev => [...prev, {
+          id,
+          source: 'claude',
+          type: 'shape',
+          data: shape,
+        }]);
+
+        // Brief pause between shapes
+        await new Promise(r => setTimeout(r, 30));
+      } else {
+        // No points to animate, just add immediately
+        setDrawingElements(prev => [...prev, {
+          id,
+          source: 'claude',
+          type: 'shape',
+          data: shape,
+        }]);
+      }
+    }
+
+    // Hide cursor after animation completes
+    setClaudeCursorPos(null);
+    setClaudeIsDrawing(false);
+    isAnimatingClaude.current = false;
+  }, [getShapePoints, animateClaudeCursor]);
+
+  // Generate test shapes for cursor animation debugging
+  const runTestShapes = useCallback(() => {
+    const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6'];
+    const testShapes: Shape[] = [
+      // A curved path (like a wave)
+      {
+        type: 'path',
+        d: 'M 100 300 Q 200 200 300 300 Q 400 400 500 300 Q 600 200 700 300',
+        color: colors[0],
+        strokeWidth: 3,
+      },
+      // A circle
+      {
+        type: 'circle',
+        cx: 400,
+        cy: 200,
+        r: 60,
+        color: colors[1],
+        strokeWidth: 3,
+      },
+      // A rectangle
+      {
+        type: 'rect',
+        x: 150,
+        y: 400,
+        width: 120,
+        height: 80,
+        color: colors[2],
+        strokeWidth: 3,
+      },
+      // A diagonal line
+      {
+        type: 'line',
+        x1: 500,
+        y1: 150,
+        x2: 700,
+        y2: 350,
+        color: colors[3],
+        strokeWidth: 3,
+      },
+      // A more complex path (star-like)
+      {
+        type: 'path',
+        d: 'M 350 500 L 380 570 L 450 580 L 400 620 L 420 690 L 350 650 L 280 690 L 300 620 L 250 580 L 320 570 Z',
+        color: colors[4],
+        strokeWidth: 3,
+      },
+    ];
+
+    // Queue each shape for animation
+    testShapes.forEach((shape) => {
+      const id = `test-${elementIdCounter.current++}`;
+      claudeAnimationQueue.current.push({ shape, id });
+    });
+
+    processClaudeAnimationQueue();
+  }, [processClaudeAnimationQueue]);
 
   // Use custom hooks
   const {
@@ -531,6 +902,7 @@ export default function DrawPage() {
           drawMode: effectiveDrawMode,
           thinkingEnabled,
           thinkingBudget: 10000,
+          model: 'haiku', // Use haiku for faster testing
           // Palette info for Claude
           paletteColors: COLOR_PALETTES[paletteIndex],
           paletteIndex,
@@ -568,12 +940,10 @@ export default function DrawPage() {
                 setShapes((prev) => [...prev, event.data]);
                 streamedShapes.push(event.data);
                 const id = `claude-${elementIdCounter.current++}`;
-                setDrawingElements(prev => [...prev, {
-                  id,
-                  source: 'claude',
-                  type: 'shape',
-                  data: event.data as Shape,
-                }]);
+                // Queue shape for cursor animation with progressive reveal
+                // (drawingElements will be updated after animation completes)
+                claudeAnimationQueue.current.push({ shape: event.data as Shape, id });
+                processClaudeAnimationQueue();
               } else if (event.type === 'say') {
                 // Legacy: full comment at once
                 addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
@@ -1063,11 +1433,11 @@ export default function DrawPage() {
               />
             </div>
 
-            {/* Canvas + Strokes layer - Safari gets higher-distortion filter */}
+            {/* Canvas + Strokes layer - both Chrome and Safari get wiggle filter */}
             <div
               className="absolute inset-0"
               style={{
-                ...(isSafari && distortionAmount > 0 && !isPanning && !isTouchGesture ? {
+                ...(distortionAmount > 0 && !isPanning && !isTouchGesture ? {
                   filter: 'url(#wobbleFilter)',
                   willChange: 'filter',
                   transform: 'translateZ(0)',
@@ -1189,6 +1559,48 @@ export default function DrawPage() {
                 }
                 return null;
               })}
+              {/* Currently animating Claude shape with progressive reveal */}
+              {animatingShape && (() => {
+                const { shape, progress } = animatingShape;
+                // Use pathLength="1" to normalize, then dashoffset from 1→0 reveals stroke
+                const commonProps = {
+                  stroke: shape.color || '#3b82f6',
+                  strokeWidth: shape.strokeWidth || 2,
+                  fill: 'none', // Don't fill during animation
+                  strokeLinecap: 'round' as const,
+                  strokeLinejoin: 'round' as const,
+                  pathLength: 1,
+                  strokeDasharray: 1,
+                  strokeDashoffset: 1 - progress, // 1 = hidden, 0 = fully revealed
+                };
+
+                if (shape.type === 'path' && shape.d) {
+                  return <path key="animating" d={shape.d} {...commonProps} />;
+                }
+                if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
+                  return <circle key="animating" cx={shape.cx} cy={shape.cy} r={shape.r} {...commonProps} />;
+                }
+                if (shape.type === 'rect' && shape.x !== undefined && shape.y !== undefined && shape.width !== undefined && shape.height !== undefined) {
+                  return <rect key="animating" x={shape.x} y={shape.y} width={shape.width} height={shape.height} {...commonProps} />;
+                }
+                if (shape.type === 'line' && shape.x1 !== undefined && shape.y1 !== undefined && shape.x2 !== undefined && shape.y2 !== undefined) {
+                  return <line key="animating" x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} {...commonProps} />;
+                }
+                if (shape.type === 'curve' && shape.points && shape.points.length >= 2) {
+                  let d = `M ${shape.points[0][0]} ${shape.points[0][1]}`;
+                  if (shape.points.length === 3) {
+                    d += ` Q ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]}`;
+                  } else if (shape.points.length === 4) {
+                    d += ` C ${shape.points[1][0]} ${shape.points[1][1]} ${shape.points[2][0]} ${shape.points[2][1]} ${shape.points[3][0]} ${shape.points[3][1]}`;
+                  } else {
+                    for (let j = 1; j < shape.points.length; j++) {
+                      d += ` L ${shape.points[j][0]} ${shape.points[j][1]}`;
+                    }
+                  }
+                  return <path key="animating" d={d} {...commonProps} />;
+                }
+                return null;
+              })()}
               {currentStroke && (
                 <path
                   d={currentStroke.d}
@@ -1226,9 +1638,28 @@ export default function DrawPage() {
                 />
               </div>
             ))}
+
+            {/* Claude's cursor - rendered inside transform wrapper at canvas coordinates */}
+            {claudeCursorPos && (
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  // Position at canvas coordinates - tip of pencil is at (3,3) in the icon
+                  left: claudeCursorPos.x - 3,
+                  top: claudeCursorPos.y - 3,
+                  zIndex: 100,
+                  filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
+                  // Counter-scale to keep cursor at consistent size regardless of zoom
+                  transform: `scale(${1 / zoom})`,
+                  transformOrigin: '3px 3px', // Scale from the pencil tip
+                }}
+              >
+                <PencilCursor color={animatingShape?.shape.color || '#3b82f6'} />
+              </div>
+            )}
           </div>
 
-          {/* Custom cursor */}
+          {/* Custom cursor - User */}
           <CustomCursor
             cursorPos={cursorPos}
             isPanning={isPanning}
@@ -1237,6 +1668,7 @@ export default function DrawPage() {
             asciiStroke={asciiStroke}
             strokeColor={strokeColor}
           />
+
 
           {/* Comment system */}
           <CommentSystem
@@ -1461,6 +1893,52 @@ export default function DrawPage() {
                 className="w-full draw-settings-slider"
               />
             </div>
+          </div>
+
+          {/* Cursor Test Controls */}
+          <div className="border-t border-white/10 pt-2 mt-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-white/50">Cursor Animation Test</span>
+              <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
+                <input
+                  type="checkbox"
+                  checked={testModeEnabled}
+                  onChange={(e) => setTestModeEnabled(e.target.checked)}
+                  className="draw-settings-checkbox"
+                />
+                <span className="text-xs">Enabled</span>
+              </label>
+            </div>
+            {testModeEnabled && (
+              <>
+                <div className="mb-2">
+                  <div className="flex justify-between text-xs text-white/50">
+                    <span>Speed</span>
+                    <span>{animationSpeed.toFixed(1)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="3"
+                    step="0.25"
+                    value={animationSpeed}
+                    onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
+                    className="w-full draw-settings-slider"
+                  />
+                </div>
+                <button
+                  onClick={runTestShapes}
+                  disabled={claudeIsDrawing}
+                  className={`w-full py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    claudeIsDrawing
+                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  {claudeIsDrawing ? 'Drawing...' : 'Run Test Shapes'}
+                </button>
+              </>
+            )}
           </div>
 
           {/* Prompt */}

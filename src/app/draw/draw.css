@@ -121,7 +121,7 @@
 .draw-comment-dot {
   position: absolute;
   border-radius: 50%;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15), 0 1px 1px 1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05), 0 1px 1px 1px rgba(0, 0, 0, 0.05);
   border: 1.5px solid white;
   pointer-events: none;
   z-index: 1;

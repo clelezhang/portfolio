@@ -27,13 +27,15 @@ export function CustomCursor({
       style={{
         left: cursorPos.x,
         top: cursorPos.y,
-        transform: 'translate(-2px, -2px)',
         // Use CSS drop-shadow instead of SVG filters - Safari handles CSS filters much better
         filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
       }}
     >
       {tool === 'draw' && !asciiStroke && (
-        <PencilCursor color={strokeColor} />
+        // Pencil tip is at ~(3, 3) in the 24x24 SVG, offset to align with cursor position
+        <div style={{ transform: 'translate(-3px, -3px)' }}>
+          <PencilCursor color={strokeColor} />
+        </div>
       )}
       {tool === 'draw' && asciiStroke && (
         // ASCII cursor - using CSS drop-shadow instead of SVG filter for Safari compatibility
