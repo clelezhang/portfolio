@@ -15,6 +15,7 @@ import {
   Point,
   CanvasBackground,
   Tool,
+  UploadedImage,
 } from './types';
 
 // Constants
@@ -30,6 +31,10 @@ import {
   DEFAULT_ZOOM_SENSITIVITY,
 } from './constants';
 
+// Storage key for localStorage persistence
+const CANVAS_STORAGE_KEY = 'draw-canvas-state';
+
+
 // Hooks
 import { useZoomPan } from './hooks/useZoomPan';
 import { useComments } from './hooks/useComments';
@@ -44,6 +49,13 @@ export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastDrawnPoint = useRef<Point | null>(null);
+  const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
+
+  // Safari detection (client-side only to avoid hydration mismatch)
+  const [isSafari, setIsSafari] = useState(false);
+  useEffect(() => {
+    setIsSafari(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+  }, []);
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -55,6 +67,13 @@ export default function DrawPage() {
   const [humanAsciiChars, setHumanAsciiChars] = useState<HumanAsciiChar[]>([]);
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
   const elementIdCounter = useRef(0);
+
+  // Image state
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const imageDragOffset = useRef<Point | null>(null);
+  const imageIdCounter = useRef(0);
 
   // Undo/redo state
   type DrawingSnapshot = {
@@ -94,9 +113,8 @@ export default function DrawPage() {
   const [showThinkingPanel, setShowThinkingPanel] = useState(true);
 
   // Visual effects state
-  const [distortionAmount, setDistortionAmount] = useState(4); // 0-30 range for displacement scale
-  const [wiggleSpeed, setWiggleSpeed] = useState(168); // ms between frames (lower = faster)
-  const [filterSeed, setFilterSeed] = useState(1);
+  const [distortionAmount, setDistortionAmount] = useState(2); // 0-30 range for displacement scale
+  const [wiggleSpeed, setWiggleSpeed] = useState(270); // ms between frames (lower = faster)
   const [bounceIntensity, setBounceIntensity] = useState(1.0); // 0-2 range for animation bounce
   // Palette animation settings (fixed values)
   const animationType: AnimationType = 'slide';
@@ -112,6 +130,7 @@ export default function DrawPage() {
 
   // Cursor position
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
+  const [isTouch, setIsTouch] = useState(false);
 
   // Refs
   const lastPoint = useRef<Point | null>(null);
@@ -278,14 +297,31 @@ export default function DrawPage() {
     redraw();
   }, [asciiBlocks, shapes, redraw]);
 
-  // Wiggle animation - runs when distortion is visible
+  // Track tab visibility to pause wiggle when not visible
+  const [isTabVisible, setIsTabVisible] = useState(true);
   useEffect(() => {
-    if (distortionAmount === 0) return;
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Wiggle animation - uses direct DOM manipulation to avoid React re-renders
+  // Safari: no wiggle animation (just static distortion for performance)
+  // Chrome: full wiggle animation
+  // See docs/wiggle-filter-learnings.md for details
+  useEffect(() => {
+    // Safari gets static distortion only (no animation)
+    if (isSafari || distortionAmount === 0 || !isTabVisible) return;
+
+    let seed = 1;
     const interval = setInterval(() => {
-      setFilterSeed((prev) => (prev % 100) + 1);
+      seed = (seed % 100) + 1;
+      turbulenceRef.current?.setAttribute('seed', String(seed));
     }, wiggleSpeed);
     return () => clearInterval(interval);
-  }, [distortionAmount, wiggleSpeed]);
+  }, [distortionAmount, wiggleSpeed, isTabVisible, isSafari]);
 
   // Track last brush type when in draw mode (for reverting from comment mode)
   useEffect(() => {
@@ -301,6 +337,61 @@ export default function DrawPage() {
     setPaletteIndex(randomPaletteIndex);
     setStrokeColor(palette[Math.floor(Math.random() * palette.length)]);
   }, []);
+
+  // Load saved canvas state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CANVAS_STORAGE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.drawingElements) setDrawingElements(state.drawingElements);
+        if (state.humanStrokes) setHumanStrokes(state.humanStrokes);
+        if (state.humanAsciiChars) setHumanAsciiChars(state.humanAsciiChars);
+        if (state.asciiBlocks) setAsciiBlocks(state.asciiBlocks);
+        if (state.shapes) setShapes(state.shapes);
+        if (state.images) setImages(state.images);
+        // Restore ID counters to avoid duplicates
+        if (state.elementIdCounter) elementIdCounter.current = state.elementIdCounter;
+        if (state.imageIdCounter) imageIdCounter.current = state.imageIdCounter;
+      }
+    } catch (e) {
+      console.error('Failed to load canvas state:', e);
+    }
+  }, []);
+
+  // Save canvas state to localStorage when it changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const baseState = {
+        drawingElements,
+        humanStrokes,
+        humanAsciiChars,
+        asciiBlocks,
+        shapes,
+        elementIdCounter: elementIdCounter.current,
+        imageIdCounter: imageIdCounter.current,
+      };
+
+      // Try to save with images first
+      try {
+        const stateWithImages = { ...baseState, images };
+        localStorage.setItem(CANVAS_STORAGE_KEY, JSON.stringify(stateWithImages));
+      } catch (e) {
+        // If quota exceeded, try saving without images (they're large base64 strings)
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          console.warn('localStorage quota exceeded, saving without images');
+          try {
+            localStorage.setItem(CANVAS_STORAGE_KEY, JSON.stringify(baseState));
+          } catch (e2) {
+            console.error('Failed to save canvas state even without images:', e2);
+          }
+        } else {
+          console.error('Failed to save canvas state:', e);
+        }
+      }
+    }, 500); // Debounce saves by 500ms
+    return () => clearTimeout(timeoutId);
+  }, [drawingElements, humanStrokes, humanAsciiChars, asciiBlocks, shapes, images]);
 
   const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) {
@@ -613,7 +704,14 @@ export default function DrawPage() {
     setWish(null);
     setDrawingElements([]);
     setThinkingText('');
+    setImages([]);
+    setSelectedImageId(null);
     lastDrawnPoint.current = null;
+    // Clear localStorage
+    localStorage.removeItem(CANVAS_STORAGE_KEY);
+    // Reset ID counters
+    elementIdCounter.current = 0;
+    imageIdCounter.current = 0;
   };
 
   const handleSave = () => {
@@ -678,17 +776,132 @@ export default function DrawPage() {
     }, AUTO_DRAW_DELAY);
   }, []);
 
+  // Image upload handler
+  const handleImageUpload = useCallback((file: File, dropPoint?: Point) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const id = `img-${imageIdCounter.current++}`;
+        // Scale image to fit reasonably on canvas (max 400px wide/tall)
+        const maxSize = 400;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxSize || height > maxSize) {
+          const scale = maxSize / Math.max(width, height);
+          width *= scale;
+          height *= scale;
+        }
+        // Position at drop point or center of canvas
+        const canvas = canvasRef.current;
+        const x = dropPoint?.x ?? (canvas ? canvas.width / 2 - width / 2 : 100);
+        const y = dropPoint?.y ?? (canvas ? canvas.height / 2 - height / 2 : 100);
+        setImages(prev => [...prev, { id, src, x, y, width, height }]);
+        setSelectedImageId(id);
+        setTool('select');
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Handle drag-drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(f => f.type.startsWith('image/'));
+    if (imageFile) {
+      const dropPoint = screenToCanvas(e.clientX, e.clientY);
+      handleImageUpload(imageFile, dropPoint);
+    }
+  }, [handleImageUpload, screenToCanvas]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  // Handle paste
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            handleImageUpload(file);
+            e.preventDefault();
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handleImageUpload]);
+
+  // Image selection and dragging
+  const handleImageMouseDown = useCallback((e: React.MouseEvent, imageId: string) => {
+    e.stopPropagation();
+    if (tool !== 'select') return;
+    setSelectedImageId(imageId);
+    setIsDraggingImage(true);
+    const point = screenToCanvas(e.clientX, e.clientY);
+    const image = images.find(img => img.id === imageId);
+    if (image) {
+      imageDragOffset.current = { x: point.x - image.x, y: point.y - image.y };
+    }
+  }, [tool, images, screenToCanvas]);
+
+  const handleImageDrag = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingImage || !selectedImageId || !imageDragOffset.current) return;
+    const point = screenToCanvas(e.clientX, e.clientY);
+    const offset = imageDragOffset.current; // Capture before state update
+    setImages(prev => prev.map(img =>
+      img.id === selectedImageId
+        ? { ...img, x: point.x - offset.x, y: point.y - offset.y }
+        : img
+    ));
+  }, [isDraggingImage, selectedImageId, screenToCanvas]);
+
+  const handleImageMouseUp = useCallback(() => {
+    setIsDraggingImage(false);
+    imageDragOffset.current = null;
+  }, []);
+
   return (
     <div className="draw-page relative overflow-hidden">
-      {/* SVG filter definitions - no userSpaceOnUse for Safari compatibility */}
+      {/* SVG filter definitions - Safari uses lower complexity for better perf */}
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
-          <filter id="wobbleFilter" x="-20%" y="-20%" width="140%" height="140%">
+          {/* Main filter - used for canvas/strokes (and everything on Chrome) */}
+          <filter id="wobbleFilter" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence
+              ref={turbulenceRef}
+              type="turbulence"
+              baseFrequency={isSafari ? "0.02" : "0.03"}
+              numOctaves={isSafari ? 1 : 2}
+              seed="1"
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={isSafari ? distortionAmount * 3.5 : distortionAmount}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+          {/* Grid-only filter for Safari - lower distortion */}
+          <filter id="wobbleFilterGrid" x="-10%" y="-10%" width="120%" height="120%">
             <feTurbulence
               type="turbulence"
-              baseFrequency="0.03"
-              numOctaves="2"
-              seed={filterSeed}
+              baseFrequency="0.02"
+              numOctaves={1}
+              seed="1"
               result="noise"
             />
             <feDisplacementMap
@@ -708,7 +921,9 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: isPanning ? 'grabbing' : 'none' }}
+          style={{ cursor: isPanning ? 'grabbing' : (tool === 'select' ? 'default' : 'none') }}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
           onMouseDown={(e) => {
             // Don't start drawing if there's an open comment or comment input
             if (openCommentIndex !== null || commentInput !== null) {
@@ -716,6 +931,9 @@ export default function DrawPage() {
             }
             if (e.button === 1) {
               startPan(e);
+            } else if (tool === 'select') {
+              // Deselect image if clicking on empty space (image clicks are handled separately)
+              setSelectedImageId(null);
             } else if (tool === 'comment') {
               // Track drag start position - only switch to draw if user actually drags
               commentDragStart.current = { x: e.clientX, y: e.clientY };
@@ -724,12 +942,15 @@ export default function DrawPage() {
             }
           }}
           onMouseMove={(e) => {
+            setIsTouch(false); // Switch back to mouse mode
             const rect = containerRef.current?.getBoundingClientRect();
             if (rect) {
               setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
             }
             if (isPanning) {
               doPan(e);
+            } else if (isDraggingImage) {
+              handleImageDrag(e);
             } else if (tool === 'comment' && commentDragStart.current && !isDrawing) {
               // Check if user has dragged enough to switch to draw mode
               const dx = e.clientX - commentDragStart.current.x;
@@ -742,42 +963,45 @@ export default function DrawPage() {
                 commentDragStart.current = null;
                 startDrawing(e);
               }
-            } else if (tool !== 'comment' || isDrawing) {
+            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
               draw(e);
             }
           }}
           onMouseUp={() => {
             commentDragStart.current = null;
+            handleImageMouseUp();
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment' || isDrawing) {
+            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
               stopDrawing();
             }
           }}
           onMouseLeave={() => {
             setCursorPos(null);
             commentDragStart.current = null;
+            handleImageMouseUp();
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment' || isDrawing) {
+            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
               stopDrawing();
             }
           }}
           onClick={handleCanvasClick}
           onDoubleClick={handleDoubleClick}
           onTouchStart={(e) => {
+            setIsTouch(true); // Switch to touch mode - hide custom cursor
             // Always check for multi-touch first
             handleZoomPanTouchStart(e);
-            // Single finger: draw (unless in comment mode or gesture in progress)
-            if (e.touches.length === 1 && tool !== 'comment' && !isTouchGesture) {
+            // Single finger: draw (unless in comment/select mode or gesture in progress)
+            if (e.touches.length === 1 && tool !== 'comment' && tool !== 'select' && !isTouchGesture) {
               startDrawing(e);
             }
           }}
           onTouchMove={(e) => {
             // Always update gesture tracking
             handleZoomPanTouchMove(e);
-            // Single finger drawing (only if not in gesture mode)
-            if (e.touches.length === 1 && tool !== 'comment' && !isTouchGesture) {
+            // Single finger drawing (only if not in gesture mode and not select tool)
+            if (e.touches.length === 1 && tool !== 'comment' && tool !== 'select' && !isTouchGesture) {
               draw(e);
             }
           }}
@@ -791,45 +1015,79 @@ export default function DrawPage() {
                 setCommentInput({ x: point.x, y: point.y });
                 setCommentText('');
               }
-            } else if (!isTouchGesture) {
+            } else if (tool !== 'select' && !isTouchGesture) {
               stopDrawing();
             }
           }}
         >
-          {/* Transform wrapper for zoom/pan - filter applied here for entire canvas including grid */}
+          {/* Transform wrapper for zoom/pan */}
           <div
             className="absolute inset-0 overflow-hidden rounded-xl"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
-              backgroundColor: 'white',
-              boxShadow: 'inset 0 0 0 1px #E5E5E5',
-              ...(canvasBackground === 'grid' ? {
-                backgroundImage: `
-                  linear-gradient(to right, #e5e5e5 1px, transparent 1px),
-                  linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
-                `,
-                backgroundSize: `${gridSize}px ${gridSize}px`,
-              } : canvasBackground === 'dots' ? {
-                backgroundImage: 'radial-gradient(circle, #e5e5e5 1.5px, transparent 1.5px)',
-                backgroundSize: `${gridSize}px ${gridSize}px`,
-              } : {}),
-              ...(distortionAmount > 0 ? { filter: 'url(#wobbleFilter)' } : {}),
+              willChange: isPanning || isTouchGesture ? 'transform' : 'auto',
+              contain: 'layout style paint',
             }}
           >
-            <canvas
-              ref={canvasRef}
-              className="touch-none w-full h-full"
-            />
+            {/* Chrome: Single container with wiggle animation */}
+            {/* Safari: Separate containers - grid with low distortion, strokes with high distortion */}
 
-            {/* SVG layer for drawings */}
-            <svg
+            {/* Background/Grid layer - Safari gets separate lower-distortion filter */}
+            <div
               className="absolute inset-0"
               style={{
-                width: '100%',
-                height: '100%',
+                ...(distortionAmount > 0 && !isPanning && !isTouchGesture ? {
+                  filter: isSafari ? 'url(#wobbleFilterGrid)' : 'url(#wobbleFilter)',
+                  willChange: 'filter',
+                  transform: 'translateZ(0)',
+                } : {}),
               }}
             >
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: 'white',
+                  boxShadow: 'inset 0 0 0 1px #E5E5E5',
+                  ...(canvasBackground === 'grid' ? {
+                    backgroundImage: `
+                      linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+                      linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
+                    `,
+                    backgroundSize: `${gridSize}px ${gridSize}px`,
+                  } : canvasBackground === 'dots' ? {
+                    backgroundImage: 'radial-gradient(circle, #e5e5e5 1.5px, transparent 1.5px)',
+                    backgroundSize: `${gridSize}px ${gridSize}px`,
+                  } : {}),
+                }}
+              />
+            </div>
+
+            {/* Canvas + Strokes layer - Safari gets higher-distortion filter */}
+            <div
+              className="absolute inset-0"
+              style={{
+                ...(isSafari && distortionAmount > 0 && !isPanning && !isTouchGesture ? {
+                  filter: 'url(#wobbleFilter)',
+                  willChange: 'filter',
+                  transform: 'translateZ(0)',
+                } : {}),
+              }}
+            >
+              {/* Canvas layer */}
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 touch-none w-full h-full"
+              />
+
+              {/* SVG layer for drawings */}
+              <svg
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                }}
+              >
               {drawingElements.map((element) => {
                 if (element.type === 'stroke') {
                   const stroke = element.data as HumanStroke;
@@ -942,12 +1200,39 @@ export default function DrawPage() {
                 />
               )}
             </svg>
+            </div>
+            {/* End canvas/strokes container */}
+
+            {/* Images layer - on top, no distortion filter */}
+            {images.map((img) => (
+              <div
+                key={img.id}
+                className={`absolute ${tool === 'select' ? 'cursor-move' : 'pointer-events-none'} ${selectedImageId === img.id ? 'ring-2 ring-blue-500' : ''}`}
+                style={{
+                  left: img.x,
+                  top: img.y,
+                  width: img.width,
+                  height: img.height,
+                  zIndex: 10,
+                }}
+                onMouseDown={(e) => handleImageMouseDown(e, img.id)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.src}
+                  alt=""
+                  className="w-full h-full object-contain pointer-events-none"
+                  draggable={false}
+                />
+              </div>
+            ))}
           </div>
 
           {/* Custom cursor */}
           <CustomCursor
             cursorPos={cursorPos}
             isPanning={isPanning}
+            isTouch={isTouch}
             tool={tool}
             asciiStroke={asciiStroke}
             strokeColor={strokeColor}

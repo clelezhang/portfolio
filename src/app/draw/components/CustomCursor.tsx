@@ -5,6 +5,7 @@ import { CommentCursor } from './icons/CommentCursor';
 interface CustomCursorProps {
   cursorPos: Point | null;
   isPanning: boolean;
+  isTouch: boolean;
   tool: Tool;
   asciiStroke: boolean;
   strokeColor: string;
@@ -13,11 +14,12 @@ interface CustomCursorProps {
 export function CustomCursor({
   cursorPos,
   isPanning,
+  isTouch,
   tool,
   asciiStroke,
   strokeColor,
 }: CustomCursorProps) {
-  if (!cursorPos || isPanning) return null;
+  if (!cursorPos || isPanning || isTouch) return null;
 
   return (
     <div

@@ -79,7 +79,7 @@ export default function ModelTestPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFilterSeed((prev) => (prev % 100) + 1);
-    }, 168);
+    }, 270);
     return () => clearInterval(interval);
   }, []);
 

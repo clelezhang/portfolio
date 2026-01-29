@@ -29,7 +29,16 @@ export interface Shape {
 
 export type DrawMode = 'all' | 'shapes' | 'ascii';
 
-export type Tool = 'draw' | 'erase' | 'comment';
+export type Tool = 'select' | 'draw' | 'erase' | 'comment';
+
+export interface UploadedImage {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface Turn {
   who: 'human' | 'claude';

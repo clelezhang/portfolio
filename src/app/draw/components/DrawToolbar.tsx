@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Tool } from '../types';
 import { COLOR_PALETTES } from '../constants';
-import { PencilToolIcon } from './icons/PencilToolIcon';
 
 export type AnimationType = 'slide' | 'slot' | 'confetti';
 
@@ -144,16 +143,80 @@ export function DrawToolbar({
       {/* Center section: floating toolbar */}
       <div className="draw-toolbar-center">
         <div className="draw-tools-container">
+          {/* Select tool */}
+          <button
+            onClick={() => setTool('select')}
+            className="draw-tool-btn draw-tool-btn--select"
+            title="Select & move"
+          >
+            <img
+              src="/draw/select.svg"
+              alt=""
+              className={`draw-tool-icon draw-tool-icon--select ${tool === 'select' ? 'draw-tool-icon--selected' : ''}`}
+              style={{ bottom: tool === 'select' ? '0px' : '-12px' }}
+            />
+          </button>
           {/* Pencil tool */}
           <button
             onClick={() => { setTool('draw'); setAsciiStroke(false); }}
             className="draw-tool-btn draw-tool-btn--pencil"
             title="Pencil (SVG/shapes)"
           >
-            <PencilToolIcon
-              color={strokeColor}
-              isSelected={tool === 'draw' && !asciiStroke}
-            />
+            <svg
+              width="27"
+              height="51"
+              viewBox="0 0 27 51"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={`draw-tool-icon draw-tool-icon--pencil ${tool === 'draw' && !asciiStroke ? 'draw-tool-icon--selected' : ''}`}
+              style={{ bottom: tool === 'draw' && !asciiStroke ? '0px' : '-12px' }}
+            >
+              {/* Pencil tip - dynamic color */}
+              <path d="M12.1262 2.559C12.4469 1.68489 13.6831 1.68489 14.0038 2.55899L16.9737 10.6543H9.15625L12.1262 2.559Z" fill={strokeColor}/>
+              <path d="M12.1262 2.559C12.4469 1.68489 13.6831 1.68489 14.0038 2.55899L16.9737 10.6543H9.15625L12.1262 2.559Z" fill="url(#paint0_radial_pencil)" fillOpacity="0.1"/>
+              <path d="M12.5957 2.73145C12.756 2.29439 13.3738 2.2944 13.5342 2.73145L16.2578 10.1543H9.87207L12.5957 2.73145Z" stroke="#02061D" strokeOpacity="0.1"/>
+              {/* Pencil body */}
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="#F3F0ED"/>
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="url(#paint1_linear_pencil)"/>
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="url(#paint2_linear_pencil)" fillOpacity="0.3"/>
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="url(#paint3_linear_pencil)"/>
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="url(#paint4_linear_pencil)" fillOpacity="0.2"/>
+              <path d="M0 50.6772V35.8205C0 33.4065 0.437028 31.0124 1.28994 28.7541L8.54507 9.54426C8.69205 9.15511 9.06459 8.89758 9.48057 8.89758H16.8015C17.2129 8.89758 17.5824 9.14959 17.7325 9.53265L25.2261 28.6505C26.1376 30.9759 26.6055 33.4515 26.6055 35.9492V50.6772H0Z" fill="url(#paint5_linear_pencil)" fillOpacity="0.2"/>
+              <path d="M9.48047 9.39758H16.8018C17.0073 9.39769 17.1915 9.52367 17.2666 9.71497L24.7607 28.8331C25.6494 31.1004 26.1055 33.5142 26.1055 35.9493V50.1769H0.5V35.8204C0.500003 33.4668 0.926224 31.1326 1.75781 28.9308L9.0127 9.72083C9.08618 9.52631 9.27253 9.39763 9.48047 9.39758Z" stroke="#0F1931" strokeOpacity="0.1"/>
+              <defs>
+                <radialGradient id="paint0_radial_pencil" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12.9541 1.8003) rotate(89.8034) scale(13.3769 2.25405)">
+                  <stop stopColor="white"/>
+                  <stop offset="1"/>
+                </radialGradient>
+                <linearGradient id="paint1_linear_pencil" x1="13.5537" y1="30.612" x2="13.5537" y2="39.4077" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#E3F5FF" stopOpacity="0"/>
+                  <stop offset="1" stopColor="#FBFBFB"/>
+                </linearGradient>
+                <linearGradient id="paint2_linear_pencil" x1="27.6094" y1="29.879" x2="-1.00398" y2="29.879" gradientUnits="userSpaceOnUse">
+                  <stop/>
+                  <stop offset="0.245082" stopColor="#666666" stopOpacity="0.75"/>
+                  <stop offset="0.294077" stopColor="#666666" stopOpacity="0"/>
+                  <stop offset="0.374934" stopColor="#666666" stopOpacity="0.25"/>
+                  <stop offset="0.623271" stopColor="#666666" stopOpacity="0.1"/>
+                  <stop offset="0.69" stopColor="#666666" stopOpacity="0"/>
+                  <stop offset="0.748823" stopColor="#666666" stopOpacity="0.5"/>
+                  <stop offset="1"/>
+                </linearGradient>
+                <linearGradient id="paint3_linear_pencil" x1="13.5537" y1="8.9892" x2="13.5537" y2="41.9731" gradientUnits="userSpaceOnUse">
+                  <stop offset="0.01" stopColor="#F4EADE"/>
+                  <stop offset="0.650404" stopColor="#F9F1E7" stopOpacity="0.85"/>
+                  <stop offset="1" stopColor="white" stopOpacity="0"/>
+                </linearGradient>
+                <linearGradient id="paint4_linear_pencil" x1="10.5418" y1="31.7114" x2="0.516687" y2="28.2785" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#B2753F" stopOpacity="0"/>
+                  <stop offset="1" stopColor="#B2753F"/>
+                </linearGradient>
+                <linearGradient id="paint5_linear_pencil" x1="19.5776" y1="28.5963" x2="24.8717" y2="26.9482" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#B2753F" stopOpacity="0"/>
+                  <stop offset="1" stopColor="#B2753F"/>
+                </linearGradient>
+              </defs>
+            </svg>
           </button>
           {/* ASCII tool */}
           <button
@@ -162,7 +225,7 @@ export function DrawToolbar({
             title="ASCII art"
           >
             <img
-              src="/draw/cursor.svg"
+              src="/draw/cursor1.svg"
               alt=""
               className={`draw-tool-icon draw-tool-icon--ascii ${tool === 'draw' && asciiStroke ? 'draw-tool-icon--selected' : ''}`}
               style={{ bottom: tool === 'draw' && asciiStroke ? '6px' : '-8px' }}
@@ -175,7 +238,7 @@ export function DrawToolbar({
             title="Eraser"
           >
             <img
-              src="/draw/eraser.svg"
+              src="/draw/eraser1.svg"
               alt=""
               className={`draw-tool-icon draw-tool-icon--eraser ${tool === 'erase' ? 'draw-tool-icon--selected' : ''}`}
               style={{ bottom: tool === 'erase' ? '-6px' : '-20px' }}

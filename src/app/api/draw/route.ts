@@ -205,10 +205,10 @@ export async function POST(req: NextRequest) {
     // Build comment thread context
     let messageContext = '';
     if (comments && Array.isArray(comments) && comments.length > 0) {
-      messageContext = `\n\nComments on the canvas:\n`;
+      messageContext = `\n\nComments on the canvas (UI appears bottom-right of coordinates, max width 240px):\n`;
       (comments as Comment[]).forEach((comment, i) => {
         const speaker = comment.from === 'human' ? 'Human' : 'You';
-        messageContext += `${i + 1}. ${speaker}: "${comment.text}"\n`;
+        messageContext += `${i + 1}. ${speaker} at (${Math.round(comment.x)}, ${Math.round(comment.y)}): "${comment.text}"\n`;
         if (comment.replies && comment.replies.length > 0) {
           comment.replies.forEach((reply) => {
             const replySpeaker = reply.from === 'human' ? 'Human' : 'You';

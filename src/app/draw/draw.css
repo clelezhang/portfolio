@@ -321,6 +321,12 @@
   transition: all 0.2s;
 }
 
+.draw-tool-btn--select {
+  width: 24px;
+  height: 40px;
+  clip-path: inset(-100% -100% -20px -100%);
+}
+
 .draw-tool-btn--pencil {
   width: 27px;
   height: 40px;
@@ -355,6 +361,11 @@
 .draw-tool-icon--selected:hover {
   transform: none;
   filter: drop-shadow(0 12px 8px rgba(0, 0, 0, 0.2));
+}
+
+.draw-tool-icon--select {
+  width: 24px;
+  height: 40px;
 }
 
 .draw-tool-icon--pencil {
@@ -1018,4 +1029,56 @@
 
 .draw-palette-confetti {
   overflow: visible;
+}
+
+/* -----------------------------------------------------------------------------
+   Wiggle Animation (CSS Keyframes Alternative to SVG Filter)
+
+   GPU-accelerated alternative to feTurbulence filter. Uses transform
+   animations instead of pixel displacement for better performance,
+   especially on Safari.
+
+   Configure via CSS custom properties:
+   - --wiggle-intensity: pixel displacement (default: 1)
+   - --wiggle-speed: animation duration (default: 270ms)
+   ----------------------------------------------------------------------------- */
+
+@keyframes wiggle {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12.5% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * 0.7px), calc(var(--wiggle-intensity, 1) * -0.5px)) rotate(calc(var(--wiggle-intensity, 1) * 0.15deg));
+  }
+  25% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * 1px), calc(var(--wiggle-intensity, 1) * -1px)) rotate(calc(var(--wiggle-intensity, 1) * 0.3deg));
+  }
+  37.5% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * 0.3px), calc(var(--wiggle-intensity, 1) * 0.8px)) rotate(calc(var(--wiggle-intensity, 1) * 0.1deg));
+  }
+  50% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * -1px), calc(var(--wiggle-intensity, 1) * 1px)) rotate(calc(var(--wiggle-intensity, 1) * -0.25deg));
+  }
+  62.5% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * -0.6px), calc(var(--wiggle-intensity, 1) * -0.4px)) rotate(calc(var(--wiggle-intensity, 1) * -0.15deg));
+  }
+  75% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * 1px), calc(var(--wiggle-intensity, 1) * 1px)) rotate(calc(var(--wiggle-intensity, 1) * 0.2deg));
+  }
+  87.5% {
+    transform: translate(calc(var(--wiggle-intensity, 1) * -0.4px), calc(var(--wiggle-intensity, 1) * 0.6px)) rotate(calc(var(--wiggle-intensity, 1) * -0.1deg));
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+.draw-wiggle-css {
+  animation: wiggle var(--wiggle-speed, 270ms) ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Pause animation when not visible */
+.draw-wiggle-css.paused {
+  animation-play-state: paused;
 }
