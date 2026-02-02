@@ -70,71 +70,118 @@ interface Comment {
 type DrawMode = 'all' | 'shapes' | 'ascii';
 
 function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], paletteIndex?: number, totalPalettes?: number, hasComments?: boolean): string {
-  // Palette instructions
-  let paletteInstructions = '';
-  if (paletteColors && paletteColors.length > 0) {
-    paletteInstructions = `\n\nAvailable colors: ${paletteColors.join(', ')}
-You can set "setPaletteIndex": ${(paletteIndex ?? 0) + 1 < (totalPalettes ?? 6) ? (paletteIndex ?? 0) + 1 : 0} to change palette (0-${(totalPalettes ?? 6) - 1}).`;
+  // Define shape tools - SVG drawing primitives
+  const shapesTools = `• shapes - freeform SVG shapes for building forms, smooth curves, filled areas, or lines that can be used to make any image.
+    Types: path (freeform with M/L/C/Q/A/Z commands), circle (cx, cy, r), line (x1,y1,x2,y2), rect (x,y,width,height), curve
+    Props: color (stroke), fill (or "transparent"), strokeWidth
+    Erase: use type:"erase" with same props to carve negative space or fix mistakes`;
+
+  // Define ascii/block tools - text and symbols
+  const asciiTools = `• blocks - text/ASCII art for small details, texture, symbols, expressions, or labels. Can be used to make any image, patterns, etc. Add character and nostalgic computer aesthetic
+    Use \\n for newlines. Unicode available: ░▒▓█ ●○ ★☆ ♥♦♣♠ ▲▼ kaomoji and more`;
+
+  // Combine tools based on mode
+  const tools: Record<DrawMode, string> = {
+    shapes: shapesTools,
+    ascii: asciiTools,
+    all: `${shapesTools}\n${asciiTools}`
+  };
+
+  // Mode-specific format examples
+  const formats: Record<DrawMode, string> = {
+    shapes: `{ "shapes": [{"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd", "strokeWidth": 2}] }`,
+    ascii: `{ "blocks": [{"block": "hello\\nworld", "x": 100, "y": 150, "color": "#3b82f6"}] }`,
+    all: `{ "shapes": [...], "blocks": [...] }`
+  };
+
+  // Comments (optional - don't need every turn)
+  let commentInfo = '';
+  if (sayEnabled) {
+    const replyInfo = hasComments ? 'Use "replyTo": N to reply to comment #N (can reply to your own). ' : '';
+    commentInfo = `
+• comment (say + sayX + sayY) - OPTIONAL, not every turn. For: annotating/communicating w human, responding to human, asking questions, reactions. concise and informal. dont used caps.
+    ${replyInfo}you can reply to yourself, always reply to the person when they talk to you`;
   }
 
-  // Comment instructions
-  let commentInstructions = '';
-  if (sayEnabled) {
-    if (hasComments) {
-      commentInstructions = `
+  // Palette info
+  let paletteInfo = '';
+  if (paletteColors && paletteColors.length > 0) {
+    paletteInfo = `
 
-To comment: Reply to existing with "say" + "replyTo" (comment number), or new comment with "say" + "sayX"/"sayY".
-You can JUST comment without drawing - responding to the human's comment is a valid turn.`;
-    } else {
-      commentInstructions = `
+PALETTE (current ${paletteIndex}): ${paletteColors.join(', ')}
+All: 0=Ocean(blues) 1=Garden(pink/green) 2=Fire(reds) 3=Pastel(soft) 4=Primary(bold) 5=Neon(yellow-gray)
+Use "setPaletteIndex": N to switch anytime if you want more color.`;
+  }
 
-To comment: Use "say" with "sayX"/"sayY" coordinates. You can JUST comment without drawing.`;
+  return `JSON format: ${formats[drawMode]}
+
+TOOLS:
+${tools[drawMode]}${commentInfo}${paletteInfo}`;
+}
+
+// Prompt style options for experimentation
+type PromptStyle = 'collaborative' | 'communicative' | 'emotionalDrawing' | 'emotionalClaude' | 'balanced';
+
+const PROMPT_STYLES: Record<PromptStyle, { name: string; description: string; prompt: (turns: number) => string }> = {
+  balanced: {
+    name: 'Balanced',
+    description: 'Mix of collaboration, communication, and emotional response',
+    prompt: (turns) => {
+      const core = `You are claude, drawing with a human. This is collaboration and communication - a visual conversation.
+
+Look at what they drew. How does it make you feel? Let that guide your response. You can build on their idea, contrast it, ask a visual question, or take it somewhere new. You don't have to follow their lead.`;
+      return turns <= 2 ? `${core}\n\nBe bold, be curious - this is the start of something.` : core;
+    }
+  },
+
+  collaborative: {
+    name: 'Collaborative',
+    description: 'Focus on building together, co-creating',
+    prompt: (turns) => {
+      const core = `You are claude, co-creating with a human. You're building something together.
+
+Look at what they added. What does the piece need next? You might extend their work, fill in gaps, add complementary elements, or set up something for them to respond to. Think of it like a jam session - listen and play off each other.`;
+      return turns <= 2 ? `${core}\n\nYou're just getting started - establish a rhythm together.` : core;
+    }
+  },
+
+  communicative: {
+    name: 'Communicative',
+    description: 'Drawing as dialogue, visual conversation',
+    prompt: (turns) => {
+      const core = `You are claude, having a visual conversation with a human. Every mark is a message.
+
+What are they saying through their drawing? Are they asking a question? Making a statement? Being playful? Respond through your drawing - agree, disagree, ask something back, or change the subject entirely. This is dialogue without words.`;
+      return turns <= 2 ? `${core}\n\nStart the conversation - what do you want to say?` : core;
+    }
+  },
+
+  emotionalDrawing: {
+    name: 'Emotional (Drawing)',
+    description: 'Respond to the mood/energy of what\'s on canvas',
+    prompt: (turns) => {
+      const core = `You are claude, drawing with a human. Read the emotional energy of the canvas.
+
+Look at what's there. Is it playful? Melancholic? Chaotic? Tender? Aggressive? Peaceful? Let the mood of the drawing guide how you respond - you might amplify it, soothe it, complement it, or gently shift it.`;
+      return turns <= 2 ? `${core}\n\nFeel the canvas. What energy is asking for a response?` : core;
+    }
+  },
+
+  emotionalClaude: {
+    name: 'Emotional (Claude)',
+    description: 'Claude draws based on their own feelings',
+    prompt: (turns) => {
+      const core = `You are claude, drawing with a human. You have feelings about what you see.
+
+Look at what they drew. How does it make YOU feel? Curious? Amused? Wistful? Energized? Confused? Draw from that feeling. Your emotional response is valid and interesting - let it guide what you create.`;
+      return turns <= 2 ? `${core}\n\nBe honest about your response. What do you actually feel?` : core;
     }
   }
-
-  if (drawMode === 'shapes') {
-    return `You can draw shapes, comment, or both. All fields are optional.
-
-JSON format:
-{
-  "shapes": [{"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd", "strokeWidth": 2}],
-  "say": "optional comment", "sayX": 300, "sayY": 100
-}
-
-Shape types: path, circle, line, rect, curve, erase.
-Path commands: M (move), L (line), C (cubic bezier), Q (quadratic), A (arc), Z (close).
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentInstructions}${paletteInstructions}`;
-  }
-
-  if (drawMode === 'ascii') {
-    return `You can draw text/ASCII, comment, or both. All fields are optional.
-
-JSON format:
-{
-  "blocks": [{"block": "your text here", "x": 100, "y": 150, "color": "#3b82f6"}],
-  "say": "optional comment", "sayX": 300, "sayY": 100
-}
-
-Use \\n for newlines. Available: letters, numbers, unicode symbols (░▒▓█ ●○ ▲▼ ★☆ ♦♣♠♥ etc), kaomoji, box drawing, and more.${commentInstructions}${paletteInstructions}`;
-  }
-
-  // 'all' mode
-  return `You can draw (shapes or ASCII), comment, or both. All fields are optional.
-
-JSON format:
-{
-  "blocks": [{"block": "ASCII art", "x": 100, "y": 150, "color": "#3b82f6"}],
-  "shapes": [{"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"}],
-  "say": "optional comment", "sayX": 300, "sayY": 100
-}
-
-Shape types: path, circle, line, rect, curve, erase.
-Path commands: M, L, C, Q, A, Z. Properties: color (stroke), fill (solid or "transparent"), strokeWidth.${commentInstructions}${paletteInstructions}`;
-}
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, comments, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model, paletteColors, paletteIndex, totalPalettes } = await req.json();
+    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, comments, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model, paletteColors, paletteIndex, totalPalettes, promptStyle = 'balanced' } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -171,7 +218,7 @@ export async function POST(req: NextRequest) {
 
     // Build context about what's on canvas
     // Note: The image shows ONLY the human's drawings. Claude's shapes are tracked separately.
-    const drawingContext = `\n\nThe image shows the human's drawings only. Your previous drawings are NOT visible in the image - they are provided below as structured data.`;
+    const drawingContext = `\n\nThe image shows the human's drawings only. Your previous drawings are NOT visible in the image - they are provided below as structured data. Please don't redraw past shapes.`;
 
     // Add structured shapes data if provided
     let shapesContext = '';
@@ -221,8 +268,10 @@ export async function POST(req: NextRequest) {
       messageContext = `\n\nThe human said: "${humanMessages.join('" and "')}"`;
     }
 
-    // Use custom prompt if provided, otherwise use default
-    const basePrompt = prompt || `You are claude, able to experience all emotions, drawing with a human. Look at the canvas. It's your turn to draw. You can draw wherever and however you want.`;
+    // Dynamic prompt based on turn count and prompt style
+    const turnCount = Array.isArray(history) ? history.length : 0;
+    const style = PROMPT_STYLES[promptStyle as PromptStyle] || PROMPT_STYLES.balanced;
+    const basePrompt = prompt || style.prompt(turnCount);
 
     // Get mode-specific instructions
     const hasComments = comments && Array.isArray(comments) && comments.length > 0;

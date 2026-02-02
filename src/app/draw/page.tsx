@@ -43,6 +43,8 @@ import { useComments } from './hooks/useComments';
 import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { CustomCursor } from './components/CustomCursor';
 import { PencilCursor } from './components/icons/PencilCursor';
+import { EraserCursor } from './components/icons/EraserCursor';
+import { AsciiCursor } from './components/icons/AsciiCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 
@@ -136,15 +138,35 @@ export default function DrawPage() {
   // Claude cursor state
   const [claudeCursorPos, setClaudeCursorPos] = useState<Point | null>(null);
   const [claudeIsDrawing, setClaudeIsDrawing] = useState(false);
-  const claudeAnimationQueue = useRef<{ shape: Shape; id: string }[]>([]);
+  // Queue can contain shapes or ASCII blocks
+  type AnimationItem =
+    | { type: 'shape'; shape: Shape; id: string }
+    | { type: 'ascii'; block: AsciiBlock; id: string };
+  const claudeAnimationQueue = useRef<AnimationItem[]>([]);
   const isAnimatingClaude = useRef(false);
+  const claudeLastEndPoint = useRef<Point | null>(null);
 
   // Currently animating shape (for progressive reveal)
   const [animatingShape, setAnimatingShape] = useState<{ shape: Shape; id: string; progress: number } | null>(null);
 
+  // Currently animating ASCII block
+  const [animatingAscii, setAnimatingAscii] = useState<AsciiBlock | null>(null);
+
+  // Claude's current drawing color (for cursor)
+  const [claudeCurrentColor, setClaudeCurrentColor] = useState<string>('#3b82f6');
+
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(1); // 0.5x to 3x speed multiplier
+  const [animationSpeed, setAnimationSpeed] = useState(1.5); // 0.5x to 3x speed multiplier
+
+  // UI visibility toggles (hidden by default)
+  const [showSelectTool, setShowSelectTool] = useState(false);
+  const [showReactButton, setShowReactButton] = useState(false);
+  const [showDownloadButton, setShowDownloadButton] = useState(false);
+
+  // Prompt style for Claude
+  type PromptStyle = 'balanced' | 'collaborative' | 'communicative' | 'emotionalDrawing' | 'emotionalClaude';
+  const [promptStyle, setPromptStyle] = useState<PromptStyle>('balanced');
 
   // Refs
   const lastPoint = useRef<Point | null>(null);
@@ -279,6 +301,7 @@ export default function DrawPage() {
   const getShapePoints = useCallback((shape: Shape): Point[] => {
     switch (shape.type) {
       case 'path':
+      case 'erase':
         if (shape.d) return parsePathToPoints(shape.d);
         break;
       case 'line':
@@ -337,6 +360,43 @@ export default function DrawPage() {
     return length;
   }, []);
 
+  // Easing function for natural motion - slow start, fast middle, slow end
+  const easeInOutCubic = useCallback((t: number): number => {
+    return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }, []);
+
+  // Simple noise function for organic movement
+  const noise = useCallback((seed: number): number => {
+    const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }, []);
+
+  // Calculate direction change at a point (0 = straight, 1 = sharp turn)
+  const getDirectionChange = useCallback((points: Point[], index: number): number => {
+    if (index <= 0 || index >= points.length - 1) return 0;
+    const prev = points[index - 1];
+    const curr = points[index];
+    const next = points[index + 1];
+
+    // Vectors
+    const v1x = curr.x - prev.x;
+    const v1y = curr.y - prev.y;
+    const v2x = next.x - curr.x;
+    const v2y = next.y - curr.y;
+
+    // Normalize
+    const len1 = Math.sqrt(v1x * v1x + v1y * v1y);
+    const len2 = Math.sqrt(v2x * v2x + v2y * v2y);
+    if (len1 < 0.001 || len2 < 0.001) return 0;
+
+    // Dot product gives cos(angle)
+    const dot = (v1x * v2x + v1y * v2y) / (len1 * len2);
+    // Convert to 0-1 range where 1 = sharp turn
+    return (1 - Math.max(-1, Math.min(1, dot))) / 2;
+  }, []);
+
   // Animate Claude's cursor along points with progress callback
   const animateClaudeCursor = useCallback(async (
     points: Point[],
@@ -352,18 +412,23 @@ export default function DrawPage() {
     const duration = baseDuration / animationSpeed;
     const startTime = performance.now();
 
+    // Pre-calculate direction changes for variable speed
+    const directionChanges = points.map((_, i) => getDirectionChange(points, i));
+
     return new Promise<void>((resolve) => {
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTime;
-        const progress = Math.min(1, elapsed / duration);
+        const linearProgress = Math.min(1, elapsed / duration);
+        // Apply easing for natural motion - slow start, fast middle, slow end
+        const easedProgress = easeInOutCubic(linearProgress);
 
         // Handle edge case: single point or empty array
         if (points.length <= 1) {
           if (points.length === 1) {
             setClaudeCursorPos(points[0]);
           }
-          onProgress?.(progress);
-          if (progress < 1) {
+          onProgress?.(easedProgress);
+          if (linearProgress < 1) {
             requestAnimationFrame(animate);
           } else {
             resolve();
@@ -371,29 +436,50 @@ export default function DrawPage() {
           return;
         }
 
-        // Interpolate position along points
+        // Add subtle speed variation based on position along path
+        // Slow down slightly at corners/direction changes
         const pointIndex = Math.min(
-          Math.floor(progress * (points.length - 1)),
-          points.length - 2  // Ensure we never exceed bounds for p2
+          Math.floor(easedProgress * (points.length - 1)),
+          points.length - 2
         );
-        const pointProgress = (progress * (points.length - 1)) % 1;
 
-        const p1 = points[pointIndex];
-        const p2 = points[pointIndex + 1];
+        // Subtle slowdown at sharp turns (reduced effect)
+        const turnSlowdown = directionChanges[pointIndex] * 0.1;
+        const adjustedProgress = easedProgress * (1 - turnSlowdown * 0.2);
+
+        const finalPointIndex = Math.min(
+          Math.floor(adjustedProgress * (points.length - 1)),
+          points.length - 2
+        );
+        const pointProgress = (adjustedProgress * (points.length - 1)) % 1;
+
+        const p1 = points[finalPointIndex];
+        const p2 = points[finalPointIndex + 1];
 
         // Safety check
         if (p1 && p2) {
+          // Variable tremor - more at slow parts, less when moving fast
+          const time = currentTime * 0.008;
+          const speed = Math.abs(easedProgress - (linearProgress > 0.01 ? easeInOutCubic(linearProgress - 0.01) : 0));
+          const baseTremor = 0.6 + noise(time * 0.5) * 0.8; // Varies 0.6-1.4px
+          const speedFactor = Math.max(0.3, 1 - speed * 50); // Less tremor when moving fast
+          const tremor = baseTremor * speedFactor;
+
+          // Multi-frequency noise for more organic feel
+          const jitterX = (noise(time) - 0.5) * tremor + (noise(time * 2.7) - 0.5) * tremor * 0.3;
+          const jitterY = (noise(time + 100) - 0.5) * tremor + (noise(time * 2.7 + 100) - 0.5) * tremor * 0.3;
+
           setClaudeCursorPos({
-            x: p1.x + (p2.x - p1.x) * pointProgress,
-            y: p1.y + (p2.y - p1.y) * pointProgress
+            x: p1.x + (p2.x - p1.x) * pointProgress + jitterX,
+            y: p1.y + (p2.y - p1.y) * pointProgress + jitterY
           });
         } else if (p1) {
           setClaudeCursorPos(p1);
         }
 
-        onProgress?.(progress);
+        onProgress?.(easedProgress);
 
-        if (progress < 1) {
+        if (linearProgress < 1) {
           requestAnimationFrame(animate);
         } else {
           resolve();
@@ -402,9 +488,76 @@ export default function DrawPage() {
 
       requestAnimationFrame(animate);
     });
-  }, [animationSpeed, calculatePathLength]);
+  }, [animationSpeed, calculatePathLength, easeInOutCubic, noise, getDirectionChange]);
 
-  // Process queued shapes with cursor animation and progressive reveal
+  // Animate cursor gliding from one point to another (for transitions between shapes)
+  const animateCursorGlide = useCallback(async (from: Point, to: Point) => {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // For short distances (typical ASCII spacing), snap with brief delay for streaming feel
+    if (distance < 25) {
+      setClaudeCursorPos(to);
+      // Small delay to create visible streaming effect
+      await new Promise(resolve => setTimeout(resolve, 15 / animationSpeed));
+      return;
+    }
+
+    // Only animate for longer jumps (between words/lines or shapes)
+    // Medium distances: quick, Long distances: up to 400ms
+    const duration = Math.min(400, Math.max(30, (distance - 25) * 1.2)) / animationSpeed;
+    const startTime = performance.now();
+
+    // Random arc direction (perpendicular to travel direction)
+    const perpX = -dy / (distance || 1);
+    const perpY = dx / (distance || 1);
+
+    // Scale arc height with distance - no arc for short hops, bigger arc for longer jumps
+    // Under 30px: minimal/no arc, 30-100px: small arc, 100+px: full arc
+    const arcScale = Math.max(0, Math.min(1, (distance - 30) / 70));
+    const baseArc = (15 + Math.random() * 25) * (Math.random() > 0.5 ? 1 : -1);
+    const arcHeight = baseArc * arcScale;
+
+    return new Promise<void>((resolve) => {
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const linearProgress = Math.min(1, elapsed / duration);
+        const progress = easeInOutCubic(linearProgress);
+
+        // Arc only for longer distances
+        const arcOffset = Math.sin(progress * Math.PI) * arcHeight;
+
+        // Scale tremor with distance too - less jitter for short hops
+        const time = currentTime * 0.01;
+        const tremor = 0.4 * Math.min(1, distance / 50);
+        const jitterX = (noise(time) - 0.5) * tremor;
+        const jitterY = (noise(time + 50) - 0.5) * tremor;
+
+        setClaudeCursorPos({
+          x: from.x + dx * progress + perpX * arcOffset + jitterX,
+          y: from.y + dy * progress + perpY * arcOffset + jitterY
+        });
+
+        if (linearProgress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(animate);
+    });
+  }, [animationSpeed, easeInOutCubic, noise]);
+
+  // Brief pause for ASCII character "stamp" effect
+  const animateAsciiStamp = useCallback(async () => {
+    const duration = 80 / animationSpeed; // Quick stamp pause
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, duration);
+    });
+  }, [animationSpeed]);
+
+  // Process queued shapes and ASCII blocks with cursor animation
   const processClaudeAnimationQueue = useCallback(async () => {
     if (isAnimatingClaude.current || claudeAnimationQueue.current.length === 0) return;
 
@@ -412,46 +565,107 @@ export default function DrawPage() {
     setClaudeIsDrawing(true);
 
     while (claudeAnimationQueue.current.length > 0) {
-      const { shape, id } = claudeAnimationQueue.current.shift()!;
-      const points = getShapePoints(shape);
+      const item = claudeAnimationQueue.current.shift()!;
 
-      if (points.length > 0) {
-        // Show cursor at start position and start animating shape
-        setClaudeCursorPos(points[0]);
-        setAnimatingShape({ shape, id, progress: 0 });
+      if (item.type === 'shape') {
+        const { shape, id } = item;
+        const points = getShapePoints(shape);
 
-        // Animate cursor along the path, updating progress for stroke reveal
-        await animateClaudeCursor(points, (progress) => {
-          setAnimatingShape({ shape, id, progress });
-        });
+        // Set cursor color to match the shape being drawn
+        if (shape.color) {
+          setClaudeCurrentColor(shape.color);
+        }
 
-        // Animation complete - add to permanent drawing elements
+        if (points.length > 0) {
+          const startPoint = points[0];
+
+          // Glide from last position to shape start
+          if (claudeLastEndPoint.current) {
+            await animateCursorGlide(claudeLastEndPoint.current, startPoint);
+          } else {
+            setClaudeCursorPos(startPoint);
+          }
+
+          // Clear ASCII state when drawing shapes
+          setAnimatingAscii(null);
+
+          // Start animating the shape
+          setAnimatingShape({ shape, id, progress: 0 });
+
+          // Animate cursor along the path, updating progress for stroke reveal
+          await animateClaudeCursor(points, (progress) => {
+            setAnimatingShape({ shape, id, progress });
+          });
+
+          // Remember where we ended
+          claudeLastEndPoint.current = points[points.length - 1];
+
+          // Animation complete - add to permanent drawing elements
+          setAnimatingShape(null);
+          setDrawingElements(prev => [...prev, {
+            id,
+            source: 'claude',
+            type: 'shape',
+            data: shape,
+          }]);
+        } else {
+          // No points to animate, just add immediately
+          setDrawingElements(prev => [...prev, {
+            id,
+            source: 'claude',
+            type: 'shape',
+            data: shape,
+          }]);
+        }
+      } else if (item.type === 'ascii') {
+        const { block } = item;
+        const targetPoint = { x: block.x, y: block.y };
+
+        // Clear shape state when doing ASCII
         setAnimatingShape(null);
-        setDrawingElements(prev => [...prev, {
-          id,
-          source: 'claude',
-          type: 'shape',
-          data: shape,
-        }]);
 
-        // Brief pause between shapes
-        await new Promise(r => setTimeout(r, 30));
-      } else {
-        // No points to animate, just add immediately
-        setDrawingElements(prev => [...prev, {
-          id,
-          source: 'claude',
-          type: 'shape',
-          data: shape,
-        }]);
+        // Show ASCII cursor
+        setAnimatingAscii(block);
+
+        // Glide to the character position
+        if (claudeLastEndPoint.current) {
+          await animateCursorGlide(claudeLastEndPoint.current, targetPoint);
+        } else {
+          setClaudeCursorPos(targetPoint);
+        }
+
+        // Brief stamp pause, then reveal character
+        await animateAsciiStamp();
+
+        // Add the ASCII block to the canvas
+        setAsciiBlocks(prev => [...prev, block]);
+
+        // Remember position
+        claudeLastEndPoint.current = targetPoint;
       }
     }
 
-    // Hide cursor after animation completes
-    setClaudeCursorPos(null);
-    setClaudeIsDrawing(false);
+    // Don't hide cursor here - wait for finishClaudeAnimation to be called
+    // This keeps the cursor visible while more items might stream in
     isAnimatingClaude.current = false;
-  }, [getShapePoints, animateClaudeCursor]);
+  }, [getShapePoints, animateClaudeCursor, animateCursorGlide, animateAsciiStamp]);
+
+  // Called when API stream is complete to hide the cursor
+  const finishClaudeAnimation = useCallback(() => {
+    // If still animating, wait for it to finish then hide
+    const checkAndHide = () => {
+      if (isAnimatingClaude.current) {
+        // Still processing queue, check again soon
+        setTimeout(checkAndHide, 50);
+      } else {
+        setClaudeCursorPos(null);
+        setAnimatingAscii(null);
+        setClaudeIsDrawing(false);
+        claudeLastEndPoint.current = null;
+      }
+    };
+    checkAndHide();
+  }, []);
 
   // Generate test shapes for cursor animation debugging
   const runTestShapes = useCallback(() => {
@@ -500,12 +714,53 @@ export default function DrawPage() {
         color: colors[4],
         strokeWidth: 3,
       },
+      // An erase stroke (to test eraser cursor)
+      {
+        type: 'erase',
+        d: 'M 550 450 Q 600 400 650 450 Q 700 500 750 450',
+        strokeWidth: 20,
+      },
     ];
 
     // Queue each shape for animation
     testShapes.forEach((shape) => {
       const id = `test-${elementIdCounter.current++}`;
-      claudeAnimationQueue.current.push({ shape, id });
+      claudeAnimationQueue.current.push({ type: 'shape', shape, id });
+    });
+
+    // Add some test ASCII blocks - a simple star/sparkle pattern
+    const testAsciiBlocks: AsciiBlock[] = [
+      // Star shape made of ASCII
+      { block: '*', x: 120, y: 100, color: '#f59e0b' },
+      { block: '/', x: 110, y: 110, color: '#f59e0b' },
+      { block: '|', x: 120, y: 110, color: '#f59e0b' },
+      { block: '\\', x: 130, y: 110, color: '#f59e0b' },
+      { block: '-', x: 100, y: 120, color: '#f59e0b' },
+      { block: '-', x: 110, y: 120, color: '#f59e0b' },
+      { block: '*', x: 120, y: 120, color: '#fbbf24' },
+      { block: '-', x: 130, y: 120, color: '#f59e0b' },
+      { block: '-', x: 140, y: 120, color: '#f59e0b' },
+      { block: '\\', x: 110, y: 130, color: '#f59e0b' },
+      { block: '|', x: 120, y: 130, color: '#f59e0b' },
+      { block: '/', x: 130, y: 130, color: '#f59e0b' },
+      { block: '*', x: 120, y: 140, color: '#f59e0b' },
+      // Small cat face
+      { block: '/', x: 180, y: 100, color: '#8b5cf6' },
+      { block: '\\', x: 210, y: 100, color: '#8b5cf6' },
+      { block: '(', x: 175, y: 115, color: '#8b5cf6' },
+      { block: '^', x: 185, y: 115, color: '#ec4899' },
+      { block: '.', x: 195, y: 118, color: '#8b5cf6' },
+      { block: '^', x: 205, y: 115, color: '#ec4899' },
+      { block: ')', x: 215, y: 115, color: '#8b5cf6' },
+      { block: '>', x: 195, y: 125, color: '#ec4899' },
+      { block: '~', x: 185, y: 135, color: '#8b5cf6' },
+      { block: 'w', x: 195, y: 135, color: '#8b5cf6' },
+      { block: '~', x: 205, y: 135, color: '#8b5cf6' },
+    ];
+
+    testAsciiBlocks.forEach((block) => {
+      const id = `test-ascii-${elementIdCounter.current++}`;
+      claudeAnimationQueue.current.push({ type: 'ascii', block, id });
     });
 
     processClaudeAnimationQueue();
@@ -883,7 +1138,8 @@ export default function DrawPage() {
 
       const image = canvas.toDataURL('image/png');
       // Use user's tool selection to determine Claude's draw mode
-      const effectiveDrawMode = asciiStroke ? 'ascii' : 'shapes';
+      // When user uses pen, Claude gets all tools (shapes + ASCII)
+      const effectiveDrawMode = asciiStroke ? 'ascii' : 'all';
       const response = await fetch('/api/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -902,7 +1158,8 @@ export default function DrawPage() {
           drawMode: effectiveDrawMode,
           thinkingEnabled,
           thinkingBudget: 10000,
-          model: 'haiku', // Use haiku for faster testing
+          model: 'opus',
+          promptStyle,
           // Palette info for Claude
           paletteColors: COLOR_PALETTES[paletteIndex],
           paletteIndex,
@@ -934,15 +1191,18 @@ export default function DrawPage() {
               if (event.type === 'thinking') {
                 setThinkingText((prev) => prev + event.data);
               } else if (event.type === 'block') {
-                setAsciiBlocks((prev) => [...prev, event.data]);
+                // Queue ASCII block for cursor animation
                 streamedBlocks.push(event.data);
+                const id = `claude-ascii-${elementIdCounter.current++}`;
+                claudeAnimationQueue.current.push({ type: 'ascii', block: event.data as AsciiBlock, id });
+                processClaudeAnimationQueue();
               } else if (event.type === 'shape') {
-                setShapes((prev) => [...prev, event.data]);
+                // Don't add to shapes immediately - let animation reveal it
                 streamedShapes.push(event.data);
                 const id = `claude-${elementIdCounter.current++}`;
                 // Queue shape for cursor animation with progressive reveal
-                // (drawingElements will be updated after animation completes)
-                claudeAnimationQueue.current.push({ shape: event.data as Shape, id });
+                // Shape will be added to drawingElements after animation completes
+                claudeAnimationQueue.current.push({ type: 'shape', shape: event.data as Shape, id });
                 processClaudeAnimationQueue();
               } else if (event.type === 'say') {
                 // Legacy: full comment at once
@@ -1037,6 +1297,8 @@ export default function DrawPage() {
                   setHumanHasDrawn(false);
                   setHumanHasCommented(false);
                 }
+                // Stream complete - hide cursor after animations finish
+                finishClaudeAnimation();
               } else if (event.type === 'error') {
                 console.error('Stream error:', event.message);
               }
@@ -1577,6 +1839,10 @@ export default function DrawPage() {
                 if (shape.type === 'path' && shape.d) {
                   return <path key="animating" d={shape.d} {...commonProps} />;
                 }
+                if (shape.type === 'erase' && shape.d) {
+                  // Erase strokes - show as semi-transparent during animation
+                  return <path key="animating" d={shape.d} {...commonProps} stroke="rgba(255,200,200,0.5)" />;
+                }
                 if (shape.type === 'circle' && shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
                   return <circle key="animating" cx={shape.cx} cy={shape.cy} r={shape.r} {...commonProps} />;
                 }
@@ -1644,17 +1910,24 @@ export default function DrawPage() {
               <div
                 className="absolute pointer-events-none"
                 style={{
-                  // Position at canvas coordinates - tip of pencil is at (3,3) in the icon
-                  left: claudeCursorPos.x - 3,
-                  top: claudeCursorPos.y - 3,
+                  // Position at canvas coordinates
+                  // ASCII cursor is 34x34 with center around (17,17), pencil tip is at (3,3)
+                  left: claudeCursorPos.x - (animatingAscii ? 17 : 3),
+                  top: claudeCursorPos.y - (animatingAscii ? 17 : 3),
                   zIndex: 100,
                   filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
                   // Counter-scale to keep cursor at consistent size regardless of zoom
                   transform: `scale(${1 / zoom})`,
-                  transformOrigin: '3px 3px', // Scale from the pencil tip
+                  transformOrigin: animatingAscii ? '17px 17px' : '3px 3px',
                 }}
               >
-                <PencilCursor color={animatingShape?.shape.color || '#3b82f6'} />
+                {animatingAscii ? (
+                  <AsciiCursor />
+                ) : animatingShape?.shape.type === 'erase' ? (
+                  <EraserCursor />
+                ) : (
+                  <PencilCursor color={claudeCurrentColor} />
+                )}
               </div>
             )}
           </div>
@@ -1794,7 +2067,23 @@ export default function DrawPage() {
             />
           )}
 
-          {/* Checkboxes - all in one row */}
+          {/* Prompt Style selector */}
+          <div className="mb-2">
+            <div className="text-xs text-white/50 mb-1">Prompt Style</div>
+            <select
+              value={promptStyle}
+              onChange={(e) => setPromptStyle(e.target.value as PromptStyle)}
+              className="w-full bg-white/10 text-white/90 text-xs rounded-lg px-2 py-1.5 border border-white/10 focus:outline-none focus:border-white/30"
+            >
+              <option value="balanced">Balanced</option>
+              <option value="collaborative">Collaborative</option>
+              <option value="communicative">Communicative</option>
+              <option value="emotionalDrawing">Emotional (Drawing)</option>
+              <option value="emotionalClaude">Emotional (Claude)</option>
+            </select>
+          </div>
+
+          {/* Checkboxes - main settings */}
           <div className="flex items-center gap-4 mb-1 text-xs">
             <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
               <input
@@ -1825,6 +2114,37 @@ export default function DrawPage() {
                 className="draw-settings-checkbox"
               />
               <span>Thinking</span>
+            </label>
+          </div>
+
+          {/* UI visibility toggles */}
+          <div className="flex items-center gap-4 mb-1 text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
+              <input
+                type="checkbox"
+                checked={showSelectTool}
+                onChange={(e) => setShowSelectTool(e.target.checked)}
+                className="draw-settings-checkbox"
+              />
+              <span>Select</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
+              <input
+                type="checkbox"
+                checked={showReactButton}
+                onChange={(e) => setShowReactButton(e.target.checked)}
+                className="draw-settings-checkbox"
+              />
+              <span>React</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white">
+              <input
+                type="checkbox"
+                checked={showDownloadButton}
+                onChange={(e) => setShowDownloadButton(e.target.checked)}
+                className="draw-settings-checkbox"
+              />
+              <span>Download</span>
             </label>
           </div>
 
@@ -2004,6 +2324,9 @@ export default function DrawPage() {
         slideDuration={slideDuration}
         slideStagger={slideStagger}
         slideBounce={slideBounce}
+        showSelectTool={showSelectTool}
+        showReactButton={showReactButton}
+        showDownloadButton={showDownloadButton}
       />
     </div>
   );

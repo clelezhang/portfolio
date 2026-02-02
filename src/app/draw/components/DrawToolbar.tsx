@@ -36,6 +36,10 @@ interface DrawToolbarProps {
   slideDuration?: number;
   slideStagger?: number;
   slideBounce?: boolean;
+  // UI visibility toggles (hidden by default)
+  showSelectTool?: boolean;
+  showReactButton?: boolean;
+  showDownloadButton?: boolean;
 }
 
 export function DrawToolbar({
@@ -59,6 +63,9 @@ export function DrawToolbar({
   slideDuration = 500,
   slideStagger = 30,
   slideBounce = true,
+  showSelectTool = false,
+  showReactButton = false,
+  showDownloadButton = false,
 }: DrawToolbarProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [targetPaletteIndex, setTargetPaletteIndex] = useState<number | null>(null);
@@ -135,27 +142,31 @@ export function DrawToolbar({
         >
           <img src="/draw/comment.svg" alt="" className="w-6 h-6" />
         </button>
-        <button className="draw-icon-btn" title="React">
-          <img src="/draw/react.svg" alt="" className="w-6 h-6" />
-        </button>
+        {showReactButton && (
+          <button className="draw-icon-btn" title="React">
+            <img src="/draw/react.svg" alt="" className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       {/* Center section: floating toolbar */}
       <div className="draw-toolbar-center">
         <div className="draw-tools-container">
           {/* Select tool */}
-          <button
-            onClick={() => setTool('select')}
-            className="draw-tool-btn draw-tool-btn--select"
-            title="Select & move"
-          >
-            <img
-              src="/draw/select.svg"
-              alt=""
-              className={`draw-tool-icon draw-tool-icon--select ${tool === 'select' ? 'draw-tool-icon--selected' : ''}`}
-              style={{ bottom: tool === 'select' ? '0px' : '-12px' }}
-            />
-          </button>
+          {showSelectTool && (
+            <button
+              onClick={() => setTool('select')}
+              className="draw-tool-btn draw-tool-btn--select"
+              title="Select & move"
+            >
+              <img
+                src="/draw/select.svg"
+                alt=""
+                className={`draw-tool-icon draw-tool-icon--select ${tool === 'select' ? 'draw-tool-icon--selected' : ''}`}
+                style={{ bottom: tool === 'select' ? '0px' : '-12px' }}
+              />
+            </button>
+          )}
           {/* Pencil tool */}
           <button
             onClick={() => { setTool('draw'); setAsciiStroke(false); }}
@@ -355,9 +366,11 @@ export function DrawToolbar({
         <button onClick={onClear} className="draw-icon-btn" title="Clear canvas">
           <img src="/draw/clear.svg" alt="" className="w-6 h-6" />
         </button>
-        <button onClick={onSave} className="draw-icon-btn" title="Save image">
-          <img src="/draw/save.svg" alt="" className="w-6 h-6" />
-        </button>
+        {showDownloadButton && (
+          <button onClick={onSave} className="draw-icon-btn" title="Save image">
+            <img src="/draw/save.svg" alt="" className="w-6 h-6" />
+          </button>
+        )}
         <button
           onClick={() => setShowSettings(!showSettings)}
           className={`draw-icon-btn ${showSettings ? 'draw-icon-btn--active' : ''}`}
