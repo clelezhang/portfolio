@@ -48,6 +48,10 @@ import { AsciiCursor } from './components/icons/AsciiCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 
+// Auth components
+import { UserMenu, ApiKeyModal, DrawingsPanel } from './components/auth';
+import { useUser, useDrawings, useUserSettings } from '@/lib/supabase/hooks';
+
 export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +63,14 @@ export default function DrawPage() {
   useEffect(() => {
     setIsSafari(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
   }, []);
+
+  // Auth state
+  const { user } = useUser();
+  const { saveDrawing: saveToCloud } = useDrawings();
+  const { settings: userSettings } = useUserSettings();
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showDrawingsPanel, setShowDrawingsPanel] = useState(false);
+  const [currentDrawingId, setCurrentDrawingId] = useState<string | null>(null);
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -115,6 +127,18 @@ export default function DrawPage() {
   const [thinkingText, setThinkingText] = useState('');
   const [showThinkingPanel, setShowThinkingPanel] = useState(true);
 
+  // Claude narration state - what Claude sees and intends
+  type InteractionStyle = 'collaborative' | 'playful' | 'neutral';
+  const [claudeReasoning, setClaudeReasoning] = useState('');
+  const [claudeObservation, setClaudeObservation] = useState('');
+  const [claudeIntention, setClaudeIntention] = useState('');
+  const [interactionStyle, setInteractionStyle] = useState<InteractionStyle>('neutral');
+
+  // Token tracking state
+  type TokenUsage = { input_tokens: number; output_tokens: number };
+  const [lastUsage, setLastUsage] = useState<TokenUsage | null>(null);
+  const [sessionUsage, setSessionUsage] = useState<TokenUsage>({ input_tokens: 0, output_tokens: 0 });
+
   // Visual effects state
   const [distortionAmount, setDistortionAmount] = useState(2); // 0-30 range for displacement scale
   const [wiggleSpeed, setWiggleSpeed] = useState(270); // ms between frames (lower = faster)
@@ -167,6 +191,8 @@ export default function DrawPage() {
   // Prompt style for Claude
   type PromptStyle = 'balanced' | 'collaborative' | 'communicative' | 'emotionalDrawing' | 'emotionalClaude';
   const [promptStyle, setPromptStyle] = useState<PromptStyle>('balanced');
+
+  // Always use two-stage: Haiku looks → Opus thinks (optimal cost/quality)
 
   // Refs
   const lastPoint = useRef<Point | null>(null);
@@ -348,6 +374,91 @@ export default function DrawPage() {
     }
     return [];
   }, [parsePathToPoints]);
+
+  // Capture the full canvas (background + all drawings) as an image
+  // Optimized: scales down large images and uses JPEG for smaller payload
+  const captureFullCanvas = useCallback(async (): Promise<string> => {
+    const container = containerRef.current;
+    if (!container) return '';
+
+    // Find the SVG element
+    const svg = container.querySelector('svg');
+    if (!svg) return '';
+
+    // Get dimensions and calculate scale (max 1200px on longest side)
+    const rect = container.getBoundingClientRect();
+    const origWidth = rect.width;
+    const origHeight = rect.height;
+    const maxDim = 1200;
+    const scale = Math.min(1, maxDim / Math.max(origWidth, origHeight));
+    const width = Math.round(origWidth * scale);
+    const height = Math.round(origHeight * scale);
+
+    // Create temp canvas at scaled size
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) return '';
+
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+
+    // Draw white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, origWidth, origHeight);
+
+    // Draw grid/dots pattern if enabled (at original scale, will be scaled by context)
+    if (canvasBackground === 'grid') {
+      ctx.strokeStyle = '#e5e5e5';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= origWidth; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, origHeight);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= origHeight; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(origWidth, y);
+        ctx.stroke();
+      }
+    } else if (canvasBackground === 'dots') {
+      ctx.fillStyle = '#e5e5e5';
+      for (let x = 0; x <= origWidth; x += gridSize) {
+        for (let y = 0; y <= origHeight; y += gridSize) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Serialize SVG and draw to canvas
+    const svgClone = svg.cloneNode(true) as SVGSVGElement;
+    svgClone.setAttribute('width', String(origWidth));
+    svgClone.setAttribute('height', String(origHeight));
+
+    const svgString = new XMLSerializer().serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(svgUrl);
+        // Use JPEG at 0.7 quality for smaller payload (saves ~60% vs PNG)
+        resolve(tempCanvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(svgUrl);
+        resolve('');
+      };
+      img.src = svgUrl;
+    });
+  }, [canvasBackground, gridSize]);
 
   // Calculate total path length from points
   const calculatePathLength = useCallback((points: Point[]): number => {
@@ -1110,6 +1221,10 @@ export default function DrawPage() {
     if (thinkingEnabled) {
       setThinkingText('');
     }
+    // Clear previous narration
+    setClaudeReasoning('');
+    setClaudeObservation('');
+    setClaudeIntention('');
 
     const newHistory = [...history];
     if (humanHasDrawn || humanHasCommented) {
@@ -1124,46 +1239,45 @@ export default function DrawPage() {
     let streamingReplyTarget: number | null = null; // Index of comment being replied to
 
     try {
-      const ctx = canvas.getContext('2d');
-      if (ctx && humanStrokes.length > 0) {
-        humanStrokes.forEach(stroke => {
-          const path = new Path2D(stroke.d);
-          ctx.strokeStyle = stroke.color;
-          ctx.lineWidth = stroke.strokeWidth;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.stroke(path);
-        });
+      // Capture the full canvas with all drawings (human + Claude)
+      const image = await captureFullCanvas();
+      if (!image) {
+        throw new Error('Failed to capture canvas');
       }
-
-      const image = canvas.toDataURL('image/png');
       // Use user's tool selection to determine Claude's draw mode
       // When user uses pen, Claude gets all tools (shapes + ASCII)
       const effectiveDrawMode = asciiStroke ? 'ascii' : 'all';
+      const container = containerRef.current;
+      const containerRect = container?.getBoundingClientRect();
       const response = await fetch('/api/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height,
-          previousDrawings: asciiBlocks,
+          canvasWidth: containerRect?.width || canvas.width,
+          canvasHeight: containerRect?.height || canvas.height,
+          // Image now contains all drawings, no need to send separately
           history: newHistory,
           comments: comments.length > 0 ? comments : undefined,
           sayEnabled,
           temperature,
           maxTokens,
-          prompt: prompt || undefined,
+          // Only send custom prompt if user changed it - otherwise let promptStyle apply
+          prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
           streaming: true,
           drawMode: effectiveDrawMode,
           thinkingEnabled,
           thinkingBudget: 10000,
-          model: 'opus',
+          model: 'opus', // Opus for thinking
           promptStyle,
+          // Two-stage: Haiku looks → Opus thinks (always enabled)
+          twoStage: true,
           // Palette info for Claude
           paletteColors: COLOR_PALETTES[paletteIndex],
           paletteIndex,
           totalPalettes: COLOR_PALETTES.length,
+          // User's API key (if they've set one)
+          userApiKey: userSettings?.anthropic_api_key || undefined,
         }),
       });
 
@@ -1278,7 +1392,27 @@ export default function DrawPage() {
                   setPaletteIndex(newIndex);
                   setStrokeColor(COLOR_PALETTES[newIndex][0]);
                 }
+              } else if (event.type === 'reasoning') {
+                // Claude's thinking process (without API thinking)
+                setClaudeReasoning(event.data);
+              } else if (event.type === 'observation') {
+                // Claude describes what it sees
+                setClaudeObservation(event.data);
+              } else if (event.type === 'intention') {
+                // Claude explains what it's drawing and why
+                setClaudeIntention(event.data);
+              } else if (event.type === 'interactionStyle') {
+                // Detected interaction style (collaborative, playful, neutral)
+                setInteractionStyle(event.data);
+              } else if (event.type === 'usage') {
+                // Track token usage (sent as separate event from API)
+                setLastUsage({ input_tokens: event.input_tokens, output_tokens: event.output_tokens });
+                setSessionUsage(prev => ({
+                  input_tokens: prev.input_tokens + (event.input_tokens || 0),
+                  output_tokens: prev.output_tokens + (event.output_tokens || 0),
+                }));
               } else if (event.type === 'done') {
+                // Done event - usage already handled above
                 let description = '';
                 if (streamedBlocks.length > 0) {
                   description += streamedBlocks.map((b) => b.block).join('\n---\n');
@@ -1354,6 +1488,46 @@ export default function DrawPage() {
       link.href = canvas.toDataURL();
       link.click();
     }
+  };
+
+  // Save drawing to cloud
+  const handleSaveToCloud = async (name: string, existingId?: string) => {
+    const thumbnail = await captureFullCanvas();
+    const data = {
+      drawingElements,
+      comments,
+      history,
+      paletteIndex,
+      strokeColor,
+    };
+    await saveToCloud(name, data, thumbnail || undefined, existingId);
+    if (existingId) {
+      setCurrentDrawingId(existingId);
+    }
+  };
+
+  // Load drawing from cloud
+  const handleLoadFromCloud = (data: Record<string, unknown>) => {
+    if (data.drawingElements) {
+      setDrawingElements(data.drawingElements as DrawingElement[]);
+    }
+    if (data.comments) {
+      setComments(data.comments as typeof comments);
+    }
+    if (data.history) {
+      setHistory(data.history as Turn[]);
+    }
+    if (typeof data.paletteIndex === 'number') {
+      setPaletteIndex(data.paletteIndex);
+    }
+    if (typeof data.strokeColor === 'string') {
+      setStrokeColor(data.strokeColor);
+    }
+    // Clear other state
+    setHumanStrokes([]);
+    setHumanAsciiChars([]);
+    setAsciiBlocks([]);
+    setShapes([]);
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -2013,6 +2187,41 @@ export default function DrawPage() {
             </div>
           </div>
         )}
+
+        {/* Claude Narration Bubble - shows what Claude sees and is doing */}
+        {(claudeReasoning || claudeObservation || claudeIntention || isLoading) && (
+          <div className="absolute bottom-20 left-4 max-w-sm bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 z-20 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-2">
+              <img src="/draw/claude.svg" alt="" className="w-5 h-5" />
+              <span className="text-xs font-medium text-gray-500">
+                {interactionStyle === 'playful' ? 'feeling playful...' :
+                 interactionStyle === 'collaborative' ? 'collaborating...' :
+                 'thinking...'}
+              </span>
+            </div>
+            {claudeReasoning && (
+              <div className="mb-2 pb-2 border-b border-gray-100">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">thinking</p>
+                <p className="text-sm text-gray-600 italic">{claudeReasoning}</p>
+              </div>
+            )}
+            {claudeObservation && (
+              <div className="mb-2">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">I see</p>
+                <p className="text-sm text-gray-700">{claudeObservation}</p>
+              </div>
+            )}
+            {claudeIntention && (
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">So I&apos;m drawing</p>
+                <p className="text-sm text-gray-700">{claudeIntention}</p>
+              </div>
+            )}
+            {isLoading && !claudeReasoning && !claudeObservation && !claudeIntention && (
+              <p className="text-sm text-gray-400 italic">Looking at the canvas...</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Settings panel */}
@@ -2066,6 +2275,11 @@ export default function DrawPage() {
               className="w-full mb-3 draw-settings-slider"
             />
           )}
+
+          {/* Model info - fixed two-stage setup */}
+          <div className="mb-2 text-xs text-white/50">
+            <span className="text-green-400">Haiku</span> looks → <span className="text-purple-400">Opus</span> thinks
+          </div>
 
           {/* Prompt Style selector */}
           <div className="mb-2">
@@ -2215,6 +2429,29 @@ export default function DrawPage() {
             </div>
           </div>
 
+          {/* Token Usage */}
+          <div className="border-t border-white/10 pt-2 mt-1">
+            <div className="text-xs text-white/50 mb-1">Token Usage</div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-white/5 rounded-lg p-2">
+                <div className="text-white/40 text-[10px]">Last request</div>
+                {lastUsage ? (
+                  <>
+                    <div className="text-white/70">↓ {lastUsage.input_tokens.toLocaleString()}</div>
+                    <div className="text-white/70">↑ {lastUsage.output_tokens.toLocaleString()}</div>
+                  </>
+                ) : (
+                  <div className="text-white/30">—</div>
+                )}
+              </div>
+              <div className="bg-white/5 rounded-lg p-2">
+                <div className="text-white/40 text-[10px]">Session total</div>
+                <div className="text-white/70">↓ {sessionUsage.input_tokens.toLocaleString()}</div>
+                <div className="text-white/70">↑ {sessionUsage.output_tokens.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+
           {/* Cursor Test Controls */}
           <div className="border-t border-white/10 pt-2 mt-1">
             <div className="flex items-center justify-between mb-2">
@@ -2327,6 +2564,27 @@ export default function DrawPage() {
         showSelectTool={showSelectTool}
         showReactButton={showReactButton}
         showDownloadButton={showDownloadButton}
+      />
+
+      {/* User menu - positioned in top right */}
+      <div className="absolute top-4 right-4 z-30">
+        <UserMenu
+          onOpenSettings={() => setShowApiKeyModal(true)}
+          onOpenDrawings={user ? () => setShowDrawingsPanel(true) : undefined}
+        />
+      </div>
+
+      {/* Auth modals */}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+      />
+      <DrawingsPanel
+        isOpen={showDrawingsPanel}
+        onClose={() => setShowDrawingsPanel(false)}
+        onLoad={handleLoadFromCloud}
+        onSave={handleSaveToCloud}
+        currentDrawingId={currentDrawingId}
       />
     </div>
   );
