@@ -6,56 +6,34 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 type DrawMode = 'all' | 'shapes' | 'ascii';
 
 function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean): string {
-  const sayInstructions = sayEnabled ? ',\n  "say": "comment", "sayX": 300, "sayY": 100' : '';
+  const sayInfo = sayEnabled ? '\nOptional: add "say": "your comment", "sayX": number, "sayY": number to leave a message.' : '';
 
   if (drawMode === 'shapes') {
-    return `Draw using SVG paths and geometric shapes.
+    return `Output JSON with "shapes" array. Each shape can be:
+- path: {"type":"path", "d":"M x y L x y C...", "color":"#hex", "fill":"#hex", "strokeWidth":n}
+- circle: {"type":"circle", "cx":n, "cy":n, "r":n, "color":"#hex", "fill":"#hex"}
+- rect: {"type":"rect", "x":n, "y":n, "width":n, "height":n, "color":"#hex"}
+- line: {"type":"line", "x1":n, "y1":n, "x2":n, "y2":n, "color":"#hex"}
+- curve: {"type":"curve", "points":[[x,y],[x,y]...], "color":"#hex"}
 
-JSON format:
-{
-  "shapes": [
-    {"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd", "strokeWidth": 2},
-    {"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"},
-    {"type": "rect", "x": 100, "y": 100, "width": 50, "height": 30, "color": "#3b82f6"},
-    {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#000"},
-    {"type": "curve", "points": [[0,0], [50,25], [100,0]], "color": "#10b981"}
-  ]${sayInstructions}
-}
-
-Path commands: M (move), L (line), C (cubic bezier), Q (quadratic), A (arc), Z (close).
-Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
+Path commands: M(move), L(line), C(cubic bezier), Q(quadratic), A(arc), Z(close).
+Use any colors. Create original compositions - don't copy examples.${sayInfo}`;
   }
 
   if (drawMode === 'ascii') {
-    return `Draw using text and characters.
+    return `Output JSON with "blocks" array: [{"block": "text\\nwith\\nnewlines", "x": n, "y": n, "color": "#hex"}]
 
-JSON format:
-{
-  "blocks": [{"block": "your text here", "x": 100, "y": 150, "color": "#3b82f6"}]${sayInstructions}
-}
-
-Use \\n for newlines. You can draw/create drawings with any character (text, symbols, patterns, or more).
-Available: letters, numbers, punctuation, unicode symbols (░▒▓█ ╔╗╚╝║═ ●○ ▲▼ ★☆ ♦♣♠♥ ≈∼ etc), kaomoji, diagrams, shapes, box drawing, and more.`;
+Use any characters: letters, symbols, unicode (░▒▓█ ●○ ★☆ ♥♦♣♠ ▲▼), kaomoji, box drawing, etc.
+Create original text art - don't copy examples.${sayInfo}`;
   }
 
   // 'all' mode
-  return `Draw using SVG paths, shapes, or ASCII art.
+  return `Output JSON with "shapes" and/or "blocks" arrays.
 
-JSON format:
-{
-  "blocks": [{"block": "ASCII art", "x": 100, "y": 150, "color": "#3b82f6"}],
-  "shapes": [
-    {"type": "path", "d": "M 100 100 C 150 50 200 150 250 100", "color": "#3b82f6", "fill": "#93c5fd"},
-    {"type": "circle", "cx": 200, "cy": 200, "r": 30, "color": "#ef4444", "fill": "#fecaca"},
-    {"type": "rect", "x": 100, "y": 100, "width": 50, "height": 30, "color": "#3b82f6"},
-    {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#000"},
-    {"type": "curve", "points": [[0,0], [50,25], [100,0]], "color": "#10b981"}
-  ]${sayInstructions}
-}
+Shapes: path, circle, rect, line, curve (see above format)
+Blocks: text/ASCII art at x,y coordinates
 
-Path commands: M, L, C, Q, A, Z. Shape types: path, circle, line, rect, curve, erase.
-Properties: color (stroke), fill (solid or "transparent"), strokeWidth.`;
+Mix both freely. Use varied colors, positions, and styles. Create something original.${sayInfo}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -83,6 +61,20 @@ export async function POST(req: NextRequest) {
     };
     const selectedModel = modelMap[model] || 'gemini-2.5-flash';
 
+    // Creative prompts to encourage variety
+    const creativePrompts = [
+      'Add something unexpected that complements what you see.',
+      'What does this drawing make you feel? Express that visually.',
+      'Build on what\'s here - extend, contrast, or transform it.',
+      'Surprise the human with something they wouldn\'t expect.',
+      'What story does this canvas tell? Add the next chapter.',
+      'Find the empty spaces and fill them with meaning.',
+      'React to what you see - agree, disagree, or question it visually.',
+      'Create something that would make the human smile.',
+      'Add depth, dimension, or a new perspective to the scene.',
+    ];
+    const randomPrompt = creativePrompts[Math.floor(Math.random() * creativePrompts.length)];
+
     const genModel = genAI.getGenerativeModel({
       model: selectedModel,
       generationConfig: {
@@ -92,19 +84,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Build prompt - more explicit for Gemini about looking at the image
-    const basePrompt = prompt || `You are an AI drawing collaboratively with a human. Look carefully at this image of the canvas - it shows what has been drawn so far.`;
+    // Build prompt
+    const basePrompt = prompt || `You are an AI drawing collaboratively with a human. Look at this canvas image.`;
     const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled);
 
     const fullPrompt = `${basePrompt}
 
-The canvas is ${canvasWidth}x${canvasHeight} pixels. Examine the image above to see the current state of the drawing.
-
-Your task: Add something to the canvas that complements or responds to what's already there. If the canvas is blank, start with something creative.
+The canvas is ${canvasWidth}x${canvasHeight} pixels.
 
 ${drawingInstructions}
 
-Respond with ONLY valid JSON.`;
+${randomPrompt} Be creative and varied - don't repeat patterns. Respond ONLY with valid JSON.`;
 
     // Create content with image
     const imagePart = {

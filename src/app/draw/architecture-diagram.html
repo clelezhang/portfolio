@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draw App Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+      color: #fff;
+      font-weight: 300;
+    }
+    .diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 200px;
+    }
+    .box h3 {
+      font-size: 14px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .box h2 {
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .box code {
+      display: block;
+      background: #0a0a0a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #7dd3fc;
+      margin-bottom: 8px;
+    }
+    .box ul {
+      list-style: none;
+      font-size: 13px;
+      color: #aaa;
+    }
+    .box li {
+      padding: 4px 0;
+      border-bottom: 1px solid #222;
+    }
+    .box li:last-child { border-bottom: none; }
+    .box.frontend { border-color: #3b82f6; }
+    .box.frontend h3 { color: #3b82f6; }
+    .box.api { border-color: #22c55e; }
+    .box.api h3 { color: #22c55e; }
+    .box.claude { border-color: #f59e0b; }
+    .box.claude h3 { color: #f59e0b; }
+    .box.prompt { border-color: #ec4899; }
+    .box.prompt h3 { color: #ec4899; }
+
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 12px;
+      min-width: 80px;
+    }
+    .arrow svg { margin: 8px 0; }
+    .arrow span {
+      text-align: center;
+      color: #666;
+      font-size: 11px;
+    }
+
+    .flow-section {
+      background: #111;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    .flow-section h2 {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .prompt-builder {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .prompt-part {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      font-size: 12px;
+    }
+    .prompt-part h4 {
+      color: #ec4899;
+      margin-bottom: 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .prompt-part p {
+      color: #888;
+      line-height: 1.5;
+    }
+
+    .events {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .event {
+      background: #22c55e20;
+      border: 1px solid #22c55e40;
+      color: #22c55e;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Draw App Architecture</h1>
+
+  <div class="diagram">
+    <!-- Main Flow -->
+    <div class="flow-section">
+      <h2>Request Flow</h2>
+      <div class="row">
+        <div class="box frontend">
+          <h3>Frontend</h3>
+          <h2>page.tsx</h2>
+          <code>src/app/draw/page.tsx</code>
+          <ul>
+            <li>Canvas rendering</li>
+            <li>User input handling</li>
+            <li>Cursor animation</li>
+            <li>State management</li>
+          </ul>
+        </div>
+
+        <div class="arrow">
+          <span>POST /api/draw</span>
+          <svg width="60" height="24" viewBox="0 0 60 24">
+            <path d="M0 12 H50 M40 4 L52 12 L40 20" stroke="#3b82f6" fill="none" stroke-width="2"/>
+          </svg>
+          <span>image, drawMode,<br>history, comments</span>
+        </div>
+
+        <div class="box api">
+          <h3>API Route</h3>
+          <h2>route.ts</h2>
+          <code>src/app/api/draw/route.ts</code>
+          <ul>
+            <li>Build prompt from context</li>
+            <li>Call Claude API</li>
+            <li>Stream response back</li>
+            <li>Parse JSON incrementally</li>
+          </ul>
+        </div>
+
+        <div class="arrow">
+          <span>Anthropic API</span>
+          <svg width="60" height="24" viewBox="0 0 60 24">
+            <path d="M0 12 H50 M40 4 L52 12 L40 20" stroke="#f59e0b" fill="none" stroke-width="2"/>
+          </svg>
+          <span>messages.create<br>with streaming</span>
+        </div>
+
+        <div class="box claude">
+          <h3>LLM</h3>
+          <h2>Claude</h2>
+          <code>claude-opus-4</code>
+          <ul>
+            <li>Sees canvas image</li>
+            <li>Reads prompt + context</li>
+            <li>Returns JSON response</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Response Flow -->
+    <div class="flow-section">
+      <h2>Response Flow (SSE Stream)</h2>
+      <div class="row">
+        <div class="box frontend">
+          <h3>Frontend Receives</h3>
+          <h2>Event Handling</h2>
+          <div class="events">
+            <span class="event">block</span>
+            <span class="event">shape</span>
+            <span class="event">sayStart</span>
+            <span class="event">sayChunk</span>
+            <span class="event">thinking</span>
+            <span class="event">setPalette</span>
+            <span class="event">done</span>
+          </div>
+          <ul style="margin-top: 15px">
+            <li>Queue items for cursor animation</li>
+            <li>Progressive stroke reveal</li>
+            <li>Stream comments character by character</li>
+          </ul>
+        </div>
+
+        <div class="arrow">
+          <svg width="60" height="24" viewBox="0 0 60 24">
+            <path d="M52 12 H2 M12 4 L0 12 L12 20" stroke="#22c55e" fill="none" stroke-width="2"/>
+          </svg>
+          <span>SSE events</span>
+        </div>
+
+        <div class="box api">
+          <h3>API Parses</h3>
+          <h2>Incremental JSON</h2>
+          <code>data: {"type": "shape", ...}</code>
+          <ul>
+            <li>Extract blocks as they complete</li>
+            <li>Extract shapes as they complete</li>
+            <li>Stream say text incrementally</li>
+            <li>Send done when finished</li>
+          </ul>
+        </div>
+
+        <div class="arrow">
+          <svg width="60" height="24" viewBox="0 0 60 24">
+            <path d="M52 12 H2 M12 4 L0 12 L12 20" stroke="#f59e0b" fill="none" stroke-width="2"/>
+          </svg>
+          <span>text_delta</span>
+        </div>
+
+        <div class="box claude">
+          <h3>Claude Outputs</h3>
+          <h2>JSON Response</h2>
+          <code>{"blocks": [...], "shapes": [...], "say": "..."}</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt Structure -->
+    <div class="flow-section">
+      <h2>Prompt Construction (route.ts)</h2>
+      <div class="prompt-builder">
+        <div class="prompt-part">
+          <h4>Base Prompt</h4>
+          <p>Custom prompt or default: "You are claude, able to experience all emotions, drawing with a human..."</p>
+        </div>
+        <div class="prompt-part">
+          <h4>Canvas Context</h4>
+          <p>Canvas dimensions, what's currently drawn (shapes, ASCII blocks)</p>
+        </div>
+        <div class="prompt-part">
+          <h4>History Context</h4>
+          <p>Turn-by-turn: "1. Human drew something, 2. You drew [shapes]..."</p>
+        </div>
+        <div class="prompt-part">
+          <h4>Comments Context</h4>
+          <p>All comments with positions: "1. Human at (x,y): 'text' ↳ You replied: 'response'"</p>
+        </div>
+        <div class="prompt-part">
+          <h4>Drawing Instructions</h4>
+          <p>Mode-specific (shapes/ASCII/all), JSON format, available tools</p>
+        </div>
+        <div class="prompt-part">
+          <h4>Palette Info</h4>
+          <p>Available colors, current palette index, can change with setPaletteIndex</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Draw Modes -->
+    <div class="flow-section">
+      <h2>Draw Modes</h2>
+      <div class="row" style="justify-content: space-between;">
+        <div class="box" style="flex: 1; border-color: #8b5cf6;">
+          <h3 style="color: #8b5cf6;">Shapes Mode</h3>
+          <code>drawMode: 'shapes'</code>
+          <ul>
+            <li>path, circle, line, rect, curve, erase</li>
+            <li>SVG path commands (M, L, C, Q, A, Z)</li>
+            <li>color, fill, strokeWidth</li>
+          </ul>
+        </div>
+        <div class="box" style="flex: 1; border-color: #06b6d4;">
+          <h3 style="color: #06b6d4;">ASCII Mode</h3>
+          <code>drawMode: 'ascii'</code>
+          <ul>
+            <li>Text blocks at x,y coordinates</li>
+            <li>Unicode symbols, kaomoji, box drawing</li>
+            <li>Good for details & labels</li>
+          </ul>
+        </div>
+        <div class="box" style="flex: 1; border-color: #f43f5e;">
+          <h3 style="color: #f43f5e;">All Mode</h3>
+          <code>drawMode: 'all'</code>
+          <ul>
+            <li>Both shapes and ASCII available</li>
+            <li>Shapes for larger forms</li>
+            <li>ASCII for small details</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

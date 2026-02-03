@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draw App - Complete Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+      background: #0a0a0a;
+      color: #d0d0d0;
+      padding: 30px;
+      line-height: 1.5;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #fff;
+      font-size: 28px;
+      font-weight: 400;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Section Styles */
+    .section {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .section-header {
+      background: #161616;
+      padding: 16px 24px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .section-header .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #222;
+      color: #888;
+    }
+    .section-content {
+      padding: 24px;
+    }
+
+    /* Color Tags */
+    .tag-frontend { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f640; }
+    .tag-api { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e40; }
+    .tag-claude { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+    .tag-state { background: #8b5cf620; color: #8b5cf6; border: 1px solid #8b5cf640; }
+    .tag-animation { background: #ec489920; color: #ec4899; border: 1px solid #ec489940; }
+
+    /* Code Blocks */
+    pre {
+      background: #0a0a0a;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    code {
+      color: #7dd3fc;
+    }
+    .code-comment { color: #555; }
+    .code-key { color: #f472b6; }
+    .code-string { color: #a5f3fc; }
+    .code-type { color: #c4b5fd; }
+    .code-fn { color: #fbbf24; }
+
+    /* Flow Diagrams */
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin: 20px 0;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+    .flow-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .flow-box h4 {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .flow-box h3 {
+      font-size: 14px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .flow-box p {
+      font-size: 11px;
+      color: #888;
+    }
+    .flow-box code {
+      display: block;
+      font-size: 10px;
+      margin-top: 8px;
+      padding: 6px 8px;
+      background: #0a0a0a;
+      border-radius: 4px;
+    }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 60px;
+      color: #444;
+      flex-direction: column;
+      font-size: 10px;
+      text-align: center;
+    }
+    .flow-arrow span { color: #555; margin-top: 4px; }
+
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #282828;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card h4 {
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 12px;
+      color: #888;
+    }
+    .card code {
+      font-size: 11px;
+    }
+    .card ul {
+      list-style: none;
+      font-size: 11px;
+      color: #888;
+    }
+    .card li {
+      padding: 4px 0;
+      border-bottom: 1px solid #222;
+    }
+    .card li:last-child { border-bottom: none; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #1a1a1a;
+      color: #888;
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    td code {
+      background: #0a0a0a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    /* Lists */
+    .prop-list {
+      font-size: 12px;
+    }
+    .prop-list dt {
+      color: #f472b6;
+      font-weight: 500;
+      margin-top: 12px;
+    }
+    .prop-list dd {
+      color: #888;
+      margin-left: 16px;
+      margin-top: 4px;
+    }
+    .prop-list dd code {
+      color: #7dd3fc;
+      font-size: 11px;
+    }
+
+    /* Dividers */
+    hr {
+      border: none;
+      border-top: 1px solid #222;
+      margin: 24px 0;
+    }
+
+    /* Mini labels */
+    .label {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
+    .label-required { background: #ef444420; color: #ef4444; }
+    .label-optional { background: #22c55e20; color: #22c55e; }
+    .label-ref { background: #8b5cf620; color: #8b5cf6; }
+    .label-state { background: #3b82f620; color: #3b82f6; }
+
+    /* Annotations */
+    .annotation {
+      background: #1a1a1a;
+      border-left: 3px solid #f59e0b;
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .annotation strong { color: #f59e0b; }
+
+    /* Inline highlights */
+    .hl-blue { color: #3b82f6; }
+    .hl-green { color: #22c55e; }
+    .hl-yellow { color: #f59e0b; }
+    .hl-pink { color: #ec4899; }
+    .hl-purple { color: #8b5cf6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Draw App - Complete Architecture</h1>
+    <p class="subtitle">Every detail of how the collaborative drawing app works</p>
+
+    <!-- ============================================== -->
+    <!-- FILE STRUCTURE -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>📁 File Structure</h2>
+      </div>
+      <div class="section-content">
+        <pre><code>src/app/draw/
+├── <span class="hl-blue">page.tsx</span>                    <span class="code-comment"># Main page component (2000+ lines)</span>
+│   ├── State management         <span class="code-comment"># 40+ useState/useRef hooks</span>
+│   ├── Drawing logic            <span class="code-comment"># Canvas rendering, strokes</span>
+│   ├── Animation system         <span class="code-comment"># Claude cursor, progressive reveal</span>
+│   ├── API integration          <span class="code-comment"># Fetch to /api/draw, SSE parsing</span>
+│   └── UI rendering             <span class="code-comment"># Canvas, toolbars, modals</span>
+│
+├── components/
+│   ├── CustomCursor.tsx         <span class="code-comment"># User's cursor (pencil/eraser/ascii)</span>
+│   ├── CommentSystem.tsx        <span class="code-comment"># Comment bubbles and threads</span>
+│   ├── SettingsDrawer.tsx       <span class="code-comment"># Settings panel UI</span>
+│   └── icons/
+│       ├── PencilCursor.tsx     <span class="code-comment"># Pencil SVG with dynamic color</span>
+│       ├── EraserCursor.tsx     <span class="code-comment"># Pink eraser SVG</span>
+│       ├── AsciiCursor.tsx      <span class="code-comment"># Crosshair stamp cursor</span>
+│       └── CommentCursor.tsx    <span class="code-comment"># Speech bubble cursor</span>
+│
+├── hooks/
+│   ├── useZoomPan.ts            <span class="code-comment"># Zoom/pan with touch gestures</span>
+│   └── useWiggle.ts             <span class="code-comment"># Playful idle animation</span>
+│
+├── types.ts                     <span class="code-comment"># TypeScript interfaces</span>
+└── architecture-detailed.html   <span class="code-comment"># This file!</span>
+
+src/app/api/draw/
+└── <span class="hl-green">route.ts</span>                    <span class="code-comment"># API route handler</span>
+    ├── Prompt construction      <span class="code-comment"># Build context from state</span>
+    ├── Claude API call          <span class="code-comment"># Anthropic SDK with streaming</span>
+    └── SSE streaming            <span class="code-comment"># Parse & stream JSON incrementally</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MAIN REQUEST FLOW -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🔄 Complete Request Flow</h2>
+        <span class="tag tag-frontend">Frontend</span>
+        <span class="tag tag-api">API</span>
+        <span class="tag tag-claude">Claude</span>
+      </div>
+      <div class="section-content">
+        <div class="flow">
+          <div class="flow-box" style="border-color: #3b82f6;">
+            <h4 style="color: #3b82f6;">1. User Action</h4>
+            <h3>page.tsx</h3>
+            <p>User draws stroke, releases pen/mouse, triggering handleYourTurn()</p>
+            <code>onPointerUp → handleYourTurn()</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box" style="border-color: #3b82f6;">
+            <h4 style="color: #3b82f6;">2. Capture Canvas</h4>
+            <h3>toDataURL()</h3>
+            <p>Convert canvas to base64 PNG image</p>
+            <code>canvas.toDataURL('image/png')</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box" style="border-color: #3b82f6;">
+            <h4 style="color: #3b82f6;">3. Build Request</h4>
+            <h3>fetch()</h3>
+            <p>POST to /api/draw with all context</p>
+            <code>{ image, drawMode, history, comments, ... }</code>
+          </div>
+          <div class="flow-arrow">→<span>HTTP POST</span></div>
+          <div class="flow-box" style="border-color: #22c55e;">
+            <h4 style="color: #22c55e;">4. API Receives</h4>
+            <h3>route.ts</h3>
+            <p>Parse request body, extract all fields</p>
+            <code>const { image, drawMode, ... } = await req.json()</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box" style="border-color: #22c55e;">
+            <h4 style="color: #22c55e;">5. Build Prompt</h4>
+            <h3>Context Assembly</h3>
+            <p>Combine base prompt + history + comments + instructions</p>
+            <code>getDrawingInstructions()</code>
+          </div>
+          <div class="flow-arrow">→<span>API Call</span></div>
+          <div class="flow-box" style="border-color: #f59e0b;">
+            <h4 style="color: #f59e0b;">6. Claude</h4>
+            <h3>Anthropic API</h3>
+            <p>messages.create with streaming</p>
+            <code>model: 'claude-opus-4'</code>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Request Payload (page.tsx → route.ts)</h3>
+        <pre><code>{
+  <span class="code-key">"image"</span>: <span class="code-string">"data:image/png;base64,..."</span>,     <span class="code-comment">// Canvas screenshot</span>
+  <span class="code-key">"canvasWidth"</span>: <span class="code-type">1200</span>,                     <span class="code-comment">// Canvas dimensions</span>
+  <span class="code-key">"canvasHeight"</span>: <span class="code-type">800</span>,
+  <span class="code-key">"drawMode"</span>: <span class="code-string">"shapes" | "ascii" | "all"</span>,  <span class="code-comment">// Current tool mode</span>
+  <span class="code-key">"history"</span>: [                              <span class="code-comment">// Turn-by-turn history</span>
+    { <span class="code-key">"who"</span>: <span class="code-string">"human"</span>, <span class="code-key">"description"</span>: <span class="code-string">"drew something"</span> },
+    { <span class="code-key">"who"</span>: <span class="code-string">"claude"</span>, <span class="code-key">"description"</span>: <span class="code-string">"[shapes: path, circle]"</span> }
+  ],
+  <span class="code-key">"comments"</span>: [                             <span class="code-comment">// All comment threads</span>
+    {
+      <span class="code-key">"text"</span>: <span class="code-string">"Nice drawing!"</span>,
+      <span class="code-key">"x"</span>: <span class="code-type">300</span>, <span class="code-key">"y"</span>: <span class="code-type">200</span>,
+      <span class="code-key">"from"</span>: <span class="code-string">"human"</span>,
+      <span class="code-key">"replies"</span>: [{ <span class="code-key">"text"</span>: <span class="code-string">"Thanks!"</span>, <span class="code-key">"from"</span>: <span class="code-string">"claude"</span> }]
+    }
+  ],
+  <span class="code-key">"previousDrawings"</span>: [...],               <span class="code-comment">// Existing ASCII blocks</span>
+  <span class="code-key">"sayEnabled"</span>: <span class="code-type">true</span>,                       <span class="code-comment">// Can Claude comment?</span>
+  <span class="code-key">"thinkingEnabled"</span>: <span class="code-type">true</span>,                  <span class="code-comment">// Extended thinking?</span>
+  <span class="code-key">"thinkingBudget"</span>: <span class="code-type">10000</span>,                  <span class="code-comment">// Thinking token budget</span>
+  <span class="code-key">"temperature"</span>: <span class="code-type">1.0</span>,                       <span class="code-comment">// Model temperature</span>
+  <span class="code-key">"maxTokens"</span>: <span class="code-type">1024</span>,                        <span class="code-comment">// Response length limit</span>
+  <span class="code-key">"model"</span>: <span class="code-string">"opus"</span>,                          <span class="code-comment">// haiku | sonnet | opus</span>
+  <span class="code-key">"streaming"</span>: <span class="code-type">true</span>,                        <span class="code-comment">// Enable SSE streaming</span>
+  <span class="code-key">"paletteColors"</span>: [<span class="code-string">"#3b82f6"</span>, ...],        <span class="code-comment">// Current palette</span>
+  <span class="code-key">"paletteIndex"</span>: <span class="code-type">0</span>,                        <span class="code-comment">// Which palette (0-5)</span>
+  <span class="code-key">"totalPalettes"</span>: <span class="code-type">6</span>                        <span class="code-comment">// Total available palettes</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- PROMPT CONSTRUCTION -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>📝 Prompt Construction (route.ts)</h2>
+        <span class="tag tag-api">API</span>
+      </div>
+      <div class="section-content">
+        <p style="color: #888; margin-bottom: 20px;">The prompt sent to Claude is assembled from multiple pieces:</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>1. Base Prompt</h4>
+            <p>Custom prompt or default personality</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"You are claude, able to experience
+all emotions, drawing with a human.
+Look at the canvas. It's your turn
+to draw. You can draw wherever and
+however you want."</span></code></pre>
+          </div>
+
+          <div class="card">
+            <h4>2. Canvas Dimensions</h4>
+            <p>So Claude knows the coordinate space</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"The canvas is 1200x800 pixels."</span></code></pre>
+          </div>
+
+          <div class="card">
+            <h4>3. History Context</h4>
+            <p>Turn-by-turn conversation log</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"Conversation so far:
+1. Human drew something (black strokes)
+2. You drew:
+   [shapes: path, circle]
+3. Human drew something (black strokes)"</span></code></pre>
+          </div>
+
+          <div class="card">
+            <h4>4. Previous Drawings Context</h4>
+            <p>What ASCII/shapes exist on canvas</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"Your previous text/ASCII art:
+- At (100, 150): \"Hello!\"
+- At (200, 300): \"★ ★ ★\""</span></code></pre>
+          </div>
+
+          <div class="card">
+            <h4>5. Comments Context</h4>
+            <p>All comment threads with who said what</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"Comments on the canvas:
+1. Human at (300, 200): \"Nice!\"
+   ↳ You replied: \"Thanks!\"
+2. You at (500, 100): \"What should
+   we draw next?\""</span></code></pre>
+          </div>
+
+          <div class="card">
+            <h4>6. Drawing Instructions</h4>
+            <p>Mode-specific JSON format + tools</p>
+            <pre style="margin-top: 12px;"><code><span class="code-fn">getDrawingInstructions</span>(drawMode)
+<span class="code-comment">// Returns format, shape types,
+// comment guidance, palette info</span></code></pre>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">getDrawingInstructions() Output by Mode</h3>
+
+        <div class="grid-3">
+          <div class="card" style="border-color: #8b5cf6;">
+            <h4 style="color: #8b5cf6;">shapes mode</h4>
+            <pre style="margin-top: 8px; font-size: 10px;"><code>You can draw shapes, comment, or both.
+All fields are optional.
+
+JSON format:
+{
+  "shapes": [{
+    "type": "path",
+    "d": "M 100 100 C 150 50...",
+    "color": "#3b82f6",
+    "fill": "#93c5fd",
+    "strokeWidth": 2
+  }],
+  "say": "comment",
+  "sayX": 300, "sayY": 100
+}
+
+Shape types: path, circle, line,
+rect, curve, erase
+
+Path commands: M (move), L (line),
+C (cubic bezier), Q (quadratic),
+A (arc), Z (close)
+
+Properties: color (stroke),
+fill (solid or "transparent"),
+strokeWidth</code></pre>
+          </div>
+
+          <div class="card" style="border-color: #06b6d4;">
+            <h4 style="color: #06b6d4;">ascii mode</h4>
+            <pre style="margin-top: 8px; font-size: 10px;"><code>You can draw text/ASCII, comment,
+or both. All fields are optional.
+
+JSON format:
+{
+  "blocks": [{
+    "block": "your text here",
+    "x": 100,
+    "y": 150,
+    "color": "#3b82f6"
+  }],
+  "say": "comment",
+  "sayX": 300, "sayY": 100
+}
+
+Use \n for newlines.
+
+Available: letters, numbers,
+unicode symbols (░▒▓█ ●○ ▲▼
+★☆ ♦♣♠♥ etc), kaomoji,
+box drawing, and more.</code></pre>
+          </div>
+
+          <div class="card" style="border-color: #f43f5e;">
+            <h4 style="color: #f43f5e;">all mode</h4>
+            <pre style="margin-top: 8px; font-size: 10px;"><code>You can draw (shapes or ASCII),
+comment, or both.
+
+Shapes are good for larger forms;
+ASCII is great for small details,
+labels, or expressive elements.
+
+JSON format:
+{
+  "blocks": [...],
+  "shapes": [...],
+  "say": "comment",
+  "sayX": 300, "sayY": 100
+}
+
+<span class="code-comment">// Combines both modes</span></code></pre>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Comment Instructions (appended when sayEnabled)</h3>
+        <pre><code><span class="code-string">"COMMENTS: For conversation - responding, asking questions, brief reactions.
+Keep short. Don't over-comment. Use \"replyTo\": N to reply to comment #N (including your own)."</span></code></pre>
+
+        <h3 style="color: #fff; margin: 24px 0 16px;">Palette Instructions (appended when colors provided)</h3>
+        <pre><code><span class="code-string">"Available colors: #3b82f6, #ef4444, #22c55e, #f59e0b, #8b5cf6
+You can set \"setPaletteIndex\": 1 to change palette (0-5)."</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- CLAUDE RESPONSE -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🤖 Claude's Response Format</h2>
+        <span class="tag tag-claude">Claude</span>
+      </div>
+      <div class="section-content">
+        <p style="color: #888; margin-bottom: 20px;">Claude outputs a single JSON object. All fields are optional:</p>
+
+        <pre><code>{
+  <span class="code-comment">// ASCII text blocks</span>
+  <span class="code-key">"blocks"</span>: [
+    {
+      <span class="code-key">"block"</span>: <span class="code-string">"Hello!\n★★★"</span>,  <span class="code-comment">// The text content (\n for newlines)</span>
+      <span class="code-key">"x"</span>: <span class="code-type">100</span>,                  <span class="code-comment">// X position on canvas</span>
+      <span class="code-key">"y"</span>: <span class="code-type">150</span>,                  <span class="code-comment">// Y position on canvas</span>
+      <span class="code-key">"color"</span>: <span class="code-string">"#3b82f6"</span>        <span class="code-comment">// Text color (optional)</span>
+    }
+  ],
+
+  <span class="code-comment">// Vector shapes</span>
+  <span class="code-key">"shapes"</span>: [
+    {
+      <span class="code-key">"type"</span>: <span class="code-string">"path"</span>,           <span class="code-comment">// path | circle | line | rect | curve | erase</span>
+      <span class="code-key">"d"</span>: <span class="code-string">"M 100 100 C 150 50 200 150 250 100"</span>,  <span class="code-comment">// SVG path data</span>
+      <span class="code-key">"color"</span>: <span class="code-string">"#ef4444"</span>,       <span class="code-comment">// Stroke color</span>
+      <span class="code-key">"fill"</span>: <span class="code-string">"#fecaca"</span>,        <span class="code-comment">// Fill color or "transparent"</span>
+      <span class="code-key">"strokeWidth"</span>: <span class="code-type">2</span>          <span class="code-comment">// Stroke thickness</span>
+    },
+    {
+      <span class="code-key">"type"</span>: <span class="code-string">"circle"</span>,
+      <span class="code-key">"cx"</span>: <span class="code-type">200</span>, <span class="code-key">"cy"</span>: <span class="code-type">200</span>, <span class="code-key">"r"</span>: <span class="code-type">50</span>,
+      <span class="code-key">"color"</span>: <span class="code-string">"#22c55e"</span>
+    },
+    {
+      <span class="code-key">"type"</span>: <span class="code-string">"line"</span>,
+      <span class="code-key">"x1"</span>: <span class="code-type">0</span>, <span class="code-key">"y1"</span>: <span class="code-type">0</span>, <span class="code-key">"x2"</span>: <span class="code-type">100</span>, <span class="code-key">"y2"</span>: <span class="code-type">100</span>,
+      <span class="code-key">"color"</span>: <span class="code-string">"#f59e0b"</span>
+    },
+    {
+      <span class="code-key">"type"</span>: <span class="code-string">"rect"</span>,
+      <span class="code-key">"x"</span>: <span class="code-type">50</span>, <span class="code-key">"y"</span>: <span class="code-type">50</span>, <span class="code-key">"width"</span>: <span class="code-type">100</span>, <span class="code-key">"height"</span>: <span class="code-type">80</span>,
+      <span class="code-key">"color"</span>: <span class="code-string">"#8b5cf6"</span>, <span class="code-key">"fill"</span>: <span class="code-string">"transparent"</span>
+    },
+    {
+      <span class="code-key">"type"</span>: <span class="code-string">"erase"</span>,          <span class="code-comment">// Eraser path</span>
+      <span class="code-key">"d"</span>: <span class="code-string">"M 300 300 L 350 350"</span>,
+      <span class="code-key">"strokeWidth"</span>: <span class="code-type">20</span>
+    }
+  ],
+
+  <span class="code-comment">// Comment (new or reply)</span>
+  <span class="code-key">"say"</span>: <span class="code-string">"This is my comment!"</span>,
+  <span class="code-key">"sayX"</span>: <span class="code-type">300</span>,                  <span class="code-comment">// Position for new comment</span>
+  <span class="code-key">"sayY"</span>: <span class="code-type">100</span>,
+  <span class="code-key">"replyTo"</span>: <span class="code-type">1</span>,                 <span class="code-comment">// OR reply to comment #1 (1-indexed)</span>
+
+  <span class="code-comment">// Change color palette</span>
+  <span class="code-key">"setPaletteIndex"</span>: <span class="code-type">2</span>,         <span class="code-comment">// Switch to palette index 2</span>
+
+  <span class="code-comment">// Internal wish (shown in console)</span>
+  <span class="code-key">"wish"</span>: <span class="code-string">"I wish I could..."</span>   <span class="code-comment">// Claude's internal thought</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SSE STREAMING -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>📡 SSE Streaming (route.ts → page.tsx)</h2>
+        <span class="tag tag-api">API</span>
+        <span class="tag tag-frontend">Frontend</span>
+      </div>
+      <div class="section-content">
+        <p style="color: #888; margin-bottom: 20px;">
+          The API parses Claude's JSON output incrementally and streams events as items complete.
+          This enables real-time animation of the cursor and progressive reveal of drawings.
+        </p>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Event Types</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Event Type</th>
+              <th>Payload</th>
+              <th>When Sent</th>
+              <th>Frontend Handler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>thinking</code></td>
+              <td><code>{ data: "thinking text..." }</code></td>
+              <td>During extended thinking</td>
+              <td>Append to thinkingText state</td>
+            </tr>
+            <tr>
+              <td><code>block</code></td>
+              <td><code>{ data: { block, x, y, color } }</code></td>
+              <td>Each ASCII block completes</td>
+              <td>Queue for cursor animation</td>
+            </tr>
+            <tr>
+              <td><code>shape</code></td>
+              <td><code>{ data: { type, d, color, ... } }</code></td>
+              <td>Each shape completes</td>
+              <td>Queue for cursor animation</td>
+            </tr>
+            <tr>
+              <td><code>sayStart</code></td>
+              <td><code>{ data: { sayX, sayY } }</code></td>
+              <td>Comment text begins</td>
+              <td>Create empty comment bubble</td>
+            </tr>
+            <tr>
+              <td><code>replyStart</code></td>
+              <td><code>{ data: { replyTo } }</code></td>
+              <td>Reply text begins</td>
+              <td>Create empty reply in thread</td>
+            </tr>
+            <tr>
+              <td><code>sayChunk</code></td>
+              <td><code>{ data: { text: "..." } }</code></td>
+              <td>Each text chunk streams</td>
+              <td>Append to comment/reply</td>
+            </tr>
+            <tr>
+              <td><code>setPalette</code></td>
+              <td><code>{ data: 2 }</code></td>
+              <td>Palette change requested</td>
+              <td>Update paletteIndex state</td>
+            </tr>
+            <tr>
+              <td><code>wish</code></td>
+              <td><code>{ data: "wish text" }</code></td>
+              <td>Wish field found</td>
+              <td>Log to console, set state</td>
+            </tr>
+            <tr>
+              <td><code>done</code></td>
+              <td><code>{}</code></td>
+              <td>Stream complete</td>
+              <td>Finish animations, update history</td>
+            </tr>
+            <tr>
+              <td><code>error</code></td>
+              <td><code>{ message: "..." }</code></td>
+              <td>Error occurred</td>
+              <td>Log error</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Incremental JSON Parsing (route.ts)</h3>
+        <pre><code><span class="code-comment">// As Claude streams text, we look for complete JSON objects</span>
+<span class="code-key">fullText</span> += event.delta.text;
+
+<span class="code-comment">// Extract blocks array</span>
+<span class="code-key">const</span> blocksMatch = partialJson.match(<span class="code-string">/"blocks"\s*:\s*\[([\s\S]*?)(?:\]|$)/</span>);
+<span class="code-key">const</span> blockRegex = <span class="code-string">/\{[^{}]*"block"\s*:[^{}]*\}/g</span>;
+
+<span class="code-comment">// For each complete block we haven't sent yet</span>
+<span class="code-key">for</span> (let i = sentBlocksCount; i < blocks.length; i++) {
+  <span class="code-key">const</span> block = JSON.parse(blocks[i]);
+  controller.enqueue(<span class="code-string">`data: ${JSON.stringify({ type: 'block', data: block })}\n\n`</span>);
+  sentBlocksCount++;
+}
+
+<span class="code-comment">// Same pattern for shapes, say text, etc.</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ANIMATION SYSTEM -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🎬 Cursor Animation System (page.tsx)</h2>
+        <span class="tag tag-animation">Animation</span>
+      </div>
+      <div class="section-content">
+        <div class="annotation">
+          <strong>Key Insight:</strong> Claude's cursor animates along paths before the stroke appears,
+          creating the illusion of Claude actually drawing. This uses requestAnimationFrame for smooth 60fps animation.
+        </div>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Animation Queue</h3>
+        <pre><code><span class="code-comment">// Items are queued when SSE events arrive</span>
+<span class="code-key">type</span> <span class="code-type">AnimationItem</span> =
+  | { <span class="code-key">type</span>: <span class="code-string">'shape'</span>; shape: <span class="code-type">Shape</span>; id: <span class="code-type">string</span> }
+  | { <span class="code-key">type</span>: <span class="code-string">'ascii'</span>; block: <span class="code-type">AsciiBlock</span>; id: <span class="code-type">string</span> };
+
+<span class="code-key">const</span> claudeAnimationQueue = useRef&lt;<span class="code-type">AnimationItem</span>[]&gt;([]);
+<span class="code-key">const</span> isAnimatingClaude = useRef(<span class="code-type">false</span>);
+<span class="code-key">const</span> claudeLastEndPoint = useRef&lt;<span class="code-type">Point</span> | <span class="code-type">null</span>&gt;(<span class="code-type">null</span>);</code></pre>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Animation Flow</h3>
+        <div class="flow">
+          <div class="flow-box">
+            <h4>1. Event Received</h4>
+            <h3>Queue Item</h3>
+            <p>Push to claudeAnimationQueue</p>
+            <code>claudeAnimationQueue.current.push({ type, ... })</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box">
+            <h4>2. Process Queue</h4>
+            <h3>processClaudeAnimationQueue()</h3>
+            <p>If not already animating, start processing</p>
+            <code>while (queue.length > 0) { ... }</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box">
+            <h4>3. Glide to Start</h4>
+            <h3>animateCursorGlide()</h3>
+            <p>Smooth arc from last position to new shape start</p>
+            <code>easeInOutCubic + arc offset</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box">
+            <h4>4. Draw Animation</h4>
+            <h3>animateClaudeCursor()</h3>
+            <p>Cursor follows path points with tremor</p>
+            <code>requestAnimationFrame loop</code>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box">
+            <h4>5. Reveal Stroke</h4>
+            <h3>Progressive Reveal</h3>
+            <p>strokeDashoffset animates from 1→0</p>
+            <code>pathLength="1" dasharray="1"</code>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Key Animation Functions</h3>
+        <div class="grid-2">
+          <div class="card">
+            <h4>animateCursorGlide(from, to)</h4>
+            <p>Smooth glide between positions with playful arc</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code><span class="code-comment">// Short distances (&lt;25px): instant snap + 15ms delay</span>
+<span class="code-comment">// Longer distances: animated arc</span>
+<span class="code-key">const</span> arcScale = Math.max(0, (distance - 30) / 70);
+<span class="code-key">const</span> arcHeight = baseArc * arcScale;
+<span class="code-key">const</span> arcOffset = Math.sin(progress * Math.PI) * arcHeight;</code></pre>
+          </div>
+          <div class="card">
+            <h4>animateClaudeCursor(points, onProgress)</h4>
+            <p>Animate cursor along path with natural motion</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code><span class="code-comment">// Easing for natural feel</span>
+<span class="code-key">const</span> easedProgress = easeInOutCubic(linearProgress);
+
+<span class="code-comment">// Hand tremor effect</span>
+<span class="code-key">const</span> tremor = baseTremor * speedFactor;
+<span class="code-key">const</span> jitterX = (noise(time) - 0.5) * tremor;
+
+<span class="code-comment">// Callback updates stroke reveal</span>
+onProgress?.(progress);</code></pre>
+          </div>
+          <div class="card">
+            <h4>animateAsciiStamp()</h4>
+            <p>Brief pause when "stamping" ASCII character</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code><span class="code-key">const</span> duration = 80 / animationSpeed;
+<span class="code-key">return new</span> Promise(resolve =&gt;
+  setTimeout(resolve, duration)
+);</code></pre>
+          </div>
+          <div class="card">
+            <h4>finishClaudeAnimation()</h4>
+            <p>Called on 'done' event - hide cursor when complete</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code><span class="code-comment">// Wait for queue to empty</span>
+<span class="code-key">if</span> (!isAnimatingClaude.current) {
+  setClaudeCursorPos(<span class="code-type">null</span>);
+  setClaudeIsDrawing(<span class="code-type">false</span>);
+  claudeLastEndPoint.current = <span class="code-type">null</span>;
+}</code></pre>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Progressive Stroke Reveal</h3>
+        <pre><code><span class="code-comment">// SVG path with pathLength="1" for normalized dash calculations</span>
+&lt;<span class="code-key">path</span>
+  <span class="code-key">d</span>=<span class="code-string">"M 100 100 C 150 50..."</span>
+  <span class="code-key">pathLength</span>=<span class="code-string">"1"</span>
+  <span class="code-key">strokeDasharray</span>=<span class="code-string">"1"</span>
+  <span class="code-key">strokeDashoffset</span>={<span class="code-type">1 - progress</span|}  <span class="code-comment">// 1 = hidden, 0 = fully visible</span>
+/&gt;
+
+<span class="code-comment">// As animateClaudeCursor calls onProgress(0→1), stroke reveals</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- STATE MANAGEMENT -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🗄️ State Management (page.tsx)</h2>
+        <span class="tag tag-state">State</span>
+      </div>
+      <div class="section-content">
+        <p style="color: #888; margin-bottom: 20px;">The page has 40+ state variables. Here are the key ones grouped by purpose:</p>
+
+        <div class="grid-3">
+          <div class="card">
+            <h4>Drawing State</h4>
+            <dl class="prop-list">
+              <dt>isDrawing</dt>
+              <dd>Currently drawing a stroke</dd>
+              <dt>isLoading</dt>
+              <dd>Waiting for Claude response</dd>
+              <dt>tool</dt>
+              <dd><code>'draw' | 'erase' | 'comment'</code></dd>
+              <dt>asciiStroke</dt>
+              <dd>Using ASCII mode vs shapes</dd>
+              <dt>strokeColor</dt>
+              <dd>Current pen color</dd>
+              <dt>strokeWidth</dt>
+              <dd>Pen thickness</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>Canvas Content</h4>
+            <dl class="prop-list">
+              <dt>drawingElements</dt>
+              <dd>All completed drawings (unified list)</dd>
+              <dt>asciiBlocks</dt>
+              <dd>ASCII text blocks array</dd>
+              <dt>shapes</dt>
+              <dd>Claude's shape array</dd>
+              <dt>humanStrokes</dt>
+              <dd>User's pen strokes</dd>
+              <dt>humanAsciiChars</dt>
+              <dd>User's ASCII characters</dd>
+              <dt>currentStroke</dt>
+              <dd>Stroke being drawn now</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>Comments</h4>
+            <dl class="prop-list">
+              <dt>comments</dt>
+              <dd>All comment threads</dd>
+              <dt>pendingMessages</dt>
+              <dd>Messages to send on next turn</dd>
+              <dt>openCommentIndex</dt>
+              <dd>Which comment is expanded</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>Claude Animation</h4>
+            <dl class="prop-list">
+              <dt>claudeCursorPos</dt>
+              <dd>Claude's cursor position</dd>
+              <dt>claudeIsDrawing</dt>
+              <dd>Animation in progress</dd>
+              <dt>animatingShape</dt>
+              <dd>Current shape + progress</dd>
+              <dt>animatingAscii</dt>
+              <dd>Current ASCII block</dd>
+              <dt>claudeCurrentColor</dt>
+              <dd>Color for cursor icon</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>View State</h4>
+            <dl class="prop-list">
+              <dt>zoom</dt>
+              <dd>Current zoom level</dd>
+              <dt>pan</dt>
+              <dd>Canvas offset {x, y}</dd>
+              <dt>isPanning</dt>
+              <dd>Currently panning canvas</dd>
+              <dt>cursorPos</dt>
+              <dd>User's cursor position</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>Settings</h4>
+            <dl class="prop-list">
+              <dt>sayEnabled</dt>
+              <dd>Claude can comment</dd>
+              <dt>thinkingEnabled</dt>
+              <dd>Extended thinking on</dd>
+              <dt>temperature</dt>
+              <dd>Model temperature</dd>
+              <dt>paletteIndex</dt>
+              <dd>Current color palette</dd>
+              <dt>animationSpeed</dt>
+              <dd>Cursor animation speed</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>History</h4>
+            <dl class="prop-list">
+              <dt>history</dt>
+              <dd>Turn-by-turn log</dd>
+              <dt>undoStack</dt>
+              <dd>States for undo</dd>
+              <dt>redoStack</dt>
+              <dd>States for redo</dd>
+              <dt>humanHasDrawn</dt>
+              <dd>User drew this turn</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>UI State</h4>
+            <dl class="prop-list">
+              <dt>showToolbar</dt>
+              <dd>Toolbar visibility</dd>
+              <dt>settingsOpen</dt>
+              <dd>Settings drawer open</dd>
+              <dt>thinkingText</dt>
+              <dd>Extended thinking output</dd>
+              <dt>wish</dt>
+              <dd>Claude's internal wish</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h4>Refs (mutable)</h4>
+            <dl class="prop-list">
+              <dt>canvasRef</dt>
+              <dd>Canvas DOM element</dd>
+              <dt>containerRef</dt>
+              <dd>Container DOM element</dd>
+              <dt>claudeAnimationQueue</dt>
+              <dd>Animation queue array</dd>
+              <dt>isAnimatingClaude</dt>
+              <dd>Animation in progress flag</dd>
+              <dt>claudeLastEndPoint</dt>
+              <dd>Last cursor position</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- CANVAS RENDERING -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🖼️ Canvas Rendering Pipeline</h2>
+        <span class="tag tag-frontend">Frontend</span>
+      </div>
+      <div class="section-content">
+        <p style="color: #888; margin-bottom: 20px;">Two rendering systems work together:</p>
+
+        <div class="grid-2">
+          <div class="card" style="border-color: #3b82f6;">
+            <h4 style="color: #3b82f6;">HTML5 Canvas (2D Context)</h4>
+            <p>For user's strokes and ASCII - immediate mode rendering</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code><span class="code-fn">redraw</span>() {
+  ctx.clearRect(0, 0, width, height);
+
+  <span class="code-comment">// Draw human strokes</span>
+  humanStrokes.forEach(stroke =&gt; {
+    <span class="code-key">const</span> path = <span class="code-key">new</span> Path2D(stroke.d);
+    ctx.strokeStyle = stroke.color;
+    ctx.stroke(path);
+  });
+
+  <span class="code-comment">// Draw ASCII blocks</span>
+  asciiBlocks.forEach(block =&gt; {
+    ctx.font = '16px monospace';
+    ctx.fillStyle = block.color;
+    ctx.fillText(block.block, block.x, block.y);
+  });
+}</code></pre>
+          </div>
+
+          <div class="card" style="border-color: #22c55e;">
+            <h4 style="color: #22c55e;">SVG Overlay (React)</h4>
+            <p>For Claude's shapes - enables progressive reveal animation</p>
+            <pre style="margin-top: 12px; font-size: 10px;"><code>&lt;<span class="code-key">svg</span> className="absolute inset-0"&gt;
+  {drawingElements.map(el =&gt; (
+    &lt;<span class="code-key">path</span>
+      d={el.data.d}
+      stroke={el.data.color}
+      fill={el.data.fill}
+    /&gt;
+  ))}
+
+  <span class="code-comment">{/* Currently animating shape */}</span>
+  {animatingShape && (
+    &lt;<span class="code-key">path</span>
+      pathLength="1"
+      strokeDasharray="1"
+      strokeDashoffset={1 - progress}
+    /&gt;
+  )}
+&lt;/<span class="code-key">svg</span>&gt;</code></pre>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Layer Order (bottom to top)</h3>
+        <ol style="font-size: 13px; color: #aaa; padding-left: 24px;">
+          <li style="padding: 6px 0;">Background (CSS gradient)</li>
+          <li style="padding: 6px 0;">HTML5 Canvas - human strokes, ASCII blocks</li>
+          <li style="padding: 6px 0;">SVG Overlay - completed Claude shapes (drawingElements)</li>
+          <li style="padding: 6px 0;">SVG Overlay - animating Claude shape (with progressive reveal)</li>
+          <li style="padding: 6px 0;">Claude's Cursor (positioned div with icon)</li>
+          <li style="padding: 6px 0;">User's Cursor (CustomCursor component)</li>
+          <li style="padding: 6px 0;">Comment Bubbles (CommentSystem component)</li>
+          <li style="padding: 6px 0;">UI Overlays - toolbar, settings, modals</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ZOOM & PAN -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🔍 Zoom & Pan System</h2>
+        <span class="tag tag-frontend">Frontend</span>
+      </div>
+      <div class="section-content">
+        <pre><code><span class="code-comment">// useZoomPan hook provides:</span>
+<span class="code-key">const</span> {
+  zoom,              <span class="code-comment">// Current zoom level (0.1 - 5)</span>
+  pan,               <span class="code-comment">// Offset { x, y }</span>
+  isPanning,         <span class="code-comment">// Currently panning</span>
+  isTouchGesture,    <span class="code-comment">// Pinch-zoom in progress</span>
+  screenToCanvas,    <span class="code-comment">// Convert screen coords to canvas coords</span>
+  canvasToScreen,    <span class="code-comment">// Convert canvas coords to screen coords</span>
+  handleWheel,       <span class="code-comment">// Scroll zoom handler</span>
+  handleDoubleClick, <span class="code-comment">// Reset view on double-click</span>
+} = useZoomPan({ containerRef, canvasRef });
+
+<span class="code-comment">// Transform applied to canvas container:</span>
+transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`
+
+<span class="code-comment">// Claude's cursor counter-scales to stay same size:</span>
+transform: `scale(${1 / zoom})`</code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- LOCAL STORAGE -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>💾 Persistence (localStorage)</h2>
+        <span class="tag tag-frontend">Frontend</span>
+      </div>
+      <div class="section-content">
+        <pre><code><span class="code-comment">// Auto-save on every change (debounced 500ms)</span>
+useEffect(() =&gt; {
+  localStorage.setItem('claude-draw-canvas', JSON.stringify({
+    drawingElements,
+    humanStrokes,
+    humanAsciiChars,
+    asciiBlocks,
+    shapes,
+    images,
+    elementIdCounter: elementIdCounter.current,
+    strokeIdCounter: strokeIdCounter.current,
+  }));
+}, [drawingElements, humanStrokes, ...]);
+
+<span class="code-comment">// Restore on mount</span>
+useEffect(() =&gt; {
+  <span class="code-key">const</span> saved = localStorage.getItem('claude-draw-canvas');
+  <span class="code-key">if</span> (saved) {
+    <span class="code-key">const</span> state = JSON.parse(saved);
+    setDrawingElements(state.drawingElements);
+    <span class="code-comment">// ... restore all state</span>
+  }
+}, []);</code></pre>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- DATA FLOW SUMMARY -->
+    <!-- ============================================== -->
+    <div class="section">
+      <div class="section-header">
+        <h2>📊 Complete Data Flow Summary</h2>
+      </div>
+      <div class="section-content">
+        <pre style="font-size: 11px; line-height: 1.8;"><code><span class="hl-blue">USER DRAWS</span>
+    │
+    ▼
+<span class="hl-blue">pointerdown/move/up</span> ──────────────────────────────────────────────────────┐
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-blue">currentStroke updated</span> ───► <span class="hl-blue">canvas redrawn</span> (redraw())                      │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-blue">pointerup</span> ─► <span class="hl-blue">humanStrokes.push()</span> ─► <span class="hl-blue">drawingElements.push()</span>              │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-blue">handleYourTurn()</span>                                                          │
+    │                                                                       │
+    ├──► <span class="hl-blue">canvas.toDataURL()</span> ─► base64 image                               │
+    │                                                                       │
+    ├──► Build request payload (history, comments, settings)                │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-green">fetch('/api/draw')</span> ───────────────────────────────────────────────────────┤
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-green">route.ts receives request</span>                                                  │
+    │                                                                       │
+    ├──► Parse image, history, comments, settings                           │
+    │                                                                       │
+    ├──► <span class="hl-green">getDrawingInstructions()</span> ─► mode-specific prompt                  │
+    │                                                                       │
+    ├──► Build full prompt with all context                                 │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-yellow">anthropic.messages.create()</span> ─► Claude API call with streaming             │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-yellow">Claude generates JSON response</span>                                            │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-green">Incremental JSON parsing</span>                                                  │
+    │                                                                       │
+    ├──► block complete? ─► <span class="hl-green">stream { type: 'block', data }</span>                │
+    ├──► shape complete? ─► <span class="hl-green">stream { type: 'shape', data }</span>                │
+    ├──► say text? ─► <span class="hl-green">stream { type: 'sayChunk', data }</span>                    │
+    └──► done? ─► <span class="hl-green">stream { type: 'done' }</span>                                   │
+            │                                                               │
+            ▼                                                               │
+<span class="hl-blue">SSE event received in page.tsx</span>                                            │
+    │                                                                       │
+    ├──► 'block' ─► <span class="hl-pink">claudeAnimationQueue.push({ type: 'ascii' })</span>           │
+    │               │                                                       │
+    │               ▼                                                       │
+    │               <span class="hl-pink">processClaudeAnimationQueue()</span>                        │
+    │               │                                                       │
+    │               ├──► <span class="hl-pink">animateCursorGlide()</span> ─► cursor moves              │
+    │               ├──► <span class="hl-pink">animateAsciiStamp()</span> ─► brief pause                │
+    │               └──► <span class="hl-pink">setAsciiBlocks()</span> ─► character appears            │
+    │                                                                       │
+    ├──► 'shape' ─► <span class="hl-pink">claudeAnimationQueue.push({ type: 'shape' })</span>           │
+    │               │                                                       │
+    │               ▼                                                       │
+    │               <span class="hl-pink">processClaudeAnimationQueue()</span>                        │
+    │               │                                                       │
+    │               ├──► <span class="hl-pink">animateCursorGlide()</span> ─► cursor moves to start    │
+    │               ├──► <span class="hl-pink">animateClaudeCursor()</span> ─► cursor follows path     │
+    │               │    └──► <span class="hl-pink">onProgress()</span> ─► strokeDashoffset updates    │
+    │               └──► <span class="hl-pink">setDrawingElements()</span> ─► shape added permanently  │
+    │                                                                       │
+    ├──► 'sayChunk' ─► <span class="hl-blue">setComments()</span> ─► text appended to bubble           │
+    │                                                                       │
+    ├──► 'done' ─► <span class="hl-pink">finishClaudeAnimation()</span> ─► cursor hidden                │
+    │          └──► <span class="hl-blue">setHistory()</span> ─► turn recorded                          │
+    │                                                                       │
+    ▼                                                                       │
+<span class="hl-blue">localStorage.setItem()</span> ─► state persisted ◄─────────────────────────────────┘</code></pre>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
