@@ -1,9 +1,9 @@
 // Draw page constants
 
 export const COLOR_PALETTES = [
-  ['#A6CADD', '#5F9FB8', '#25667F', '#51241A'], // Ocean: light blue, blue, teal, brown
+  ['#A6CADD', '#5F9FB8', '#25667F', '#51241A'], // Denim: light blue, blue, teal, brown
   ['#FDCDED', '#F793D1', '#50AF5B', '#0D7248'], // Garden: light pink, pink, green, dark green
-  ['#8FCE42', '#FC541A', '#C71B00', '#600000'], // Fire: lime, orange-red, red, maroon
+  ['#8FCE42', '#FC541A', '#C71B00', '#600000'], // Warm: lime, orange-red, red, maroon
   ['#FECCFA', '#B1F2B7', '#ACDAFF', '#A9BFFD'], // Pastel: pink, mint, sky, lavender
   ['#FECC2D', '#F3381A', '#0260CB', '#000000'], // Primary: yellow, orange, blue, black
   ['#DFFC00', '#C7CFD6', '#929DAC', '#4E5872'], // Neon gray: yellow-green, grays

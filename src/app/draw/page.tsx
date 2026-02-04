@@ -122,6 +122,11 @@ export default function DrawPage() {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [drawMode, setDrawMode] = useState<DrawMode>('all');
 
+  // Auto temperature: 1.0 for first 3 turns, then 0.7
+  const getEffectiveTemperature = (turnCount: number): number => {
+    return turnCount <= 3 ? 1.0 : 0.7;
+  };
+
   // Thinking panel state
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [thinkingText, setThinkingText] = useState('');
@@ -188,11 +193,7 @@ export default function DrawPage() {
   const [showReactButton, setShowReactButton] = useState(false);
   const [showDownloadButton, setShowDownloadButton] = useState(false);
 
-  // Prompt style for Claude
-  type PromptStyle = 'balanced' | 'collaborative' | 'communicative' | 'emotionalDrawing' | 'emotionalClaude';
-  const [promptStyle, setPromptStyle] = useState<PromptStyle>('balanced');
-
-  // Always use two-stage: Haiku looks → Opus thinks (optimal cost/quality)
+  // Prompt is now mood-aware by default (BASE_PROMPT in route.ts)
 
   // Refs
   const lastPoint = useRef<Point | null>(null);
@@ -1260,18 +1261,16 @@ export default function DrawPage() {
           history: newHistory,
           comments: comments.length > 0 ? comments : undefined,
           sayEnabled,
-          temperature,
+          temperature: getEffectiveTemperature(newHistory.length),
+          turnCount: newHistory.length,
           maxTokens,
-          // Only send custom prompt if user changed it - otherwise let promptStyle apply
+          // Only send custom prompt if user changed it
           prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
           streaming: true,
           drawMode: effectiveDrawMode,
           thinkingEnabled,
           thinkingBudget: 10000,
-          model: 'opus', // Opus for thinking
-          promptStyle,
-          // Two-stage: Haiku looks → Opus thinks (always enabled)
-          twoStage: true,
+          model: 'opus',
           // Palette info for Claude
           paletteColors: COLOR_PALETTES[paletteIndex],
           paletteIndex,
@@ -1426,7 +1425,13 @@ export default function DrawPage() {
                 }
                 // Record turn if Claude did anything (drew or commented)
                 if (description) {
-                  newHistory.push({ who: 'claude', description });
+                  newHistory.push({
+                    who: 'claude',
+                    description,
+                    // Include actual shapes/blocks for continuity (used in interaction style detection)
+                    shapes: streamedShapes.length > 0 ? [...streamedShapes] : undefined,
+                    blocks: streamedBlocks.length > 0 ? [...streamedBlocks] : undefined,
+                  });
                   setHistory(newHistory);
                   setHumanHasDrawn(false);
                   setHumanHasCommented(false);
@@ -1917,11 +1922,13 @@ export default function DrawPage() {
                       key={element.id}
                       className="draw-stroke"
                       d={shape.d}
-                      stroke={shape.color || '#3b82f6'}
-                      strokeWidth={shape.strokeWidth || 2}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
                       fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
                     />
                   );
                 }
@@ -1933,9 +1940,32 @@ export default function DrawPage() {
                       cx={shape.cx}
                       cy={shape.cy}
                       r={shape.r}
-                      stroke={shape.color || '#3b82f6'}
-                      strokeWidth={shape.strokeWidth || 2}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
                       fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
+                    />
+                  );
+                }
+                if (shape.type === 'ellipse' && shape.cx !== undefined && shape.cy !== undefined && shape.rx !== undefined && shape.ry !== undefined) {
+                  return (
+                    <ellipse
+                      key={element.id}
+                      className="draw-stroke"
+                      cx={shape.cx}
+                      cy={shape.cy}
+                      rx={shape.rx}
+                      ry={shape.ry}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
                     />
                   );
                 }
@@ -1948,9 +1978,13 @@ export default function DrawPage() {
                       y={shape.y}
                       width={shape.width}
                       height={shape.height}
-                      stroke={shape.color || '#3b82f6'}
-                      strokeWidth={shape.strokeWidth || 2}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
                       fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
                     />
                   );
                 }
@@ -1963,9 +1997,28 @@ export default function DrawPage() {
                       y1={shape.y1}
                       x2={shape.x2}
                       y2={shape.y2}
-                      stroke={shape.color || '#3b82f6'}
+                      stroke={shape.color || shape.fill || '#000000'}
                       strokeWidth={shape.strokeWidth || 2}
-                      strokeLinecap="round"
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
+                    />
+                  );
+                }
+                if (shape.type === 'polygon' && shape.points && shape.points.length >= 3) {
+                  const pointsStr = shape.points.map(p => `${p[0]},${p[1]}`).join(' ');
+                  return (
+                    <polygon
+                      key={element.id}
+                      className="draw-stroke"
+                      points={pointsStr}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
+                      fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
                     />
                   );
                 }
@@ -1985,11 +2038,13 @@ export default function DrawPage() {
                       key={element.id}
                       className="draw-stroke"
                       d={d}
-                      stroke={shape.color || '#3b82f6'}
-                      strokeWidth={shape.strokeWidth || 2}
+                      stroke={shape.color || (shape.fill ? 'none' : '#000000')}
+                      strokeWidth={shape.color || !shape.fill ? (shape.strokeWidth || 2) : 0}
                       fill={shape.fill === 'transparent' ? 'none' : (shape.fill || 'none')}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      strokeLinecap={shape.strokeLinecap || 'round'}
+                      strokeLinejoin={shape.strokeLinejoin || 'round'}
+                      opacity={shape.opacity}
+                      transform={shape.transform}
                     />
                   );
                 }
@@ -1999,8 +2054,10 @@ export default function DrawPage() {
               {animatingShape && (() => {
                 const { shape, progress } = animatingShape;
                 // Use pathLength="1" to normalize, then dashoffset from 1→0 reveals stroke
+                // Use fill color for animation stroke when no explicit stroke color
+                const animStroke = shape.color || shape.fill || '#000000';
                 const commonProps = {
-                  stroke: shape.color || '#3b82f6',
+                  stroke: animStroke,
                   strokeWidth: shape.strokeWidth || 2,
                   fill: 'none', // Don't fill during animation
                   strokeLinecap: 'round' as const,
@@ -2276,25 +2333,15 @@ export default function DrawPage() {
             />
           )}
 
-          {/* Model info - fixed two-stage setup */}
-          <div className="mb-2 text-xs text-white/50">
-            <span className="text-green-400">Haiku</span> looks → <span className="text-purple-400">Opus</span> thinks
-          </div>
-
-          {/* Prompt Style selector */}
-          <div className="mb-2">
-            <div className="text-xs text-white/50 mb-1">Prompt Style</div>
-            <select
-              value={promptStyle}
-              onChange={(e) => setPromptStyle(e.target.value as PromptStyle)}
-              className="w-full bg-white/10 text-white/90 text-xs rounded-lg px-2 py-1.5 border border-white/10 focus:outline-none focus:border-white/30"
-            >
-              <option value="balanced">Balanced</option>
-              <option value="collaborative">Collaborative</option>
-              <option value="communicative">Communicative</option>
-              <option value="emotionalDrawing">Emotional (Drawing)</option>
-              <option value="emotionalClaude">Emotional (Claude)</option>
-            </select>
+          {/* Architecture info */}
+          <div className="mb-3 p-2 bg-white/5 rounded-lg text-xs text-white/60">
+            <div className="font-medium text-white/80 mb-1">Prompting</div>
+            <div className="space-y-0.5">
+              <div><span className="text-purple-400">Opus</span> sees canvas image directly</div>
+              <div>→ Reads mood (calm, chaotic, playful...)</div>
+              <div>→ Matches energy in response</div>
+              <div>→ Switches palettes for right colors</div>
+            </div>
           </div>
 
           {/* Checkboxes - main settings */}

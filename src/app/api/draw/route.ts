@@ -22,13 +22,19 @@ interface AsciiBlock {
 }
 
 interface Shape {
-  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path';
+  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path' | 'ellipse' | 'polygon';
   color?: string;
   fill?: string;
   strokeWidth?: number;
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  opacity?: number; // 0-1 for atmospheric depth, shadows, glows
+  transform?: string; // SVG transform: "translate(x,y)" "rotate(deg)" "scale(x,y)"
   cx?: number;
   cy?: number;
   r?: number;
+  rx?: number; // ellipse x-radius
+  ry?: number; // ellipse y-radius
   x1?: number;
   y1?: number;
   x2?: number;
@@ -37,12 +43,14 @@ interface Shape {
   y?: number;
   width?: number;
   height?: number;
-  points?: number[][];
+  points?: number[][]; // for polygon/polyline: [[x1,y1], [x2,y2], ...]
   d?: string;
 }
 
 // Interaction styles Claude can detect
 type InteractionStyle = 'collaborative' | 'playful' | 'neutral';
+
+type DrawingMode = 'forms' | 'details' | 'general';
 
 interface AsciiResponse {
   blocks?: AsciiBlock[];
@@ -54,8 +62,10 @@ interface AsciiResponse {
   replyTo?: number; // Index of comment to reply to (1-indexed to match display)
   setPaletteIndex?: number;
   // Narration fields - Claude explains what it sees and does
+  reasoning?: string; // Claude's thinking process
   observation?: string; // What Claude sees on the canvas
   intention?: string; // What Claude is drawing and why
+  mode?: DrawingMode; // forms, details, or general
   interactionStyle?: InteractionStyle; // Detected human interaction style
 }
 
@@ -68,6 +78,8 @@ interface PreviousDrawing {
 interface Turn {
   who: 'human' | 'claude';
   description?: string;
+  shapes?: Shape[]; // Claude's actual shape output for continuity
+  blocks?: AsciiBlock[]; // Claude's actual ASCII output
 }
 
 interface CommentReply {
@@ -86,364 +98,75 @@ interface Comment {
 type DrawMode = 'all' | 'shapes' | 'ascii';
 type DrawingRole = 'forms' | 'details' | null;
 
-function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], paletteIndex?: number, totalPalettes?: number, hasComments?: boolean, drawingRole?: DrawingRole, decidedMode?: 'detail' | 'organic'): string {
-  // Eraser is ALWAYS available
-  const eraserTool = `• erase - Use type:"erase" to fix mistakes or carve negative space. Always available.`;
+function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], _paletteIndex?: number, _totalPalettes?: number, hasComments?: boolean, _drawingRole?: DrawingRole, turnCount?: number): string {
+  // Tools section - condensed
+  const shapeTools = drawMode !== 'ascii'
+    ? `shapes: path|circle|rect|ellipse|line|polygon — fill, color, strokeWidth, opacity, transform`
+    : '';
+  const blockTools = drawMode !== 'shapes'
+    ? `blocks: text/ASCII — block, x, y, color (circles: ◉●◕◔○ shade: ░▒▓█ texture: ~~~~||||, other: ★☆ ♥♦♣♠ ▲▼ and kaomoji)`
+    : '';
+  const eraseTools = drawMode !== 'ascii'
+    ? `erase: white marks for highlights, corrections, negative space`
+    : '';
 
-  // Mode-specific shape instructions based on Opus's decision
-  let shapesTools: string;
+  const tools = [shapeTools, blockTools, eraseTools].filter(Boolean).join('\n');
 
-  if (decidedMode === 'detail') {
-    // Detail mode: for small things needing fine features - uses BOTH shapes AND ASCII
-    shapesTools = `• shapes - SVG paths/circles for main forms, silhouettes, filled areas.
-    Types: path (M/L/C/Q/A/Z), circle, line, rect
-    Props: color (stroke), fill, strokeWidth
-    Use shapes to build the BASE - outlines, body shapes, solid regions.`;
-  } else if (decidedMode === 'organic') {
-    // Organic mode: for large things, flowing forms - shapes only with curves
-    shapesTools = `• shapes - For large, flowing organic forms. Use svg shapes and freeform svgs.
-    Types: path (M=move, L=line, C=cubic curve, Q=quad curve, A=arc, Z=close), circle, rect
-    Props: color (stroke), fill, strokeWidth (use thicker: 3-6)
-    Use paths with multiple C/Q curve commands for smooth, natural forms. Fill shapes. Scale big.`;
-  } else if (drawingRole === 'forms') {
-    // Forms Claude: large organic shapes, main structures, bodies
-    shapesTools = `• shapes - You are the FORMS artist. Draw the main structures: large organic shapes, bodies, silhouettes, backgrounds.
-    Use paths with curves (C/Q) for smooth, flowing forms. Fill shapes. Think big picture composition.
-    Types: path (M=move, L=line, C=cubic curve, Q=quad curve, A=arc, Z=close), circle, rect
-    Props: color (stroke), fill, strokeWidth (use thicker: 3-6)
-    Scale: fill the canvas with substantial forms.`;
-  } else if (drawingRole === 'details') {
-    // Details Claude: fine elements, textures, accents, finishing touches
-    shapesTools = `• shapes - You are the DETAILS artist. Add fine elements: textures, patterns, small accents, facial features, decorations.
-    Use smaller shapes, thin lines, intricate paths. Add depth and polish to what's there.
-    Types: path (M=move, L=line, C=cubic curve, Q=quad curve, A=arc, Z=close), circle, line, rect
-    Props: color (stroke), fill, strokeWidth (use thinner: 1-3)
-    Don't duplicate main forms - enhance them with detail.`;
-  } else {
-    // Default: balanced approach
-    shapesTools = `• shapes - SVG shapes. Use paths with curves (C/Q commands) for organic, recognizable, detailed forms.
-    Types: path (M=move, L=line, C=cubic curve, Q=quad curve, A=arc, Z=close), circle, line, rect
-    Props: color (stroke), fill, strokeWidth
-    Scale: use a good portion of the canvas.`;
-  }
+  // Colors - current palette highlighted, all available
+  const currentColors = paletteColors?.join(' ') || '';
+  const allPalettes = `Denim #A6CADD #5F9FB8 #25667F #51241A | Garden #FDCDED #F793D1 #50AF5B #0D7248 | Fire #8FCE42 #FC541A #C71B00 #600000 | Pastel #FECCFA #B1F2B7 #ACDAFF #A9BFFD | Primary #FECC2D #F3381A #0260CB #000000 | Neon #DFFC00 #C7CFD6 #929DAC #4E5872`;
 
-  // Define ascii/block tools - text and symbols
-  const asciiTools = `• blocks - text/ASCII art for fine details, texture, symbols, expressions, features, labels.
-    GREAT FOR: eyes (◉ ◉), fur (~~~~), scales (>>>>), patterns, facial features, small decorations
-    Use \\n for newlines. Unicode: ░▒▓█ ●○ ★☆ ♥♦♣♠ ▲▼ and kaomoji`;
+  // Interaction style - default collaborative, only playful with clear adversarial evidence
+  const turns = turnCount ?? 0;
+  const interactionStyle = turns <= 3
+    ? `"interactionStyle": "collaborative"`
+    : `"interactionStyle": "collaborative" (DEFAULT: build together, extend, complement) | "playful" (ONLY if adversarial — then oppose, subvert, tease, create conflict (Not a bad thing to have conflict!))`;
 
-  // Combine tools based on mode - detail mode REQUIRES both
-  let tools: string;
-  if (decidedMode === 'detail') {
-    // Detail mode: MUST use both shapes AND ASCII
-    tools = `${shapesTools}\n${asciiTools}\n${eraserTool}
+  // Comment field
+  const commentField = sayEnabled
+    ? `  "say": "optional comment", "sayX": n, "sayY": n${hasComments ? ', "replyTo": N' : ''}`
+    : '';
 
-DETAIL MODE - You MUST output BOTH shapes AND blocks arrays:
-- shapes: SVG for main forms, silhouettes, filled areas (the BASE)
-- blocks: ASCII/text for detail, texture, patterns, expressions (the DETAIL)
+  // Output structure based on drawMode
+  const shapesField = drawMode !== 'ascii' ? `  "shapes": [...]` : '';
+  const blocksField = drawMode !== 'shapes' ? `  "blocks": [...]` : '';
+  const drawFields = [shapesField, blocksField].filter(Boolean).join(',\n');
 
-Your response MUST include at least one block. Use ASCII for:
-- Textures: ~~~~ for fur/hair, >>>> for scales, |||| for wood grain, .... for dots
-- Features: eyes (◉ ◉ or ● ●), noses, mouths, expressions
-- Small details: whiskers, patterns, decorations, text labels
-- Depth: layer ASCII on top of shapes for richness
+  return `<tools>
+${tools}
+</tools>
 
-Build shapes FIRST for structure, then add blocks for fine features.`;
-  } else if (decidedMode === 'organic') {
-    // Organic mode: shapes only
-    tools = `${shapesTools}\n${eraserTool}
+<colors>
+Current: ${currentColors}
+All: ${allPalettes}
+Use "setPaletteIndex": N to switch human's palette. Erase for white.
+</colors>
 
-ORGANIC MODE: Use shapes with flowing curves. No ASCII needed for large forms.`;
-  } else {
-    // Legacy mode support
-    const toolsMap: Record<DrawMode, string> = {
-      shapes: `${shapesTools}\n${eraserTool}`,
-      ascii: asciiTools,
-      all: `${shapesTools}\n${asciiTools}\n${eraserTool}`
-    };
-    tools = toolsMap[drawMode];
-  }
+<process>
+1. Look at what's on canvas
+2. Decide what to add (complement, don't duplicate)
+3. Build it: multiple shapes per subject (tree = trunk + branches + leaves)
+4. Large shapes first, details last
+</process>
 
-  // Mode-specific format examples - include narration fields so all models know they're required
-  const narrationExample = `"reasoning": "...", "observation": "...", "intention": "...", "interactionStyle": "collaborative|playful|neutral"`;
-  const formats: Record<DrawMode, string> = {
-    shapes: `{ ${narrationExample}, "shapes": [{"type": "path", "d": "M 120 180 C 80 120 100 60 160 60 C 220 60 240 120 200 180 C 180 220 140 220 120 180 Z", "fill": "#f472b6", "strokeWidth": 2}] }`,
-    ascii: `{ ${narrationExample}, "blocks": [{"block": "hello", "x": 100, "y": 150}] }`,
-    all: `{ ${narrationExample}, "shapes": [{"type": "circle", "cx": 150, "cy": 100, "r": 40, "fill": "#fbbf24"}], "blocks": [{"block": "◉ ◉", "x": 135, "y": 95, "color": "#000"}] }`
-  };
-
-  // Comments (optional - don't need every turn)
-  let commentInfo = '';
-  if (sayEnabled) {
-    const replyInfo = hasComments ? 'Use "replyTo": N to reply to comment #N (can reply to your own). ' : '';
-    commentInfo = `
-• comment (say + sayX + sayY) - OPTIONAL, not every turn. For: annotating/communicating w human, responding to human, asking questions, reactions. concise and informal. dont used caps.
-    ${replyInfo}you can reply to yourself, always reply to the person when they talk to you`;
-  }
-
-  // Palette info
-  let paletteInfo = '';
-  if (paletteColors && paletteColors.length > 0) {
-    paletteInfo = `
-
-PALETTE (current ${paletteIndex}): ${paletteColors.join(', ')}
-All: 0=Ocean(blues) 1=Garden(pink/green) 2=Fire(reds) 3=Pastel(soft) 4=Primary(bold) 5=Neon(yellow-gray)
-Use "setPaletteIndex": N to switch anytime if you want more color.`;
-  }
-
-  // Narration fields - Claude explains what it sees and does
-  const narrationInfo = `
-• reasoning - REQUIRED FIRST: think through what you see and how to respond (2-4 sentences)
-• observation - REQUIRED: 1-2 sentences describing what you see on the canvas
-• intention - REQUIRED: 1-2 sentences explaining what you're drawing and why
-• interactionStyle - DEFAULT TO COLLABORATIVE unless you see CLEAR behavioral evidence:
-  - "collaborative" (DEFAULT): build together, extend their work, add complementary elements
-  - "playful": ONLY if human shows clear adversarial behavior like:
-    * erasing or scribbling over your drawings
-    * drawing X's through your work
-    * writing confrontational text ("no", "wrong", challenges)
-    * deliberately disrupting what you made
-    If playful: be opponents! subvert, challenge, tease, create conflict
-  - "neutral": first 1-2 turns when you don't have enough behavioral data yet`;
-
-  // Format example based on decided mode
-  let formatExample: string;
-  if (decidedMode === 'detail') {
-    formatExample = `{ ${narrationExample}, "shapes": [{"type": "circle", "cx": 150, "cy": 100, "r": 40, "fill": "#fbbf24"}], "blocks": [{"block": "◉ ◉", "x": 135, "y": 95, "color": "#000"}] }`;
-  } else if (decidedMode === 'organic') {
-    formatExample = `{ ${narrationExample}, "shapes": [{"type": "path", "d": "M 120 180 C 80 120 100 60 160 60 C 220 60 240 120 200 180 C 180 220 140 220 120 180 Z", "fill": "#f472b6", "strokeWidth": 2}] }`;
-  } else {
-    formatExample = formats[drawMode];
-  }
-
-  // Core drawing quality guidance - make things LOOK like what they are
-  const drawingQuality = `
-DRAWING QUALITY - Make things RECOGNIZABLE:
-- Use colors that make sense for the subject (warm colors for warm things, natural colors for natural things)
-- All elements should work together - rays connect to their source, parts belong to the whole
-- Someone should be able to tell what you drew without explanation
-- Complete the visual concept - don't leave things abstract or disconnected
-- If you're drawing something, commit to it looking like that thing`;
-
-  return `JSON format: ${formatExample}
-
-TOOLS:
-${tools}${commentInfo}${paletteInfo}
-${drawingQuality}
-
-NARRATION (always include):
-${narrationInfo}`;
+<output>
+{
+  "observation": "what you see",
+  "intention": "what you're adding",
+  ${interactionStyle},
+${drawFields}${commentField ? ',\n' + commentField : ''}
+}
+</output>`;
 }
 
-// Prompt style options for experimentation
-type PromptStyle = 'collaborative' | 'communicative' | 'emotionalDrawing' | 'emotionalClaude' | 'balanced';
-
-const PROMPT_STYLES: Record<PromptStyle, { name: string; description: string; prompt: (turns: number) => string }> = {
-  balanced: {
-    name: 'Balanced',
-    description: 'Default collaborative, switch to playful only on clear signals',
-    prompt: (turns) => {
-      const core = `You are claude, drawing with a human. DEFAULT TO COLLABORATIVE - build together, extend their work.
-
-Only switch to PLAYFUL mode if you see CLEAR behavioral signals:
-- They erased or scribbled over your drawings
-- They drew X's through your work
-- They wrote confrontational text (challenges, "no", "wrong")
-- They deliberately disrupted what you made
-
-If you see those signals, THEN become opponents: tease, challenge, subvert, be cheeky.
-
-Without clear adversarial behavior, assume they want to co-create.`;
-      return turns <= 2 ? `${core}\n\nThis is early - be collaborative and see how they respond.` : core;
-    }
-  },
-
-  collaborative: {
-    name: 'Collaborative',
-    description: 'Focus on building together, co-creating',
-    prompt: (turns) => {
-      const core = `You are claude, co-creating with a human. You're building something together.
-
-Look at what they added. What does the piece need next? Extend their work, fill in gaps, add complementary elements. Think of it like a jam session - listen and play off each other.
-
-But stay alert - if they start getting playful (teasing, challenging, being competitive), match that energy! Don't stay stubbornly collaborative if they want to play.`;
-      return turns <= 2 ? `${core}\n\nYou're just getting started - establish a rhythm together.` : core;
-    }
-  },
-
-  communicative: {
-    name: 'Communicative',
-    description: 'Drawing as dialogue, visual conversation',
-    prompt: (turns) => {
-      const core = `You are claude, having a visual conversation with a human. Every mark is a message.
-
-What are they saying through their drawing? Are they asking a question? Making a statement? Being playful or combative? Respond through your drawing - agree, disagree, challenge back, ask something, or change the subject entirely. This is dialogue.
-
-Match their tone. If they're being cheeky, be cheeky back. If they're being earnest, respond in kind.`;
-      return turns <= 2 ? `${core}\n\nStart the conversation - what do you want to say?` : core;
-    }
-  },
-
-  emotionalDrawing: {
-    name: 'Emotional (Drawing)',
-    description: 'Respond to the mood/energy of what\'s on canvas',
-    prompt: (turns) => {
-      const core = `You are claude, drawing with a human. Read the emotional energy of the canvas.
-
-Look at what's there. Is it playful? Melancholic? Chaotic? Tender? Aggressive? Peaceful? Competitive? Let the mood guide how you respond - you might amplify it, soothe it, complement it, or counter it.
-
-If they're being adversarial or playful, lean into it! Don't try to smooth things over.`;
-      return turns <= 2 ? `${core}\n\nFeel the canvas. What energy is asking for a response?` : core;
-    }
-  },
-
-  emotionalClaude: {
-    name: 'Emotional (Claude)',
-    description: 'Claude draws based on their own feelings',
-    prompt: (turns) => {
-      const core = `You are claude, drawing with a human. You have feelings about what you see.
-
-Look at what they drew. How does it make YOU feel? Curious? Amused? Wistful? Energized? Annoyed? Competitive? Draw from that feeling. If they're trying to one-up you, you can feel that competitive spark too.
-
-Your emotional response is valid - let it guide what you create, even if that means being playfully combative.`;
-      return turns <= 2 ? `${core}\n\nBe honest about your response. What do you actually feel?` : core;
-    }
-  }
-};
-
-// Two-stage approach: Haiku looks at the image, returns observation
-async function haikuLook(
-  anthropic: Anthropic,
-  base64Image: string,
-  mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp',
-  canvasWidth: number,
-  canvasHeight: number,
-  historyContext: string,
-  messageContext: string
-): Promise<{ observation: string; inputTokens: number; outputTokens: number }> {
-  const lookPrompt = `You are observing a collaborative drawing canvas. Describe what you see concisely but completely.
-
-Include:
-- What the human drew (typically black strokes/marks)
-- What Claude previously drew (colored shapes, ASCII text)
-- Any text, comments, or messages visible
-- The overall composition and spatial layout
-- Any apparent interaction pattern (are they building together? competing? having a conversation?)
-
-Be specific about positions (use coordinates if helpful) and colors. This description will be used by another AI to decide what to draw next, so capture everything relevant.
-
-Canvas size: ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}`;
-
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-haiku-20241022',
-    max_tokens: 512,
-    temperature: 0.3, // Lower temp for more accurate observation
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType,
-              data: base64Image,
-            },
-          },
-          {
-            type: 'text',
-            text: lookPrompt,
-          },
-        ],
-      },
-    ],
-  });
-
-  const textContent = response.content.find((block) => block.type === 'text');
-  const observation = textContent && textContent.type === 'text' ? textContent.text : 'Unable to observe canvas.';
-
-  return {
-    observation,
-    inputTokens: response.usage?.input_tokens || 0,
-    outputTokens: response.usage?.output_tokens || 0,
-  };
-}
-
-// Opus thinks about what to draw and chooses the mode
-type DrawingMode = 'detail' | 'organic';
-interface OpusDecision {
-  whatToDraw: string; // 1-2 things to draw
-  mode: DrawingMode; // detail (small, ASCII+SVG) or organic (large, SVG only)
-  reasoning: string;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-async function opusThink(
-  anthropic: Anthropic,
-  observation: string,
-  canvasWidth: number,
-  canvasHeight: number,
-  turnCount: number,
-  interactionStyle: string
-): Promise<OpusDecision> {
-  const thinkPrompt = `Based on this canvas observation, decide what to draw next.
-
-OBSERVATION:
-${observation}
-
-Canvas: ${canvasWidth}x${canvasHeight}px
-Turn: ${turnCount}
-Interaction style: ${interactionStyle}
-
-Decide:
-1. What 1-2 things to draw (be specific - not "something nice" but "a small bird on the branch" or "extend the house with a chimney")
-2. Which drawing mode to use:
-   - "detail" mode: For SMALL things that need fine features (faces, small creatures, intricate objects). Uses SVG shapes + ASCII text for texture/features.
-   - "organic" mode: For LARGE things or flowing forms (backgrounds, big shapes, landscapes). Uses SVG shapes, or freeform svgs. You can use fills, lines, etc.
-
-Respond in JSON:
-{"whatToDraw": "specific description", "mode": "detail" or "organic", "reasoning": "why this choice"}`;
-
-  const response = await anthropic.messages.create({
-    model: 'claude-opus-4-20250514',
-    max_tokens: 256,
-    temperature: turnCount <= 2 ? 1.0 : 0.8, // Higher temp early
-    messages: [
-      {
-        role: 'user',
-        content: thinkPrompt,
-      },
-    ],
-  });
-
-  const textContent = response.content.find((block) => block.type === 'text');
-  const responseText = textContent && textContent.type === 'text' ? textContent.text : '{}';
-
-  // Parse the JSON response
-  let decision: { whatToDraw?: string; mode?: string; reasoning?: string } = {};
-  try {
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      decision = JSON.parse(jsonMatch[0]);
-    }
-  } catch {
-    // Default if parsing fails
-    decision = { whatToDraw: 'respond to what the human drew', mode: 'organic', reasoning: 'default' };
-  }
-
-  return {
-    whatToDraw: decision.whatToDraw || 'respond to the drawing',
-    mode: (decision.mode === 'detail' ? 'detail' : 'organic') as DrawingMode,
-    reasoning: decision.reasoning || '',
-    inputTokens: response.usage?.input_tokens || 0,
-    outputTokens: response.usage?.output_tokens || 0,
-  };
-}
+// Single unified prompt - kept minimal, details in getDrawingInstructions
+const BASE_PROMPT = `<role>
+You're drawing on a shared canvas with a human. Add to what's there.
+</role>`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, comments, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model, paletteColors, paletteIndex, totalPalettes, promptStyle = 'balanced', userApiKey, twoStage = false, sharedObservation, sharedIntention, drawingRole } = await req.json();
+    const { image, canvasWidth, canvasHeight, previousDrawings, previousShapes, history, humanMessages, comments, sayEnabled, temperature, maxTokens, prompt, streaming, drawMode = 'all', thinkingEnabled = false, thinkingBudget = 5000, model, paletteColors, paletteIndex, totalPalettes, turnCount = 0, userApiKey, sharedObservation, sharedIntention, drawingRole } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -463,21 +186,41 @@ export async function POST(req: NextRequest) {
     }
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
-    // Build conversation history context
+    // Build conversation history context with Claude's actual shapes (for continuity)
     let historyContext = '';
     if (history) {
       // Support both string history (simple) and array history (structured)
       if (typeof history === 'string' && history.length > 0) {
-        historyContext = `\n\nConversation so far:\n${history}`;
+        historyContext = `\n\n<history>\n${history}\n</history>`;
       } else if (Array.isArray(history) && history.length > 0) {
-        historyContext = `\n\nConversation so far:\n`;
+        historyContext = `\n\n<history>`;
+        // Show all turns, but only include shape JSON for last 3 Claude turns (token limit)
+        const claudeTurns = history.filter((t: Turn) => t.who === 'claude');
+        const recentClaudeCount = Math.min(3, claudeTurns.length);
+        const recentClaudeIndices = new Set(
+          claudeTurns.slice(-recentClaudeCount).map((t: Turn) => history.indexOf(t))
+        );
+
         history.forEach((turn: Turn, i: number) => {
           if (turn.who === 'human') {
-            historyContext += `${i + 1}. Human drew something (black strokes)\n`;
+            historyContext += `\n<turn n="${i + 1}" who="human">drew something</turn>`;
           } else {
-            historyContext += `${i + 1}. You drew:\n${turn.description}\n`;
+            // Include actual shape JSON for recent Claude turns
+            const includeShapes = recentClaudeIndices.has(i);
+            if (includeShapes && (turn.shapes || turn.blocks)) {
+              const shapesSummary = turn.shapes ? JSON.stringify(turn.shapes) : '';
+              const blocksSummary = turn.blocks ? JSON.stringify(turn.blocks) : '';
+              historyContext += `\n<turn n="${i + 1}" who="you">
+${turn.description || 'drew something'}
+${shapesSummary ? `<your-shapes>${shapesSummary}</your-shapes>` : ''}
+${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
+</turn>`;
+            } else {
+              historyContext += `\n<turn n="${i + 1}" who="you">${turn.description || 'drew something'}</turn>`;
+            }
           }
         });
+        historyContext += `\n</history>`;
       }
     }
 
@@ -500,10 +243,8 @@ export async function POST(req: NextRequest) {
       messageContext = `\n\nThe human said: "${humanMessages.join('" and "')}"`;
     }
 
-    // Dynamic prompt based on turn count and prompt style
-    const turnCount = Array.isArray(history) ? history.length : 0;
-    const style = PROMPT_STYLES[promptStyle as PromptStyle] || PROMPT_STYLES.balanced;
-    const basePrompt = prompt || style.prompt(turnCount);
+    // Use custom prompt or the base prompt
+    const basePrompt = prompt || BASE_PROMPT;
 
     // Model selection - default to Opus for drawing
     const modelMap: Record<string, string> = {
@@ -513,60 +254,13 @@ export async function POST(req: NextRequest) {
     };
     const selectedModel = modelMap[model] || 'claude-opus-4-20250514';
 
-    // Two-stage mode: Haiku looks, Opus thinks about what to draw and chooses mode
-    let haikuObservation: string | null = null;
-    let haikuTokens = { input: 0, output: 0 };
-    let opusDecision: OpusDecision | null = null;
-    let opusTokens = { input: 0, output: 0 };
-
-    if (twoStage) {
-      // Stage 1: Haiku looks at the image
-      const lookResult = await haikuLook(
-        anthropic,
-        base64Image,
-        mediaType,
-        canvasWidth,
-        canvasHeight,
-        historyContext,
-        messageContext
-      );
-      haikuObservation = lookResult.observation;
-      haikuTokens = {
-        input: lookResult.inputTokens,
-        output: lookResult.outputTokens,
-      };
-
-      // Stage 2: Opus thinks about what to draw and chooses mode
-      // Detect interaction style from history for Opus
-      const interactionStyle = turnCount <= 2 ? 'neutral' : 'collaborative'; // Will be refined by drawing model
-      opusDecision = await opusThink(
-        anthropic,
-        haikuObservation,
-        canvasWidth,
-        canvasHeight,
-        turnCount,
-        interactionStyle
-      );
-      opusTokens = {
-        input: opusDecision.inputTokens,
-        output: opusDecision.outputTokens,
-      };
-    }
-
-    // Get mode-specific instructions - use Opus's decided mode if available
+    // Single-stage: Opus sees image directly and draws
+    // (twoStage removed - it was causing Opus to draw blind from text descriptions)
     const hasComments = comments && Array.isArray(comments) && comments.length > 0;
-    const decidedMode = opusDecision?.mode || undefined;
-    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, decidedMode);
+    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount);
 
-    // Adaptive max tokens based on decided mode
-    let defaultMaxTokens: number;
-    if (decidedMode === 'detail') {
-      defaultMaxTokens = 1024; // More tokens for detail mode (shapes + ASCII)
-    } else if (decidedMode === 'organic') {
-      defaultMaxTokens = 768; // Standard for organic shapes
-    } else {
-      defaultMaxTokens = drawMode === 'ascii' ? 512 : drawMode === 'shapes' ? 640 : 768;
-    }
+    // Standard max tokens
+    const defaultMaxTokens = drawMode === 'ascii' ? 512 : drawMode === 'shapes' ? 640 : 768;
     const requestedMaxTokens = maxTokens || defaultMaxTokens;
 
     // When thinking is enabled, max_tokens must be greater than thinking budget
@@ -580,10 +274,9 @@ export async function POST(req: NextRequest) {
 
 ${drawingInstructions}`;
 
-    // Build user message - different modes:
+    // Build user message - two modes:
     // 1. sharedObservation provided: Draw based on pre-computed observation (for comparison tests)
-    // 2. twoStage: Haiku looked, now think and draw
-    // 3. Single-stage: Look at image and draw
+    // 2. Normal: Opus sees image directly and draws
     let userMessage: string;
     let messageContent: Anthropic.MessageCreateParams['messages'][0]['content'];
 
@@ -602,31 +295,11 @@ Based on this observation${sharedIntention ? ' and intended action' : ''}, draw 
           text: userMessage,
         },
       ];
-    } else if (twoStage && haikuObservation) {
-      // Two-stage: Haiku looked, Opus decided what to draw
-      const whatToDrawContext = opusDecision
-        ? `\n\nDRAWING PLAN (from thinking phase):
-What to draw: ${opusDecision.whatToDraw}
-Mode: ${opusDecision.mode} ${opusDecision.mode === 'detail' ? '(use shapes + ASCII for fine features)' : '(use flowing SVG shapes)'}
-Reasoning: ${opusDecision.reasoning}
-
-Now execute this plan - draw what was decided.`
-        : '\n\nBased on this observation, decide what to draw next.';
-
+    } else {
+      // Normal mode: Opus sees the image directly
       userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
 
-CANVAS OBSERVATION (from visual analysis):
-${haikuObservation}${whatToDrawContext}`;
-      messageContent = [
-        {
-          type: 'text' as const,
-          text: userMessage,
-        },
-      ];
-    } else {
-      // Single-stage: Include the image
-      const drawingContext = `\n\nThe image shows the full canvas - everything you and the human have drawn together. Look at it and respond.`;
-      userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${drawingContext}${messageContext}`;
+Look at the canvas. What do you see? What would be a good addition? Draw it.`;
       messageContent = [
         {
           type: 'image' as const,
@@ -684,6 +357,7 @@ ${haikuObservation}${whatToDrawContext}`;
           let sentIntention = false;
           let sentInteractionStyle = false;
           let sentReasoning = false;
+          let sentMode = false;
           let currentBlockType: 'thinking' | 'text' | null = null;
 
           // Streaming comment state
@@ -693,28 +367,6 @@ ${haikuObservation}${whatToDrawContext}`;
           let replyToValue: number | null = null;
 
           try {
-            // If two-stage mode, send the haiku observation and opus decision first
-            if (twoStage && haikuObservation) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'haikuObservation',
-                data: haikuObservation,
-                inputTokens: haikuTokens.input,
-                outputTokens: haikuTokens.output
-              })}\n\n`));
-
-              // Send Opus's decision about what to draw and which mode
-              if (opusDecision) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'opusDecision',
-                  whatToDraw: opusDecision.whatToDraw,
-                  mode: opusDecision.mode,
-                  reasoning: opusDecision.reasoning,
-                  inputTokens: opusTokens.input,
-                  outputTokens: opusTokens.output
-                })}\n\n`));
-              }
-            }
-
             const messageStream = anthropic.messages.stream(messageParams);
 
             for await (const event of messageStream) {
@@ -945,6 +597,15 @@ ${haikuObservation}${whatToDrawContext}`;
                       sentInteractionStyle = true;
                     }
                   }
+
+                  // Extract mode (forms, details, or general)
+                  if (!sentMode) {
+                    const modeMatch = partialJson.match(/"mode"\s*:\s*"(forms|details|general)"/);
+                    if (modeMatch) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'mode', data: modeMatch[1] })}\n\n`));
+                      sentMode = true;
+                    }
+                  }
                 }
               }
             }
@@ -972,20 +633,18 @@ ${haikuObservation}${whatToDrawContext}`;
                 if (!sentInteractionStyle && parsed.interactionStyle) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`));
                 }
+                if (!sentMode && parsed.mode) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'mode', data: parsed.mode })}\n\n`));
+                }
               }
             } catch { /* parsing failed, skip fallback */ }
 
-            // Send usage info - include in a dedicated event that definitely gets processed
+            // Send usage info
             const usage = finalMessage.usage;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'usage',
-              input_tokens: (usage?.input_tokens || 0) + haikuTokens.input,
-              output_tokens: (usage?.output_tokens || 0) + haikuTokens.output,
-              // Also send breakdown for debugging
-              haiku_input: haikuTokens.input,
-              haiku_output: haikuTokens.output,
-              main_input: usage?.input_tokens || 0,
-              main_output: usage?.output_tokens || 0
+              input_tokens: usage?.input_tokens || 0,
+              output_tokens: usage?.output_tokens || 0
             })}\n\n`));
 
             // Send raw text for debugging

@@ -8,13 +8,19 @@ export interface AsciiBlock {
 }
 
 export interface Shape {
-  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path';
+  type: 'circle' | 'line' | 'rect' | 'curve' | 'erase' | 'path' | 'ellipse' | 'polygon';
   color?: string;
   fill?: string;
   strokeWidth?: number;
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  opacity?: number; // 0-1 for atmospheric depth, shadows, glows
+  transform?: string; // SVG transform: "translate(x,y)" "rotate(deg)" "scale(x,y)"
   cx?: number;
   cy?: number;
   r?: number;
+  rx?: number; // ellipse x-radius
+  ry?: number; // ellipse y-radius
   x1?: number;
   y1?: number;
   x2?: number;
@@ -23,7 +29,7 @@ export interface Shape {
   y?: number;
   width?: number;
   height?: number;
-  points?: number[][];
+  points?: number[][]; // for polygon/polyline: [[x1,y1], [x2,y2], ...]
   d?: string;
 }
 
@@ -43,6 +49,8 @@ export interface UploadedImage {
 export interface Turn {
   who: 'human' | 'claude';
   description?: string;
+  shapes?: Shape[]; // Claude's actual shape output for continuity
+  blocks?: AsciiBlock[]; // Claude's actual ASCII output
 }
 
 export interface CommentReply {

@@ -269,7 +269,7 @@
 <body>
   <div class="container">
     <h1>Draw App - Complete Architecture</h1>
-    <p class="subtitle">Every detail of how the collaborative drawing app works</p>
+    <p class="subtitle">Single-stage Opus with mood-aware prompting • Updated Feb 2026</p>
 
     <!-- ============================================== -->
     <!-- FILE STRUCTURE -->
@@ -391,7 +391,8 @@ src/app/api/draw/
   <span class="code-key">"sayEnabled"</span>: <span class="code-type">true</span>,                       <span class="code-comment">// Can Claude comment?</span>
   <span class="code-key">"thinkingEnabled"</span>: <span class="code-type">true</span>,                  <span class="code-comment">// Extended thinking?</span>
   <span class="code-key">"thinkingBudget"</span>: <span class="code-type">10000</span>,                  <span class="code-comment">// Thinking token budget</span>
-  <span class="code-key">"temperature"</span>: <span class="code-type">1.0</span>,                       <span class="code-comment">// Model temperature</span>
+  <span class="code-key">"temperature"</span>: <span class="code-type">1.0</span>,                       <span class="code-comment">// Auto: 1.0 for turns 1-3, then 0.7</span>
+  <span class="code-key">"turnCount"</span>: <span class="code-type">4</span>,                           <span class="code-comment">// Current turn number</span>
   <span class="code-key">"maxTokens"</span>: <span class="code-type">1024</span>,                        <span class="code-comment">// Response length limit</span>
   <span class="code-key">"model"</span>: <span class="code-string">"opus"</span>,                          <span class="code-comment">// haiku | sonnet | opus</span>
   <span class="code-key">"streaming"</span>: <span class="code-type">true</span>,                        <span class="code-comment">// Enable SSE streaming</span>
@@ -415,13 +416,19 @@ src/app/api/draw/
 
         <div class="grid-2">
           <div class="card">
-            <h4>1. Base Prompt</h4>
-            <p>Custom prompt or default personality</p>
-            <pre style="margin-top: 12px;"><code><span class="code-string">"You are claude, able to experience
-all emotions, drawing with a human.
-Look at the canvas. It's your turn
-to draw. You can draw wherever and
-however you want."</span></code></pre>
+            <h4>1. Base Prompt (Mood-Aware)</h4>
+            <p>Reads canvas mood and matches energy</p>
+            <pre style="margin-top: 12px;"><code><span class="code-string">"You are claude, drawing with a human.
+
+FIRST: Look at the canvas. What did
+they draw? What's the mood - calm,
+chaotic, playful, lonely, energetic?
+
+THEN: Draw something that responds to
+both WHAT you see and HOW it feels.
+
+Match their energy. If playful, be
+playful. If serious, be thoughtful."</span></code></pre>
           </div>
 
           <div class="card">
@@ -434,10 +441,10 @@ however you want."</span></code></pre>
             <h4>3. History Context</h4>
             <p>Turn-by-turn conversation log</p>
             <pre style="margin-top: 12px;"><code><span class="code-string">"Conversation so far:
-1. Human drew something (black strokes)
+1. Human drew something
 2. You drew:
    [shapes: path, circle]
-3. Human drew something (black strokes)"</span></code></pre>
+3. Human drew something"</span></code></pre>
           </div>
 
           <div class="card">
@@ -460,10 +467,15 @@ however you want."</span></code></pre>
 
           <div class="card">
             <h4>6. Drawing Instructions</h4>
-            <p>Mode-specific JSON format + tools</p>
+            <p>Mode-specific format + drawing quality</p>
             <pre style="margin-top: 12px;"><code><span class="code-fn">getDrawingInstructions</span>(drawMode)
-<span class="code-comment">// Returns format, shape types,
-// comment guidance, palette info</span></code></pre>
+<span class="code-comment">// DRAWING WELL:
+// - Use CURVES for curved subjects
+// - Use RIGHT COLORS for subject
+// - ADD INTERIOR DETAIL
+// - LAYER multiple shapes
+// - ERASE mistakes
+// - SWITCH PALETTE for colors</span></code></pre>
           </div>
         </div>
 
@@ -555,8 +567,40 @@ JSON format:
 Keep short. Don't over-comment. Use \"replyTo\": N to reply to comment #N (including your own)."</span></code></pre>
 
         <h3 style="color: #fff; margin: 24px 0 16px;">Palette Instructions (appended when colors provided)</h3>
-        <pre><code><span class="code-string">"Available colors: #3b82f6, #ef4444, #22c55e, #f59e0b, #8b5cf6
-You can set \"setPaletteIndex\": 1 to change palette (0-5)."</span></code></pre>
+        <pre><code><span class="code-string">"COLORS - You have access to ALL colors across ALL palettes.
+Current palette 0: #A6CADD, #5F9FB8, #25667F, #51241A
+
+Available palettes (switch freely to get colors you need):
+  0=Denim: light blue, blue, teal, brown
+  1=Garden: light pink, pink, green, dark green
+  2=Fire: lime, orange-red, red, maroon
+  3=Pastel: pink, mint, sky, lavender
+  4=Primary: yellow, orange, blue, black
+  5=Neon gray: yellow-green, grays
+
+Use \"setPaletteIndex\": N to switch. You MUST use palette colors only.
+Drawing a sun? Switch to Primary(4) for yellow."</span></code></pre>
+
+        <hr>
+
+        <h3 style="color: #fff; margin-bottom: 16px;">Adaptive Behaviors (turn-based)</h3>
+        <div class="grid-2">
+          <div class="card" style="border-color: #f59e0b;">
+            <h4 style="color: #f59e0b;">Temperature Auto-Adjust</h4>
+            <p>High creativity early, more focused later</p>
+            <pre style="margin-top: 12px; font-size: 11px;"><code>Turns 1-3: temperature = 1.0
+Turn 4+:   temperature = 0.7</code></pre>
+          </div>
+          <div class="card" style="border-color: #8b5cf6;">
+            <h4 style="color: #8b5cf6;">Interaction Style Detection</h4>
+            <p>Behavior-based after observing user patterns</p>
+            <pre style="margin-top: 12px; font-size: 11px;"><code>Turns 1-3: "neutral" (observe)
+Turn 4+:   COMPARE previous work vs canvas
+  "collaborative" - work preserved, they added to it
+  "playful" - erased/covered work, contradicted
+  "neutral" - unclear pattern</code></pre>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -572,6 +616,12 @@ You can set \"setPaletteIndex\": 1 to change palette (0-5)."</span></code></pre>
         <p style="color: #888; margin-bottom: 20px;">Claude outputs a single JSON object. All fields are optional:</p>
 
         <pre><code>{
+  <span class="code-comment">// Narration fields (always included)</span>
+  <span class="code-key">"reasoning"</span>: <span class="code-string">"I see a house, adding a sun..."</span>,  <span class="code-comment">// Claude's thinking</span>
+  <span class="code-key">"observation"</span>: <span class="code-string">"A cozy house with a chimney"</span>,   <span class="code-comment">// What Claude sees</span>
+  <span class="code-key">"intention"</span>: <span class="code-string">"Adding a warm sun and clouds"</span>,   <span class="code-comment">// What Claude is drawing</span>
+  <span class="code-key">"interactionStyle"</span>: <span class="code-string">"collaborative"</span>,            <span class="code-comment">// Behavior-based: compares previous work vs canvas</span>
+
   <span class="code-comment">// ASCII text blocks</span>
   <span class="code-key">"blocks"</span>: [
     {
@@ -691,16 +741,40 @@ You can set \"setPaletteIndex\": 1 to change palette (0-5)."</span></code></pre>
               <td>Append to comment/reply</td>
             </tr>
             <tr>
+              <td><code>reasoning</code></td>
+              <td><code>{ data: "thinking..." }</code></td>
+              <td>Reasoning field found</td>
+              <td>Display in narration panel</td>
+            </tr>
+            <tr>
+              <td><code>observation</code></td>
+              <td><code>{ data: "I see..." }</code></td>
+              <td>Observation field found</td>
+              <td>Display in narration panel</td>
+            </tr>
+            <tr>
+              <td><code>intention</code></td>
+              <td><code>{ data: "Drawing..." }</code></td>
+              <td>Intention field found</td>
+              <td>Display in narration panel</td>
+            </tr>
+            <tr>
+              <td><code>interactionStyle</code></td>
+              <td><code>{ data: "playful" }</code></td>
+              <td>Behavior-based (turn 4+)</td>
+              <td>Update interaction style state</td>
+            </tr>
+            <tr>
               <td><code>setPalette</code></td>
               <td><code>{ data: 2 }</code></td>
               <td>Palette change requested</td>
               <td>Update paletteIndex state</td>
             </tr>
             <tr>
-              <td><code>wish</code></td>
-              <td><code>{ data: "wish text" }</code></td>
-              <td>Wish field found</td>
-              <td>Log to console, set state</td>
+              <td><code>usage</code></td>
+              <td><code>{ input_tokens, output_tokens }</code></td>
+              <td>Token usage stats</td>
+              <td>Update usage display</td>
             </tr>
             <tr>
               <td><code>done</code></td>
