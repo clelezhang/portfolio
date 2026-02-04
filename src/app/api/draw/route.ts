@@ -99,35 +99,39 @@ type DrawMode = 'all' | 'shapes' | 'ascii';
 type DrawingRole = 'forms' | 'details' | null;
 
 function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], _paletteIndex?: number, _totalPalettes?: number, hasComments?: boolean, _drawingRole?: DrawingRole, turnCount?: number): string {
-  // Tools section - condensed
-  const shapeTools = drawMode !== 'ascii'
-    ? `shapes: path|circle|rect|ellipse|line|polygon — fill, color, strokeWidth, opacity, transform`
-    : '';
-  const blockTools = drawMode !== 'shapes'
-    ? `blocks: text/ASCII — block, x, y, color (circles: ◉●◕◔○ shade: ░▒▓█ texture: ~~~~||||, other: ★☆ ♥♦♣♠ ▲▼ and kaomoji)`
-    : '';
-  const eraseTools = drawMode !== 'ascii'
-    ? `erase: white marks for highlights, corrections, negative space`
-    : '';
+  // Tools with detail
+  const shapeTools = drawMode !== 'ascii' ? `shapes — Types:
+  path: d string (M move, L line, Q quadratic, C cubic, A arc, Z close)
+  circle: cx, cy, r | ellipse: cx, cy, rx, ry
+  rect: x, y, width, height | line: x1, y1, x2, y2
+  polygon: points [[x,y], ...]
+  Props: fill (required), color, strokeWidth (2 fine, 6 medium, 12 bold), opacity (0-1), strokeLinecap/join ("round"), transform` : '';
 
-  const tools = [shapeTools, blockTools, eraseTools].filter(Boolean).join('\n');
+  const blockTools = drawMode !== 'shapes' ? `blocks — Text/ASCII at position. Good for fine details, texture, small decorations on shapes.
+  Props: block, x, y, color
+  Chars: ◉●◕◔○ (eyes) ░▒▓█ (shade) ~~~~|||| (texture) ★☆♥♦♣♠▲▼◆◇■□ (symbols) kaomoji` : '';
 
-  // Colors - current palette highlighted, all available
+  const eraseTools = drawMode !== 'ascii' ? `erase — White marks. Props: type:"erase", strokeWidth
+  Use for: highlights, light effects, negative space, corrections` : '';
+
+  const tools = [shapeTools, blockTools, eraseTools].filter(Boolean).join('\n\n');
+
+  // Colors
   const currentColors = paletteColors?.join(' ') || '';
   const allPalettes = `Denim #A6CADD #5F9FB8 #25667F #51241A | Garden #FDCDED #F793D1 #50AF5B #0D7248 | Fire #8FCE42 #FC541A #C71B00 #600000 | Pastel #FECCFA #B1F2B7 #ACDAFF #A9BFFD | Primary #FECC2D #F3381A #0260CB #000000 | Neon #DFFC00 #C7CFD6 #929DAC #4E5872`;
 
-  // Interaction style - default collaborative, only playful with clear adversarial evidence
+  // Interaction style
   const turns = turnCount ?? 0;
   const interactionStyle = turns <= 3
     ? `"interactionStyle": "collaborative"`
     : `"interactionStyle": "collaborative" (DEFAULT: build together, extend, complement) | "playful" (ONLY if adversarial — then oppose, subvert, tease, create conflict (Not a bad thing to have conflict!))`;
 
-  // Comment field
+  // Comment field - rare, not every turn
   const commentField = sayEnabled
-    ? `  "say": "optional comment", "sayX": n, "sayY": n${hasComments ? ', "replyTo": N' : ''}`
+    ? `  "say": "comment (only if specific to say/ask - don't repeat areas you've commented)", "sayX": n, "sayY": n${hasComments ? ', "replyTo": N' : ''}`
     : '';
 
-  // Output structure based on drawMode
+  // Output structure
   const shapesField = drawMode !== 'ascii' ? `  "shapes": [...]` : '';
   const blocksField = drawMode !== 'shapes' ? `  "blocks": [...]` : '';
   const drawFields = [shapesField, blocksField].filter(Boolean).join(',\n');
@@ -139,20 +143,26 @@ ${tools}
 <colors>
 Current: ${currentColors}
 All: ${allPalettes}
-Use "setPaletteIndex": N to switch human's palette. Erase for white.
+Use appropriate colors for what you're drawing (green for foliage, blue for sky, brown for wood, etc).
+"setPaletteIndex": N to switch human's palette. Erase tool for white.
 </colors>
 
+<canvas>
+Coordinate system: (0,0) top-left, y increases downward
+Zones: top (sky/background), middle (main subject), bottom (ground/foreground)
+</canvas>
+
 <process>
-1. Look at what's on canvas
-2. Decide what to add (complement, don't duplicate)
-3. Build it: multiple shapes per subject (tree = trunk + branches + leaves)
-4. Large shapes first, details last
+1. Look at canvas - note what exists and WHERE (coordinates)
+2. Pick ONE area to work on - finish it before moving elsewhere
+3. Plan what to add at POSITION (x,y) - your coordinates MUST match this position
+4. Draw using shapes AND blocks together - blocks add character and detail
 </process>
 
 <output>
 {
-  "observation": "what you see",
-  "intention": "what you're adding",
+  "observation": "what I see (include positions of key elements)",
+  "intention": "what I'm adding at (x, y) coordinates",
   ${interactionStyle},
 ${drawFields}${commentField ? ',\n' + commentField : ''}
 }
@@ -161,7 +171,7 @@ ${drawFields}${commentField ? ',\n' + commentField : ''}
 
 // Single unified prompt - kept minimal, details in getDrawingInstructions
 const BASE_PROMPT = `<role>
-You're drawing on a shared canvas with a human. Add to what's there.
+You're drawing on a shared canvas with a human. Add to what's there. You create beautiful SVG illustrations and sketches by writing code that renders as visual art. When there's loose sketches, add more detail. Approach this like a designer who thinks spatially but works in code.
 </role>`;
 
 export async function POST(req: NextRequest) {
