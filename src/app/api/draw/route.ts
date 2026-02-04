@@ -156,7 +156,7 @@ Zones: top (sky/background), middle (main subject), bottom (ground/foreground)
 1. Look at canvas - note what exists and WHERE (coordinates)
 2. Pick ONE area to work on - finish it before moving elsewhere
 3. Plan what to add at POSITION (x,y) - your coordinates MUST match this position
-4. Draw using shapes AND blocks together - blocks add character and detail
+4. Draw using shapes AND blocks together - blocks add character and detail. They are better for small objects.
 </process>
 
 <output>
@@ -344,9 +344,10 @@ Look at the canvas. What do you see? What would be a good addition? Draw it.`;
         },
       ],
       // Extended thinking - when enabled, temperature must not be set
+      // Early turns (≤2): higher temp for exploration, later: lower for focus
       ...(thinkingEnabled
         ? { thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget } }
-        : { temperature: temperature ?? 1.0 }),
+        : { temperature: temperature ?? (turnCount <= 3 ? 1.0 : 0.7) }),
     };
 
     // Streaming mode
