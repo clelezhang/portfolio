@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Point, Tool } from '../types';
 import { PencilCursor } from './icons/PencilCursor';
 import { CommentCursor } from './icons/CommentCursor';
@@ -11,7 +12,7 @@ interface CustomCursorProps {
   strokeColor: string;
 }
 
-export function CustomCursor({
+export const CustomCursor = memo(function CustomCursor({
   cursorPos,
   isPanning,
   isTouch,
@@ -19,7 +20,8 @@ export function CustomCursor({
   asciiStroke,
   strokeColor,
 }: CustomCursorProps) {
-  if (!cursorPos || isPanning || isTouch) return null;
+  // Don't show custom cursor when: no position, panning, touch, or select mode
+  if (!cursorPos || isPanning || isTouch || tool === 'select') return null;
 
   return (
     <div
@@ -60,4 +62,4 @@ export function CustomCursor({
       )}
     </div>
   );
-}
+});

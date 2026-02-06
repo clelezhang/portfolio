@@ -1,4 +1,5 @@
-import { Comment, Point } from '../types';
+import { memo } from 'react';
+import { Comment, Point, Tool } from '../types';
 import { COMMENT_DOT_SIZE, COMMENT_HIT_AREA_SIZE } from '../constants';
 
 interface CommentSystemProps {
@@ -18,9 +19,10 @@ interface CommentSystemProps {
   hasCommentInput?: boolean;
   onCloseCommentInput?: () => void;
   onUserReply?: (index: number, text: string) => void;
+  tool: Tool;
 }
 
-export function CommentSystem({
+export const CommentSystem = memo(function CommentSystem({
   comments,
   strokeColor,
   openCommentIndex,
@@ -37,7 +39,11 @@ export function CommentSystem({
   hasCommentInput,
   onCloseCommentInput,
   onUserReply,
+  tool,
 }: CommentSystemProps) {
+  // Only allow comment interaction in comment/select mode, otherwise let drawing pass through
+  const isInteractive = tool === 'comment' || tool === 'select';
+
   return (
     <>
       {comments.map((comment, i) => {
@@ -52,6 +58,7 @@ export function CommentSystem({
             className="draw-comment-hit-area"
             style={{
               left: screenPos.x - COMMENT_HIT_AREA_SIZE / 2,
+              pointerEvents: isInteractive ? 'auto' : 'none',
               top: screenPos.y - COMMENT_HIT_AREA_SIZE / 2,
               width: COMMENT_HIT_AREA_SIZE,
               height: COMMENT_HIT_AREA_SIZE,
@@ -126,7 +133,7 @@ export function CommentSystem({
       })}
     </>
   );
-}
+});
 
 interface CommentPopupProps {
   comment: Comment;

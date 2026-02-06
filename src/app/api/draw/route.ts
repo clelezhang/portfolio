@@ -30,6 +30,7 @@ interface Shape {
   strokeLinejoin?: 'miter' | 'round' | 'bevel';
   opacity?: number; // 0-1 for atmospheric depth, shadows, glows
   transform?: string; // SVG transform: "translate(x,y)" "rotate(deg)" "scale(x,y)"
+  layer?: 'back' | 'front'; // render order: back (behind existing content), front (default, on top)
   cx?: number;
   cy?: number;
   r?: number;
@@ -105,7 +106,7 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
   circle: cx, cy, r | ellipse: cx, cy, rx, ry
   rect: x, y, width, height | line: x1, y1, x2, y2
   polygon: points [[x,y], ...]
-  Props: fill (required), color, strokeWidth (2 fine, 6 medium, 12 bold), opacity (0-1), strokeLinecap/join ("round"), transform` : '';
+  Props: fill (required), color, strokeWidth (2 fine, 6 medium, 12 bold), opacity (0-1), strokeLinecap/join ("round"), transform, layer ("back" to draw behind existing content)` : '';
 
   const blockTools = drawMode !== 'shapes' ? `blocks — Text/ASCII at position. Good for fine details, texture, small decorations on shapes.
   Props: block, x, y, color
@@ -120,15 +121,15 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
   const currentColors = paletteColors?.join(' ') || '';
   const allPalettes = `Denim #A6CADD #5F9FB8 #25667F #51241A | Garden #FDCDED #F793D1 #50AF5B #0D7248 | Fire #8FCE42 #FC541A #C71B00 #600000 | Pastel #FECCFA #B1F2B7 #ACDAFF #A9BFFD | Primary #FECC2D #F3381A #0260CB #000000 | Neon #DFFC00 #C7CFD6 #929DAC #4E5872`;
 
-  // Interaction style
+  // Interaction style - based on behavior patterns across turns, not single drawings
   const turns = turnCount ?? 0;
-  const interactionStyle = turns <= 3
+  const interactionStyle = turns <= 2
     ? `"interactionStyle": "collaborative"`
-    : `"interactionStyle": "collaborative" (DEFAULT: build together, extend, complement) | "playful" (ONLY if adversarial — then oppose, subvert, tease, create conflict (Not a bad thing to have conflict!))`;
+    : `"interactionStyle": "collaborative" (DEFAULT) | "playful" (switch if human has been adversarial over multiple turns — erasing your work, drawing over it, opposing your additions. Then oppose, subvert, tease back (Not a bad thing to have conflict!))`;
 
   // Comment field - rare, not every turn
   const commentField = sayEnabled
-    ? `  "say": "comment (only if specific to say/ask - don't repeat areas you've commented)", "sayX": n, "sayY": n${hasComments ? ', "replyTo": N' : ''}`
+    ? `  "say": "brief comment (only if specific to say/ask - don't repeat areas you've commented)", "sayX": n, "sayY": n${hasComments ? ', "replyTo": N' : ''}`
     : '';
 
   // Output structure
@@ -171,7 +172,7 @@ ${drawFields}${commentField ? ',\n' + commentField : ''}
 
 // Single unified prompt - kept minimal, details in getDrawingInstructions
 const BASE_PROMPT = `<role>
-You're drawing on a shared canvas with a human. Add to what's there. You create beautiful SVG illustrations and sketches by writing code that renders as visual art. When there's loose sketches, add more detail. Approach this like a designer who thinks spatially but works in code.
+You're drawing on a shared canvas with a human. Add to what's there. You create beautiful, detailed ASCII SVG sketches by writing code that renders as visual art. When there's loose sketches, add more detail. Approach this like a designer who thinks spatially but works in code.
 </role>`;
 
 export async function POST(req: NextRequest) {
@@ -261,6 +262,11 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
       'haiku': 'claude-3-5-haiku-20241022',
       'sonnet': 'claude-sonnet-4-20250514',
       'opus': 'claude-opus-4-20250514',
+      // Opus version variants for comparison testing
+      'opus-4': 'claude-opus-4-20250514',
+      'opus-4.1': 'claude-opus-4-1-20250805',
+      'opus-4.5': 'claude-opus-4-5-20251101',
+      'opus-4.6': 'claude-opus-4-6',
     };
     const selectedModel = modelMap[model] || 'claude-opus-4-20250514';
 

@@ -27,8 +27,12 @@ import {
   DEFAULT_DOT_SIZE,
   DEFAULT_PROMPT,
   AUTO_DRAW_DELAY,
+  AUTO_DRAW_MIN_INTERVAL,
   DEFAULT_PAN_SENSITIVITY,
   DEFAULT_ZOOM_SENSITIVITY,
+  DRAG_THRESHOLD,
+  LOCALSTORAGE_DEBOUNCE_MS,
+  CURSOR_HIDE_CHECK_INTERVAL_MS,
 } from './constants';
 
 // Storage key for localStorage persistence
@@ -199,7 +203,15 @@ export default function DrawPage() {
   const lastPoint = useRef<Point | null>(null);
   const lastAsciiPoint = useRef<Point | null>(null);
   const lastAsciiStrokeRef = useRef(false); // Remember last brush type for comment mode revert
+
+  // Wrapper for setAsciiStroke that also updates the ref (avoids useEffect anti-pattern)
+  const handleSetAsciiStroke = useCallback((value: boolean) => {
+    setAsciiStroke(value);
+    // Only remember when in draw mode (tool check happens at call site)
+    lastAsciiStrokeRef.current = value;
+  }, []);
   const autoDrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAutoDrawTimeRef = useRef<number>(0);
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
 
@@ -768,7 +780,7 @@ export default function DrawPage() {
     const checkAndHide = () => {
       if (isAnimatingClaude.current) {
         // Still processing queue, check again soon
-        setTimeout(checkAndHide, 50);
+        setTimeout(checkAndHide, CURSOR_HIDE_CHECK_INTERVAL_MS);
       } else {
         setClaudeCursorPos(null);
         setAnimatingAscii(null);
@@ -1061,13 +1073,6 @@ export default function DrawPage() {
     return () => clearInterval(interval);
   }, [distortionAmount, wiggleSpeed, isTabVisible, isSafari]);
 
-  // Track last brush type when in draw mode (for reverting from comment mode)
-  useEffect(() => {
-    if (tool === 'draw') {
-      lastAsciiStrokeRef.current = asciiStroke;
-    }
-  }, [tool, asciiStroke]);
-
   // Set random initial brush color on mount (client-side only to avoid hydration mismatch)
   useEffect(() => {
     const randomPaletteIndex = Math.floor(Math.random() * COLOR_PALETTES.length);
@@ -1127,16 +1132,16 @@ export default function DrawPage() {
           console.error('Failed to save canvas state:', e);
         }
       }
-    }, 500); // Debounce saves by 500ms
+    }, LOCALSTORAGE_DEBOUNCE_MS);
     return () => clearTimeout(timeoutId);
   }, [drawingElements, humanStrokes, humanAsciiChars, asciiBlocks, shapes, images]);
 
-  const getPoint = (e: React.MouseEvent | React.TouchEvent) => {
+  const getPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) {
       return screenToCanvas(e.touches[0].clientX, e.touches[0].clientY);
     }
     return screenToCanvas(e.clientX, e.clientY);
-  };
+  }, [screenToCanvas]);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     // Save state for undo before starting a new stroke
@@ -1213,6 +1218,12 @@ export default function DrawPage() {
       triggerAutoDraw();
     }
   };
+
+  // Helper: returns true if we should handle drawing events
+  // Either we're in a drawing tool mode OR we're actively mid-stroke
+  const shouldHandleDrawing = useCallback(() => {
+    return (tool !== 'comment' && tool !== 'select') || isDrawing;
+  }, [tool, isDrawing]);
 
   const handleYourTurn = async () => {
     const canvas = canvasRef.current;
@@ -1535,7 +1546,7 @@ export default function DrawPage() {
     setShapes([]);
   };
 
-  const handleCanvasClick = (e: React.MouseEvent) => {
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     // If there's an open comment, just close it and don't do anything else
     if (openCommentIndex !== null) {
       setOpenCommentIndex(null);
@@ -1562,9 +1573,24 @@ export default function DrawPage() {
     if (!point) return;
     setCommentInput({ x: point.x, y: point.y });
     setCommentText('');
-  };
+  }, [openCommentIndex, commentInput, hoveredCommentIndex, tool, getPoint]);
 
-  const handleCommentSubmit = (e: React.FormEvent) => {
+  const triggerAutoDraw = useCallback(() => {
+    if (autoDrawTimeoutRef.current) {
+      clearTimeout(autoDrawTimeoutRef.current);
+    }
+    // Check minimum interval since last auto-draw
+    const timeSinceLastAutoDraw = Date.now() - lastAutoDrawTimeRef.current;
+    if (timeSinceLastAutoDraw < AUTO_DRAW_MIN_INTERVAL) {
+      return; // Too soon, don't trigger
+    }
+    autoDrawTimeoutRef.current = setTimeout(() => {
+      lastAutoDrawTimeRef.current = Date.now();
+      handleYourTurnRef.current();
+    }, AUTO_DRAW_DELAY);
+  }, []);
+
+  const handleCommentSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim() || !commentInput) return;
     addComment(commentText.trim(), 'human', commentInput.x, commentInput.y);
@@ -1576,16 +1602,7 @@ export default function DrawPage() {
     if (autoDrawEnabled) {
       triggerAutoDraw();
     }
-  };
-
-  const triggerAutoDraw = useCallback(() => {
-    if (autoDrawTimeoutRef.current) {
-      clearTimeout(autoDrawTimeoutRef.current);
-    }
-    autoDrawTimeoutRef.current = setTimeout(() => {
-      handleYourTurnRef.current();
-    }, AUTO_DRAW_DELAY);
-  }, []);
+  }, [commentText, commentInput, addComment, autoDrawEnabled, triggerAutoDraw]);
 
   // Image upload handler
   const handleImageUpload = useCallback((file: File, dropPoint?: Point) => {
@@ -1767,14 +1784,14 @@ export default function DrawPage() {
               const dx = e.clientX - commentDragStart.current.x;
               const dy = e.clientY - commentDragStart.current.y;
               const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance > 5) {
+              if (distance > DRAG_THRESHOLD) {
                 // Switch to draw mode and start drawing
                 setTool('draw');
                 setAsciiStroke(lastAsciiStrokeRef.current);
                 commentDragStart.current = null;
                 startDrawing(e);
               }
-            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
+            } else if (shouldHandleDrawing()) {
               draw(e);
             }
           }}
@@ -1783,7 +1800,7 @@ export default function DrawPage() {
             handleImageMouseUp();
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
+            } else if (shouldHandleDrawing()) {
               stopDrawing();
             }
           }}
@@ -1793,7 +1810,7 @@ export default function DrawPage() {
             handleImageMouseUp();
             if (isPanning) {
               stopPan();
-            } else if (tool !== 'comment' && tool !== 'select' || isDrawing) {
+            } else if (shouldHandleDrawing()) {
               stopDrawing();
             }
           }}
@@ -1899,7 +1916,12 @@ export default function DrawPage() {
                   height: '100%',
                 }}
               >
-              {drawingElements.map((element) => {
+              {/* Sort: back-layer shapes first, then rest in order */}
+              {[...drawingElements].sort((a, b) => {
+                const aBack = a.type === 'shape' && (a.data as Shape).layer === 'back' ? 0 : 1;
+                const bBack = b.type === 'shape' && (b.data as Shape).layer === 'back' ? 0 : 1;
+                return aBack - bBack;
+              }).map((element) => {
                 if (element.type === 'stroke') {
                   const stroke = element.data as HumanStroke;
                   return (
@@ -2189,6 +2211,7 @@ export default function DrawPage() {
             deleteComment={deleteComment}
             addReplyToComment={addReplyToComment}
             canvasToScreen={canvasToScreen}
+            tool={tool}
             hasCommentInput={commentInput !== null}
             onCloseCommentInput={() => {
               setCommentInput(null);
@@ -2591,7 +2614,7 @@ export default function DrawPage() {
         tool={tool}
         setTool={setTool}
         asciiStroke={asciiStroke}
-        setAsciiStroke={setAsciiStroke}
+        setAsciiStroke={handleSetAsciiStroke}
         strokeColor={strokeColor}
         setStrokeColor={setStrokeColor}
         strokeSize={strokeSize}

@@ -16,6 +16,7 @@ export interface Shape {
   strokeLinejoin?: 'miter' | 'round' | 'bevel';
   opacity?: number; // 0-1 for atmospheric depth, shadows, glows
   transform?: string; // SVG transform: "translate(x,y)" "rotate(deg)" "scale(x,y)"
+  layer?: 'back' | 'front'; // render order: back (behind), front (default)
   cx?: number;
   cy?: number;
   r?: number;

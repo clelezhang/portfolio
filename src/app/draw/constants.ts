@@ -28,7 +28,8 @@ Available to you:
 
 You can: draw shapes, draw text, comment, or express a wish.`;
 
-export const AUTO_DRAW_DELAY = 2000;
+export const AUTO_DRAW_DELAY = 3000;
+export const AUTO_DRAW_MIN_INTERVAL = 10000; // Minimum 10s between auto-draws
 export const WIGGLE_SPEED = 168;
 export const DISTORTION_AMOUNT = 2;
 
@@ -37,3 +38,9 @@ export const ZOOM_MAX = 4;
 
 export const DEFAULT_PAN_SENSITIVITY = 1.1;
 export const DEFAULT_ZOOM_SENSITIVITY = 1.1;
+
+// UI interaction thresholds
+export const DRAG_THRESHOLD = 5; // Minimum pixel distance before drag is recognized
+export const LOCALSTORAGE_DEBOUNCE_MS = 500; // Debounce delay for localStorage saves
+export const ANIMATION_FRAME_DELAY_MS = 15; // Base delay between animation frames
+export const CURSOR_HIDE_CHECK_INTERVAL_MS = 50; // Polling interval to check if Claude cursor should hide
