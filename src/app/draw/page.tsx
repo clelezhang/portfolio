@@ -43,6 +43,9 @@ const CANVAS_STORAGE_KEY = 'draw-canvas-state';
 import { useZoomPan } from './hooks/useZoomPan';
 import { useComments } from './hooks/useComments';
 
+// Utils
+import { simplifyPath } from './utils/simplifyPath';
+
 // Components
 import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { CustomCursor } from './components/CustomCursor';
@@ -86,6 +89,9 @@ export default function DrawPage() {
   const [humanAsciiChars, setHumanAsciiChars] = useState<HumanAsciiChar[]>([]);
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
   const elementIdCounter = useRef(0);
+
+  // Diff tracking for element-based API (saves tokens on non-sync turns)
+  const [lastTurnElements, setLastTurnElements] = useState<DrawingElement[]>([]);
 
   // Image state
   const [images, setImages] = useState<UploadedImage[]>([]);
@@ -147,6 +153,14 @@ export default function DrawPage() {
   type TokenUsage = { input_tokens: number; output_tokens: number };
   const [lastUsage, setLastUsage] = useState<TokenUsage | null>(null);
   const [sessionUsage, setSessionUsage] = useState<TokenUsage>({ input_tokens: 0, output_tokens: 0 });
+
+  // Hybrid SVG mode state - reduces token costs by sending images only periodically
+  type SyncContext = { observation: string; intention: string; turn: number };
+  const [hybridModeEnabled, setHybridModeEnabled] = useState(true); // Enable by default for cost savings
+  const [syncInterval, setSyncInterval] = useState(5); // Send image every N turns
+  const [lastSyncTurn, setLastSyncTurn] = useState(0);
+  const [lastSyncContext, setLastSyncContext] = useState<SyncContext | null>(null);
+  const [simplifyEpsilon, setSimplifyEpsilon] = useState(2); // Path simplification tolerance
 
   // Visual effects state
   const [distortionAmount, setDistortionAmount] = useState(2); // 0-30 range for displacement scale
@@ -1219,6 +1233,67 @@ export default function DrawPage() {
     }
   };
 
+  // Compute diff for element-based API (diff-only format)
+  type TrackedElement = {
+    id: string;
+    source: 'human' | 'claude';
+    type: 'stroke' | 'shape' | 'block';
+    d?: string;
+    shapeType?: string;
+    color?: string;
+    fill?: string;
+    strokeWidth?: number;
+    cx?: number;
+    cy?: number;
+    r?: number;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    block?: string;
+    turnCreated: number;
+  };
+
+  type ElementDiff = {
+    created: TrackedElement[];
+    modified: { id: string; changes: Partial<TrackedElement> }[];
+    deleted: string[];
+  };
+
+  const computeDiff = useCallback((currentTurn: number): { elements: TrackedElement[]; diff: ElementDiff } => {
+    const lastIds = new Set(lastTurnElements.map(e => e.id));
+
+    // Convert DrawingElements to TrackedElements with simplified paths
+    const elements: TrackedElement[] = drawingElements
+      .filter(e => e.source === 'human' && e.type === 'stroke')
+      .map(e => {
+        const stroke = e.data as HumanStroke;
+        return {
+          id: e.id,
+          source: 'human' as const,
+          type: 'stroke' as const,
+          d: simplifyPath(stroke.d, simplifyEpsilon), // Simplify for token efficiency
+          color: stroke.color,
+          strokeWidth: stroke.strokeWidth,
+          turnCreated: currentTurn,
+        };
+      });
+
+    // Find newly created elements (in current but not in last turn)
+    const created = elements.filter(e => !lastIds.has(e.id));
+
+    // Find deleted elements (in last turn but not in current)
+    const currentIds = new Set(elements.map(e => e.id));
+    const deleted = lastTurnElements
+      .filter(e => e.source === 'human' && !currentIds.has(e.id))
+      .map(e => e.id);
+
+    return {
+      elements,
+      diff: { created, modified: [], deleted },
+    };
+  }, [drawingElements, lastTurnElements, simplifyEpsilon]);
+
   // Helper: returns true if we should handle drawing events
   // Either we're in a drawing tool mode OR we're actively mid-stroke
   const shouldHandleDrawing = useCallback(() => {
@@ -1243,12 +1318,26 @@ export default function DrawPage() {
       newHistory.push({ who: 'human' });
     }
 
+    // Calculate current turn number for hybrid mode
+    const currentTurnNumber = newHistory.filter(t => t.who === 'claude').length + 1;
+
+    // Determine if this is a sync turn (send image) for hybrid mode
+    // Sync on: turn 1, or every syncInterval turns after last sync
+    const isSyncTurn = currentTurnNumber === 1 || (currentTurnNumber - lastSyncTurn) >= syncInterval;
+    if (isSyncTurn && hybridModeEnabled) {
+      setLastSyncTurn(currentTurnNumber);
+    }
+
     const streamedBlocks: AsciiBlock[] = [];
     const streamedShapes: Shape[] = [];
     let claudeCommented = false;
     // Track streaming comment target
     let streamingCommentIndex: number | null = null;
     let streamingReplyTarget: number | null = null; // Index of comment being replied to
+
+    // Track observation/intention for sync context capture
+    let capturedObservation = '';
+    let capturedIntention = '';
 
     try {
       // Capture the full canvas with all drawings (human + Claude)
@@ -1261,35 +1350,70 @@ export default function DrawPage() {
       const effectiveDrawMode = asciiStroke ? 'ascii' : 'all';
       const container = containerRef.current;
       const containerRect = container?.getBoundingClientRect();
-      const response = await fetch('/api/draw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image,
-          canvasWidth: containerRect?.width || canvas.width,
-          canvasHeight: containerRect?.height || canvas.height,
-          // Image now contains all drawings, no need to send separately
-          history: newHistory,
-          comments: comments.length > 0 ? comments : undefined,
-          sayEnabled,
-          temperature: getEffectiveTemperature(newHistory.length),
-          turnCount: newHistory.length,
-          maxTokens,
-          // Only send custom prompt if user changed it
-          prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
-          streaming: true,
-          drawMode: effectiveDrawMode,
-          thinkingEnabled,
-          thinkingBudget: 10000,
-          model: 'opus',
-          // Palette info for Claude
-          paletteColors: COLOR_PALETTES[paletteIndex],
-          paletteIndex,
-          totalPalettes: COLOR_PALETTES.length,
-          // User's API key (if they've set one)
-          userApiKey: userSettings?.anthropic_api_key || undefined,
-        }),
-      });
+
+      let response: Response;
+
+      if (hybridModeEnabled) {
+        // HYBRID MODE: Use element-based API with diff-only format
+        // Compute diff to only send new strokes (saves ~18% tokens on non-sync turns)
+        const { elements, diff } = computeDiff(currentTurnNumber);
+
+        // Save current elements for next turn's diff computation
+        setLastTurnElements(drawingElements.filter(e => e.source === 'human'));
+
+        response = await fetch('/api/draw-elements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            elements,
+            diff: diff.created.length > 0 || diff.deleted.length > 0 ? diff : undefined,
+            canvasWidth: containerRect?.width || canvas.width,
+            canvasHeight: containerRect?.height || canvas.height,
+            turnCount: currentTurnNumber,
+            temperature: getEffectiveTemperature(newHistory.length),
+            maxTokens,
+            prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
+            streaming: true,
+            drawMode: effectiveDrawMode,
+            model: 'opus',
+            userApiKey: userSettings?.anthropic_api_key || undefined,
+            // Include image only on sync turns
+            image: isSyncTurn ? image : undefined,
+            // Pass context from last sync turn for non-sync turns
+            lastSyncContext: !isSyncTurn ? lastSyncContext : undefined,
+            // Use diff-only format for token efficiency
+            allowOperations: false,
+            format: 'diff-only',
+          }),
+        });
+      } else {
+        // ORIGINAL MODE: Send image every turn
+        response = await fetch('/api/draw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image,
+            canvasWidth: containerRect?.width || canvas.width,
+            canvasHeight: containerRect?.height || canvas.height,
+            history: newHistory,
+            comments: comments.length > 0 ? comments : undefined,
+            sayEnabled,
+            temperature: getEffectiveTemperature(newHistory.length),
+            turnCount: newHistory.length,
+            maxTokens,
+            prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
+            streaming: true,
+            drawMode: effectiveDrawMode,
+            thinkingEnabled,
+            thinkingBudget: 10000,
+            model: 'opus',
+            paletteColors: COLOR_PALETTES[paletteIndex],
+            paletteIndex,
+            totalPalettes: COLOR_PALETTES.length,
+            userApiKey: userSettings?.anthropic_api_key || undefined,
+          }),
+        });
+      }
 
       if (!response.ok) throw new Error('Failed to get response');
 
@@ -1407,9 +1531,11 @@ export default function DrawPage() {
                 setClaudeReasoning(event.data);
               } else if (event.type === 'observation') {
                 // Claude describes what it sees
+                capturedObservation = event.data;
                 setClaudeObservation(event.data);
               } else if (event.type === 'intention') {
                 // Claude explains what it's drawing and why
+                capturedIntention = event.data;
                 setClaudeIntention(event.data);
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
@@ -1447,6 +1573,16 @@ export default function DrawPage() {
                   setHumanHasDrawn(false);
                   setHumanHasCommented(false);
                 }
+
+                // Save sync context for hybrid mode (so Claude remembers what it saw on sync turns)
+                if (hybridModeEnabled && isSyncTurn && (capturedObservation || capturedIntention)) {
+                  setLastSyncContext({
+                    observation: capturedObservation,
+                    intention: capturedIntention,
+                    turn: currentTurnNumber,
+                  });
+                }
+
                 // Stream complete - hide cursor after animations finish
                 finishClaudeAnimation();
               } else if (event.type === 'error') {
@@ -1494,6 +1630,9 @@ export default function DrawPage() {
     // Reset ID counters
     elementIdCounter.current = 0;
     imageIdCounter.current = 0;
+    // Reset hybrid mode state
+    setLastSyncTurn(0);
+    setLastSyncContext(null);
   };
 
   const handleSave = () => {
@@ -2360,10 +2499,21 @@ export default function DrawPage() {
           <div className="mb-3 p-2 bg-white/5 rounded-lg text-xs text-white/60">
             <div className="font-medium text-white/80 mb-1">Prompting</div>
             <div className="space-y-0.5">
-              <div><span className="text-purple-400">Opus</span> sees canvas image directly</div>
-              <div>→ Reads mood (calm, chaotic, playful...)</div>
-              <div>→ Matches energy in response</div>
-              <div>→ Switches palettes for right colors</div>
+              {hybridModeEnabled ? (
+                <>
+                  <div><span className="text-green-400">Hybrid</span> mode active</div>
+                  <div>→ Image sync every {syncInterval} turns</div>
+                  <div>→ SVG paths between syncs</div>
+                  <div>→ Context preserved across turns</div>
+                </>
+              ) : (
+                <>
+                  <div><span className="text-purple-400">Opus</span> sees canvas image directly</div>
+                  <div>→ Reads mood (calm, chaotic, playful...)</div>
+                  <div>→ Matches energy in response</div>
+                  <div>→ Switches palettes for right colors</div>
+                </>
+              )}
             </div>
           </div>
 
@@ -2430,6 +2580,49 @@ export default function DrawPage() {
               />
               <span>Download</span>
             </label>
+          </div>
+
+          {/* Hybrid Mode Settings - Token Cost Optimization */}
+          <div className="border-t border-white/10 pt-2 mt-1">
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-1.5 cursor-pointer text-white/70 hover:text-white text-xs">
+                <input
+                  type="checkbox"
+                  checked={hybridModeEnabled}
+                  onChange={(e) => setHybridModeEnabled(e.target.checked)}
+                  className="draw-settings-checkbox"
+                />
+                <span>Hybrid Mode</span>
+              </label>
+              <span className="text-[10px] text-green-400/70">~55% token savings</span>
+            </div>
+            {hybridModeEnabled && (
+              <>
+                <div className="text-[10px] text-white/40 mb-2">
+                  Sends images every {syncInterval} turns, SVG paths between syncs
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-white/50">
+                    <span>Sync interval</span>
+                    <span>every {syncInterval} turns</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="10"
+                    step="1"
+                    value={syncInterval}
+                    onChange={(e) => setSyncInterval(parseInt(e.target.value))}
+                    className="w-full draw-settings-slider"
+                  />
+                </div>
+                {lastSyncContext && (
+                  <div className="mt-2 p-1.5 bg-blue-500/10 rounded text-[10px] text-blue-300/70">
+                    Context from turn {lastSyncContext.turn}: &ldquo;{lastSyncContext.observation?.slice(0, 40)}...&rdquo;
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Sliders */}

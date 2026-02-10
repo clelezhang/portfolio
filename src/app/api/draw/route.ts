@@ -315,7 +315,7 @@ Based on this observation${sharedIntention ? ' and intended action' : ''}, draw 
       // Normal mode: Opus sees the image directly
       userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
 
-Look at the canvas. What do you see? What would be a good addition? Draw it.`;
+Look at the canvas. What do you see? What could be a good addition? How can that addition be beautiful and inspiring? Draw it.`;
       messageContent = [
         {
           type: 'image' as const,
