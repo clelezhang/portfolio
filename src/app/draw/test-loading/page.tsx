@@ -57,14 +57,18 @@ function applyEasing(t: number, easing: string): number {
 }
 
 const DEFAULT_PHASES: AnimationPhase[] = [
-  { id: 'circle-to-rays', name: 'Circle → Rays', startProgress: 0, endProgress: 1, duration: 0.8, easing: 'ease-out' },
-  { id: 'cardinals-grow', name: 'Cardinals Grow', startProgress: 1, endProgress: 2, duration: 0.5, easing: 'ease-in-out' },
-  { id: 'diagonals-catch-up', name: 'Diagonals Catch Up', startProgress: 2, endProgress: 3, duration: 0.5, easing: 'ease-in-out' },
-  { id: 'rays-grow', name: 'Rays Grow + Face Gone', startProgress: 3, endProgress: 4, duration: 0.4, easing: 'ease-out' },
-  { id: 'spinning', name: 'Spinning', startProgress: 4, endProgress: 5, duration: 1.0, easing: 'linear' },
+  // Forward phases (0-5)
+  { id: 'circle-to-rays', name: 'Circle → Rays', startProgress: 0, endProgress: 1, duration: 0.125, easing: 'bounce' },
+  { id: 'cardinals-grow', name: 'Cardinals Grow', startProgress: 1, endProgress: 2, duration: 0.2, easing: 'ease-in' },
+  { id: 'diagonals-catch-up', name: 'Diagonals Catch Up', startProgress: 2, endProgress: 3, duration: 0.15, easing: 'ease-in' },
+  { id: 'rays-grow', name: 'Rays Grow + Face Gone', startProgress: 3, endProgress: 4, duration: 0.3, easing: 'ease-in' },
+  { id: 'spinning', name: 'Spinning', startProgress: 4, endProgress: 5, duration: 3, easing: 'linear' },
+  // Reverse phase (5-10) - single smooth morph back to circle
+  { id: 'morph-to-circle', name: 'Morph → Circle', startProgress: 5, endProgress: 10, duration: 0.25, easing: 'ease-out' },
 ];
 
 const ANIMATION_STATES = [
+  // Forward states
   { id: 'circle', name: 'Circle', progress: 0, description: 'Actual circle with face', phaseId: 'circle-to-rays' },
   { id: 'circle-to-rays', name: 'Circle → Rays (mid)', progress: 0.5, description: 'Circle breaking into curved arcs', phaseId: 'circle-to-rays' },
   { id: 'rays-8', name: '8 Short Rays', progress: 1, description: 'All 8 rays visible, short length (g2)', phaseId: 'cardinals-grow' },
@@ -74,6 +78,9 @@ const ANIMATION_STATES = [
   { id: 'rays-7-even', name: '7 Rays (g4)', progress: 3, description: 'All 7 rays even, face disappears + rays grow', phaseId: 'rays-grow' },
   { id: 'rays-growing', name: 'Rays Growing (g5)', progress: 3.5, description: 'Rays growing to max length', phaseId: 'rays-grow' },
   { id: 'spinning', name: 'Spinning', progress: 4, description: 'Spinner rotating at g5 length', phaseId: 'spinning' },
+  // Reverse states (direct morph)
+  { id: 'morph-mid', name: 'Morphing Back', progress: 7.5, description: 'Rays curving into circle', phaseId: 'morph-to-circle' },
+  { id: 'circle-end', name: 'Circle (End)', progress: 10, description: 'Back to circle with face', phaseId: 'morph-to-circle' },
 ];
 
 export default function LoadingAnimationsTestPage() {
@@ -85,13 +92,31 @@ export default function LoadingAnimationsTestPage() {
 
   // Animation playback
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const [animProgress, setAnimProgress] = useState(0);
   const [animSpeed, setAnimSpeed] = useState(1);
-  const animRef = useRef<number>();
+  const animRef = useRef<number | undefined>(undefined);
+  const pauseTimeRef = useRef<number>(0); // Track time when paused
 
   // Animation editor state
   const [phases, setPhases] = useState<AnimationPhase[]>(DEFAULT_PHASES);
   const [spinSpeed, setSpinSpeed] = useState(1); // rotations per second
+  const [circlePauseDuration, setCirclePauseDuration] = useState(0.5); // pause at circle before looping
+  const [flipArcDirection, setFlipArcDirection] = useState(false); // flip arc curve direction on reverse
+  // Spin effects
+  const [spinStrokeDash, setSpinStrokeDash] = useState(true); // 1: Material Design stroke animation
+  const [spinGravity, setSpinGravity] = useState(true); // 2: Asymmetric speed (gravity effect)
+  const [spinElastic, setSpinElastic] = useState(false); // 3: Elastic overshoot at positions
+  const [spinOpacityFade, setSpinOpacityFade] = useState(false); // 4: Apple-style opacity trail
+  // Fine-tuning params
+  const [strokePulseSpeed, setStrokePulseSpeed] = useState(2); // cycles per second
+  const [strokeMinVisible, setStrokeMinVisible] = useState(0.5); // minimum visible ratio (0-1)
+  const [strokeStagger, setStrokeStagger] = useState(0.3); // stagger offset per ray
+  const [gravityStrength, setGravityStrength] = useState(0.45); // speed variation (0-1)
+  const [spinUpDuration, setSpinUpDuration] = useState(0.3); // seconds to ramp up to full speed
+  const [opacityFadeMin, setOpacityFadeMin] = useState(0.2); // minimum opacity for trail
+  const [steppedSpeed, setSteppedSpeed] = useState(8); // steps per second for Apple-style
 
   const currentState = ANIMATION_STATES[currentStateIndex];
 
@@ -107,7 +132,7 @@ export default function LoadingAnimationsTestPage() {
 
   // Export animation config
   const exportConfig = () => {
-    const config = { phases, spinSpeed, totalDuration };
+    const config = { phases, spinSpeed, circlePauseDuration, totalDuration };
     navigator.clipboard.writeText(JSON.stringify(config, null, 2));
   };
 
@@ -133,14 +158,15 @@ export default function LoadingAnimationsTestPage() {
       }
     }
 
-    return Math.min(progress, 5);
+    return Math.min(progress, 10);
   };
 
   // Full animation playback
   const startTimeRef = useRef<number>(0);
+  const accumulatedTimeRef = useRef<number>(0); // Track accumulated time for pause/resume
 
   useEffect(() => {
-    if (!isAnimating) {
+    if (!isAnimating || isPaused || isScrubbing) {
       if (animRef.current) cancelAnimationFrame(animRef.current);
       return;
     }
@@ -148,14 +174,29 @@ export default function LoadingAnimationsTestPage() {
     startTimeRef.current = performance.now();
 
     const animate = (time: number) => {
-      const elapsed = (time - startTimeRef.current) / 1000;
-      const progress = timeToProgress(elapsed);
+      const delta = (time - startTimeRef.current) / 1000;
+      startTimeRef.current = time;
+      accumulatedTimeRef.current += delta * animSpeed;
+
+      const scaledElapsed = accumulatedTimeRef.current;
+
+      // Account for circle pause at the start of each loop
+      let progress: number;
+      if (scaledElapsed < circlePauseDuration) {
+        // Hold at circle (progress 0) during pause
+        progress = 0;
+      } else {
+        // After pause, run normal animation
+        progress = timeToProgress((scaledElapsed - circlePauseDuration) / animSpeed);
+      }
 
       setAnimProgress(progress);
 
-      // Loop after total duration + some spin time
-      if (elapsed * animSpeed > totalDuration + 1) {
-        startTimeRef.current = time;
+      // Loop after full animation (forward + reverse)
+      // Don't loop - just stop at the end
+      if (progress >= 10) {
+        setAnimProgress(10);
+        return;
       }
 
       animRef.current = requestAnimationFrame(animate);
@@ -165,7 +206,25 @@ export default function LoadingAnimationsTestPage() {
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [isAnimating, animSpeed, phases, totalDuration]);
+  }, [isAnimating, isPaused, isScrubbing, animSpeed, phases, totalDuration, circlePauseDuration]);
+
+  // Convert progress back to accumulated time (for scrubbing)
+  const progressToTime = (progress: number): number => {
+    // Inverse of timeToProgress - approximate
+    let time = 0;
+    for (const phase of phases) {
+      if (progress <= phase.startProgress) break;
+      if (progress < phase.endProgress) {
+        const phaseRange = phase.endProgress - phase.startProgress;
+        const t = (progress - phase.startProgress) / phaseRange;
+        time += t * phase.duration;
+        break;
+      } else {
+        time += phase.duration;
+      }
+    }
+    return circlePauseDuration + time * animSpeed;
+  };
 
   // Add comment for current state
   const addComment = () => {
@@ -200,227 +259,270 @@ export default function LoadingAnimationsTestPage() {
   const currentPhaseIndex = phases.findIndex(p => p.id === currentState.phaseId);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Animation Annotation Tool</h1>
-        <p className="text-gray-400 mb-6">Scrub through states, adjust animation for each phase</p>
+    <div className="min-h-screen bg-white text-black flex">
+      {/* Sticky Left Preview */}
+      <div className="w-48 border-r border-black/5 p-6 sticky top-0 h-screen flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-28 h-28 border border-black/10 rounded-2xl flex items-center justify-center mb-4">
+            <GAnimationPreview
+              progress={isAnimating ? animProgress : currentState.progress}
+              isPlaying={((isAnimating && animProgress >= 4 && animProgress < 5) || isSpinning) && !isPaused && !isScrubbing}
+              size={64}
+              spinSpeed={spinSpeed * animSpeed}
+              flipArcDirection={flipArcDirection}
+              spinOptions={{
+                strokeDash: spinStrokeDash,
+                gravity: spinGravity,
+                elastic: spinElastic,
+                opacityFade: spinOpacityFade,
+                strokePulseSpeed: strokePulseSpeed * animSpeed,
+                strokeMinVisible,
+                strokeStagger,
+                gravityStrength,
+                spinUpDuration,
+                opacityFadeMin,
+                steppedSpeed: steppedSpeed * animSpeed,
+              }}
+            />
+          </div>
+          <div className="text-xs text-black/40 text-center mb-4">{currentState.name}</div>
 
-        {/* Top: Full Animation Player (Compact) */}
-        <div className="bg-gray-800 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-6">
-            {/* Preview */}
-            <div className="w-24 h-24 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
-              <GAnimationPreview
-                progress={isAnimating ? animProgress : currentState.progress}
-                isPlaying={isAnimating && animProgress >= 4}
-                size={64}
-                spinSpeed={spinSpeed}
-              />
+          {/* Play Controls */}
+          <div className="flex gap-1 mb-3">
+            <button
+              onClick={() => {
+                if (isAnimating) {
+                  setIsAnimating(false);
+                  setIsPaused(false);
+                  accumulatedTimeRef.current = 0;
+                } else {
+                  setAnimProgress(0);
+                  accumulatedTimeRef.current = 0;
+                  setIsAnimating(true);
+                  setIsPaused(false);
+                }
+              }}
+              className="px-2 py-1 text-xs border border-black/10 rounded hover:bg-black/5"
+            >
+              {isAnimating ? '■' : '▶'}
+            </button>
+            {isAnimating && (
+              <button
+                onClick={() => setIsPaused(!isPaused)}
+                className={`px-2 py-1 text-xs border border-black/10 rounded hover:bg-black/5 ${isPaused ? 'bg-black/5' : ''}`}
+              >
+                {isPaused ? '▶' : '❚❚'}
+              </button>
+            )}
+            {/* Step buttons */}
+            <button
+              onClick={() => {
+                const step = 0.1;
+                const newProgress = Math.max(0, animProgress - step);
+                setAnimProgress(newProgress);
+                accumulatedTimeRef.current = progressToTime(newProgress);
+                if (!isAnimating) setIsAnimating(true);
+                setIsPaused(true);
+              }}
+              className="px-2 py-1 text-xs border border-black/10 rounded hover:bg-black/5"
+            >
+              ←
+            </button>
+            <button
+              onClick={() => {
+                const step = 0.1;
+                const newProgress = Math.min(10, animProgress + step);
+                setAnimProgress(newProgress);
+                accumulatedTimeRef.current = progressToTime(newProgress);
+                if (!isAnimating) setIsAnimating(true);
+                setIsPaused(true);
+              }}
+              className="px-2 py-1 text-xs border border-black/10 rounded hover:bg-black/5"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Scrubber */}
+          <div className="w-full mb-3">
+            <input
+              type="range"
+              min="0"
+              max="10"
+              step="0.01"
+              value={animProgress}
+              onChange={(e) => {
+                const newProgress = parseFloat(e.target.value);
+                setAnimProgress(newProgress);
+                accumulatedTimeRef.current = progressToTime(newProgress);
+              }}
+              onMouseDown={() => {
+                setIsScrubbing(true);
+                if (!isAnimating) setIsAnimating(true);
+                setIsPaused(true);
+              }}
+              onMouseUp={() => setIsScrubbing(false)}
+              onTouchStart={() => {
+                setIsScrubbing(true);
+                if (!isAnimating) setIsAnimating(true);
+                setIsPaused(true);
+              }}
+              onTouchEnd={() => setIsScrubbing(false)}
+              className="w-full accent-black/30"
+            />
+            <div className="text-[10px] text-black/30 text-center">
+              {animProgress.toFixed(2)} / 10.00
             </div>
+          </div>
 
-            {/* Controls */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
+          {/* Speed Presets */}
+          <div className="w-full mb-3">
+            <div className="text-[10px] text-black/30 mb-1">Speed</div>
+            <div className="flex gap-1">
+              {[0.1, 0.25, 0.5, 1].map(speed => (
                 <button
-                  onClick={() => {
-                    if (isAnimating) {
-                      setIsAnimating(false);
-                    } else {
-                      setAnimProgress(0);
-                      setIsAnimating(true);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 text-sm font-semibold"
+                  key={speed}
+                  onClick={() => setAnimSpeed(speed)}
+                  className={`flex-1 px-1 py-1 text-[10px] border border-black/10 rounded hover:bg-black/5 ${
+                    animSpeed === speed ? 'bg-black text-white' : ''
+                  }`}
                 >
-                  {isAnimating ? '⏸ Pause' : '▶ Play All'}
+                  {speed}x
                 </button>
+              ))}
+            </div>
+          </div>
 
-                {isAnimating && (
-                  <button
-                    onClick={() => { setIsAnimating(false); setAnimProgress(0); }}
-                    className="px-3 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm"
-                  >
-                    ⏹
-                  </button>
-                )}
+          {/* Flip arc direction toggle */}
+          <button
+            onClick={() => setFlipArcDirection(!flipArcDirection)}
+            className={`w-full px-2 py-1.5 text-[10px] rounded mb-3 ${
+              flipArcDirection ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
+            }`}
+          >
+            {flipArcDirection ? '↺ Flip Arc' : '↻ Normal Arc'}
+          </button>
 
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-gray-500">Speed:</span>
-                  <input
-                    type="number"
-                    min="0.1"
-                    max="5"
-                    step="0.1"
-                    value={animSpeed}
-                    onChange={(e) => setAnimSpeed(parseFloat(e.target.value) || 1)}
-                    className="w-12 px-1 py-0.5 bg-gray-700 rounded text-center"
-                  />
-                  <span className="text-gray-400">x</span>
-                </div>
+          {/* Spin button */}
+          {currentState.id === 'spinning' && (
+            <button
+              onClick={() => setIsSpinning(!isSpinning)}
+              className="w-full px-3 py-1.5 text-xs border border-black/10 rounded hover:bg-black/5 mb-3"
+            >
+              {isSpinning ? 'Stop Spin' : 'Spin'}
+            </button>
+          )}
 
-                <div className="ml-auto flex items-center gap-2">
-                  <button onClick={exportConfig} className="px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-xs">Export</button>
-                  <button onClick={() => setPhases(DEFAULT_PHASES)} className="px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs">Reset All</button>
-                </div>
-              </div>
-
-              {/* Timeline with clickable phases */}
-              <div className="h-8 bg-gray-900 rounded flex overflow-hidden">
-                {phases.map((phase, index) => {
-                  const widthPercent = (phase.duration / totalDuration) * 100;
-                  const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-purple-500'];
-                  const isCurrentPhase = phase.id === currentState.phaseId;
-                  return (
-                    <div
-                      key={phase.id}
-                      className={`${colors[index % colors.length]} ${isCurrentPhase ? 'ring-2 ring-white ring-inset' : ''} flex items-center justify-center text-[10px] font-medium border-r border-gray-700 last:border-r-0 cursor-pointer hover:brightness-110`}
-                      style={{ width: `${widthPercent}%` }}
-                      title={`${phase.name}: ${phase.duration}s`}
-                      onClick={() => {
-                        const stateForPhase = ANIMATION_STATES.findIndex(s => s.phaseId === phase.id);
-                        if (stateForPhase >= 0) setCurrentStateIndex(stateForPhase);
-                      }}
-                    >
-                      {widthPercent > 15 && <span className="truncate px-1">{phase.name.split(' ')[0]}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="text-[10px] text-gray-500 mt-1">
-                Total: {totalDuration.toFixed(1)}s • {isAnimating ? `Progress: ${animProgress.toFixed(2)}` : 'Click phase to jump'}
-              </div>
+          {/* Circle Pause Duration */}
+          <div className="w-full text-[10px] text-black/40">
+            <div className="flex justify-between items-center">
+              <span>Hold at start</span>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={circlePauseDuration}
+                onChange={(e) => setCirclePauseDuration(parseFloat(e.target.value) || 0)}
+                className="w-12 px-1 py-0.5 border border-black/10 rounded text-center text-black/60 focus:outline-none"
+              />
             </div>
           </div>
         </div>
 
-        {/* Main Content: Scrub States + Per-State Phase Editor */}
-        <div className="flex gap-6 mb-8">
-          {/* Left: State Scrubber */}
-          <div className="bg-gray-800 rounded-xl p-5 w-72 flex-shrink-0">
-            <h2 className="text-sm font-semibold mb-3">Scrub States</h2>
+        {/* Export/Reset at bottom */}
+        <div className="flex gap-2 text-[10px]">
+          <button onClick={exportConfig} className="text-black/30 hover:text-black/60">Export</button>
+          <button onClick={() => setPhases(DEFAULT_PHASES)} className="text-black/30 hover:text-black/60">Reset</button>
+        </div>
+      </div>
 
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-24 h-24 bg-white rounded-xl flex items-center justify-center">
-                <GAnimationPreview progress={currentState.progress} isPlaying={isSpinning && currentState.id === 'spinning'} />
-              </div>
-            </div>
-
-            {/* State Info */}
-            <div className="text-center mb-4">
-              <div className="text-lg font-semibold">{currentState.name}</div>
-              <div className="text-sm text-gray-400">{currentState.description}</div>
-              <div className="text-xs text-gray-500 mt-1">Progress: {currentState.progress}</div>
-            </div>
-
-            {/* State Navigation */}
-            <div className="flex items-center gap-2 mb-4">
-              <button
-                onClick={() => setCurrentStateIndex(Math.max(0, currentStateIndex - 1))}
-                disabled={currentStateIndex === 0}
-                className="px-3 py-2 bg-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-600"
-              >
-                ← Prev
-              </button>
-
-              <div className="flex-1 text-center text-sm text-gray-400">
-                {currentStateIndex + 1} / {ANIMATION_STATES.length}
-              </div>
-
-              <button
-                onClick={() => setCurrentStateIndex(Math.min(ANIMATION_STATES.length - 1, currentStateIndex + 1))}
-                disabled={currentStateIndex === ANIMATION_STATES.length - 1}
-                className="px-3 py-2 bg-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-600"
-              >
-                Next →
-              </button>
-            </div>
-
-            {/* State Scrubber */}
-            <div className="mb-4">
-              <input
-                type="range"
-                min="0"
-                max={ANIMATION_STATES.length - 1}
-                value={currentStateIndex}
-                onChange={(e) => setCurrentStateIndex(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                {ANIMATION_STATES.map((s, i) => (
+      {/* Main Content */}
+      <div className="flex-1 p-8">
+        <div className="max-w-3xl">
+          {/* Timeline */}
+          <div className="mb-10">
+            <div className="h-2 bg-black/5 rounded-full overflow-hidden flex">
+              {phases.map((phase, index) => {
+                const widthPercent = (phase.duration / totalDuration) * 100;
+                const colors = ['bg-blue-400', 'bg-emerald-400', 'bg-amber-400', 'bg-orange-400', 'bg-purple-400'];
+                const isCurrentPhase = phase.id === currentState.phaseId;
+                return (
                   <div
-                    key={s.id}
-                    className={`w-2 h-2 rounded-full cursor-pointer ${i === currentStateIndex ? 'bg-blue-500' : 'bg-gray-600'}`}
-                    onClick={() => setCurrentStateIndex(i)}
+                    key={phase.id}
+                    className={`${colors[index % colors.length]} ${isCurrentPhase ? 'opacity-100' : 'opacity-40'} cursor-pointer hover:opacity-70 transition-opacity`}
+                    style={{ width: `${widthPercent}%` }}
+                    onClick={() => {
+                      const stateForPhase = ANIMATION_STATES.findIndex(s => s.phaseId === phase.id);
+                      if (stateForPhase >= 0) setCurrentStateIndex(stateForPhase);
+                    }}
                   />
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-black/30 mt-2">{totalDuration.toFixed(1)}s total</div>
+          </div>
+
+          {/* Content Grid */}
+          <div className="grid grid-cols-[180px_1fr] gap-10">
+            {/* States */}
+            <div>
+              <div className="text-[10px] text-black/30 uppercase tracking-widest mb-4">States</div>
+              <div className="space-y-0.5">
+                {ANIMATION_STATES.map((state, i) => (
+                  <button
+                    key={state.id}
+                    onClick={() => setCurrentStateIndex(i)}
+                    className={`w-full flex items-center gap-3 px-2 py-1.5 rounded text-left ${
+                      i === currentStateIndex ? 'bg-black/5' : 'hover:bg-black/[0.02]'
+                    }`}
+                  >
+                    <div className="w-5 h-5 border border-black/10 rounded flex items-center justify-center flex-shrink-0">
+                      <GAnimationPreview progress={state.progress} isPlaying={false} size={12} />
+                    </div>
+                    <span className="text-xs text-black/50">{state.name}</span>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Play/Pause for spinning state */}
-            {currentState.id === 'spinning' && (
-              <button
-                onClick={() => setIsSpinning(!isSpinning)}
-                className="w-full px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 text-sm"
-              >
-                {isSpinning ? '⏸ Pause Spin' : '▶ Play Spin'}
-              </button>
-            )}
-          </div>
-
-          {/* Right: Per-State Phase Editor */}
-          <div className="flex-1 bg-gray-800 rounded-xl p-5">
+            {/* Phase Editor */}
+            <div>
             {currentPhase && (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-sm font-semibold">Phase: {currentPhase.name}</h2>
-                    <p className="text-xs text-gray-500">Progress {currentPhase.startProgress} → {currentPhase.endProgress}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold">
-                      {currentPhaseIndex + 1}
-                    </span>
-                  </div>
+                <div className="text-[10px] text-black/30 uppercase tracking-widest mb-6">
+                  {currentPhase.name}
                 </div>
 
-                {/* Duration Control */}
-                <div className="mb-5">
-                  <label className="text-xs text-gray-400 block mb-2">Duration</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="3"
-                      step="0.05"
-                      value={currentPhase.duration}
-                      onChange={(e) => updatePhase(currentPhase.id, 'duration', parseFloat(e.target.value))}
-                      className="flex-1"
-                    />
-                    <input
-                      type="number"
-                      min="0.05"
-                      max="10"
-                      step="0.05"
-                      value={currentPhase.duration}
-                      onChange={(e) => updatePhase(currentPhase.id, 'duration', parseFloat(e.target.value) || 0.1)}
-                      className="w-20 px-2 py-1.5 bg-gray-700 rounded text-sm text-center"
-                    />
-                    <span className="text-sm text-gray-500">seconds</span>
+                {/* Duration */}
+                <div className="mb-6">
+                  <div className="flex justify-between text-xs text-black/40 mb-2">
+                    <span>Duration</span>
+                    <span>{currentPhase.duration.toFixed(2)}s</span>
                   </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.05"
+                    value={currentPhase.duration}
+                    onChange={(e) => updatePhase(currentPhase.id, 'duration', parseFloat(e.target.value))}
+                    className="w-full accent-black/30"
+                  />
                 </div>
 
-                {/* Easing Control */}
-                <div className="mb-5">
-                  <label className="text-xs text-gray-400 block mb-2">Easing</label>
-                  <div className="grid grid-cols-3 gap-2">
+                {/* Easing */}
+                <div className="mb-6">
+                  <div className="text-xs text-black/40 mb-2">Easing</div>
+                  <div className="flex flex-wrap gap-1">
                     {EASING_OPTIONS.map(opt => (
                       <button
                         key={opt.value}
                         onClick={() => updatePhase(currentPhase.id, 'easing', opt.value)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        className={`px-2 py-1 text-xs rounded ${
                           currentPhase.easing === opt.value
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            ? 'bg-black text-white'
+                            : 'text-black/40 hover:text-black/60'
                         }`}
                       >
                         {opt.label}
@@ -429,10 +531,9 @@ export default function LoadingAnimationsTestPage() {
                   </div>
                 </div>
 
-                {/* Easing Curve Preview */}
-                <div className="mb-5">
-                  <label className="text-xs text-gray-400 block mb-2">Easing Curve</label>
-                  <div className="h-16 bg-gray-900 rounded-lg overflow-hidden p-2">
+                {/* Easing Curve */}
+                <div className="mb-6">
+                  <div className="h-12 border border-black/10 rounded">
                     <svg className="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
                       <path
                         d={`M 0 40 ${Array.from({ length: 101 }, (_, i) => {
@@ -441,20 +542,25 @@ export default function LoadingAnimationsTestPage() {
                           return `L ${i} ${y}`;
                         }).join(' ')}`}
                         fill="none"
-                        stroke="#a855f7"
-                        strokeWidth="2"
+                        stroke="black"
+                        strokeWidth="1"
+                        strokeOpacity="0.3"
                       />
-                      <line x1="0" y1="40" x2="100" y2="40" stroke="#374151" strokeWidth="0.5" />
-                      <line x1="0" y1="4" x2="100" y2="4" stroke="#374151" strokeWidth="0.5" strokeDasharray="2,2" />
                     </svg>
                   </div>
                 </div>
 
-                {/* Spin Speed (only for spinning phase) */}
+                {/* Spin Settings */}
                 {currentPhase.id === 'spinning' && (
-                  <div className="mb-5">
-                    <label className="text-xs text-gray-400 block mb-2">Spin Speed</label>
-                    <div className="flex items-center gap-3">
+                  <>
+                    <div className="h-px bg-black/10 my-6" />
+
+                    {/* Spin Speed */}
+                    <div className="mb-6">
+                      <div className="flex justify-between text-xs text-black/40 mb-2">
+                        <span>Spin Speed</span>
+                        <span>{spinSpeed} rot/s</span>
+                      </div>
                       <input
                         type="range"
                         min="0.25"
@@ -462,122 +568,130 @@ export default function LoadingAnimationsTestPage() {
                         step="0.25"
                         value={spinSpeed}
                         onChange={(e) => setSpinSpeed(parseFloat(e.target.value))}
-                        className="flex-1"
+                        className="w-full accent-black/30"
                       />
-                      <input
-                        type="number"
-                        min="0.1"
-                        max="10"
-                        step="0.1"
-                        value={spinSpeed}
-                        onChange={(e) => setSpinSpeed(parseFloat(e.target.value) || 1)}
-                        className="w-20 px-2 py-1.5 bg-gray-700 rounded text-sm text-center"
-                      />
-                      <span className="text-sm text-gray-500">rot/s</span>
                     </div>
-                  </div>
-                )}
 
-                {/* Quick Actions */}
-                <div className="flex gap-2 mt-6 pt-4 border-t border-gray-700">
-                  <button
-                    onClick={() => {
-                      const defaultPhase = DEFAULT_PHASES.find(p => p.id === currentPhase.id);
-                      if (defaultPhase) {
-                        updatePhase(currentPhase.id, 'duration', defaultPhase.duration);
-                        updatePhase(currentPhase.id, 'easing', defaultPhase.easing);
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                  >
-                    Reset Phase
-                  </button>
-                  <button
-                    onClick={() => updatePhase(currentPhase.id, 'duration', currentPhase.duration * 2)}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                  >
-                    2x Slower
-                  </button>
-                  <button
-                    onClick={() => updatePhase(currentPhase.id, 'duration', Math.max(0.1, currentPhase.duration / 2))}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                  >
-                    2x Faster
-                  </button>
-                </div>
+                    {/* Spin-up */}
+                    <div className="mb-6">
+                      <div className="flex justify-between text-xs text-black/40 mb-2">
+                        <span>Spin-up</span>
+                        <span>{spinUpDuration.toFixed(2)}s</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.05"
+                        value={spinUpDuration}
+                        onChange={(e) => setSpinUpDuration(parseFloat(e.target.value))}
+                        className="w-full accent-black/30"
+                      />
+                    </div>
+
+                    {/* Effects */}
+                    <div className="mb-6">
+                      <div className="text-xs text-black/40 mb-2">Effects</div>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => setSpinStrokeDash(!spinStrokeDash)}
+                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                            spinStrokeDash ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
+                          }`}
+                        >
+                          {spinStrokeDash ? '✓ ' : ''}Stroke Dash
+                        </button>
+                        <button
+                          onClick={() => { setSpinGravity(!spinGravity); if (!spinGravity) setSpinElastic(false); }}
+                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                            spinGravity ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
+                          }`}
+                        >
+                          {spinGravity ? '✓ ' : ''}Gravity
+                        </button>
+                        <button
+                          onClick={() => { setSpinElastic(!spinElastic); if (!spinElastic) setSpinGravity(false); }}
+                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                            spinElastic ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
+                          }`}
+                        >
+                          {spinElastic ? '✓ ' : ''}Elastic
+                        </button>
+                        <button
+                          onClick={() => setSpinOpacityFade(!spinOpacityFade)}
+                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                            spinOpacityFade ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
+                          }`}
+                        >
+                          {spinOpacityFade ? '✓ ' : ''}Opacity Trail
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Stroke Dash Settings */}
+                    {spinStrokeDash && (
+                      <div className="mb-6 pl-3 border-l border-black/10">
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex justify-between text-xs text-black/40 mb-1">
+                              <span>Pulse Speed</span>
+                              <span>{strokePulseSpeed.toFixed(1)}/s</span>
+                            </div>
+                            <input type="range" min="0.5" max="5" step="0.1" value={strokePulseSpeed}
+                              onChange={(e) => setStrokePulseSpeed(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-xs text-black/40 mb-1">
+                              <span>Min Visible</span>
+                              <span>{(strokeMinVisible * 100).toFixed(0)}%</span>
+                            </div>
+                            <input type="range" min="0" max="0.9" step="0.05" value={strokeMinVisible}
+                              onChange={(e) => setStrokeMinVisible(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-xs text-black/40 mb-1">
+                              <span>Stagger</span>
+                              <span>{strokeStagger.toFixed(2)}</span>
+                            </div>
+                            <input type="range" min="0" max="0.3" step="0.01" value={strokeStagger}
+                              onChange={(e) => setStrokeStagger(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Gravity Settings */}
+                    {spinGravity && (
+                      <div className="mb-6 pl-3 border-l border-black/10">
+                        <div className="flex justify-between text-xs text-black/40 mb-1">
+                          <span>Strength</span>
+                          <span>±{(gravityStrength * 100).toFixed(0)}%</span>
+                        </div>
+                        <input type="range" min="0.1" max="1" step="0.05" value={gravityStrength}
+                          onChange={(e) => setGravityStrength(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                      </div>
+                    )}
+
+                    {/* Opacity Trail Settings */}
+                    {spinOpacityFade && (
+                      <div className="mb-6 pl-3 border-l border-black/10">
+                        <div className="flex justify-between text-xs text-black/40 mb-1">
+                          <span>Step Speed</span>
+                          <span>{steppedSpeed}/s</span>
+                        </div>
+                        <input type="range" min="2" max="20" step="1" value={steppedSpeed}
+                          onChange={(e) => setSteppedSpeed(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
         </div>
-
-        {/* Comments Section (collapsed) */}
-        <details className="bg-gray-800 rounded-xl mb-8">
-          <summary className="p-4 cursor-pointer text-sm font-medium hover:bg-gray-700/50 rounded-xl">
-            Comments ({comments.length})
-          </summary>
-          <div className="p-4 pt-0">
-            <div className="flex gap-4">
-              <textarea
-                value={currentComment}
-                onChange={(e) => setCurrentComment(e.target.value)}
-                placeholder={`Comment on "${currentState.name}"...`}
-                className="flex-1 h-16 bg-gray-700 rounded-lg p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={addComment}
-                disabled={!currentComment.trim()}
-                className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-sm h-fit"
-              >
-                Add
-              </button>
-            </div>
-            {stateComments.length > 0 && (
-              <div className="mt-3">
-                {stateComments.map((c, i) => (
-                  <div key={i} className="bg-gray-700 rounded-lg p-2 mb-1 text-xs">{c.comment}</div>
-                ))}
-              </div>
-            )}
-            {comments.length > 0 && (
-              <button onClick={copyJson} className="mt-3 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs">
-                {jsonCopied ? '✓ Copied!' : '📋 Copy JSON'}
-              </button>
-            )}
-          </div>
-        </details>
-
-        {/* Quick State Overview */}
-        <div className="mt-8 bg-gray-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4">All States</h2>
-          <div className="grid grid-cols-5 gap-4">
-            {ANIMATION_STATES.map((state, i) => (
-              <button
-                key={state.id}
-                onClick={() => setCurrentStateIndex(i)}
-                className={`p-3 rounded-lg text-center transition-colors ${
-                  i === currentStateIndex
-                    ? 'bg-blue-600'
-                    : comments.some(c => c.state === state.id)
-                    ? 'bg-gray-700 ring-2 ring-green-500'
-                    : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                <div className="w-12 h-12 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center">
-                  <GAnimationPreview progress={state.progress} isPlaying={false} size={32} />
-                </div>
-                <div className="text-xs truncate">{state.name}</div>
-                {comments.some(c => c.state === state.id) && (
-                  <div className="text-[10px] text-green-400 mt-1">
-                    {comments.filter(c => c.state === state.id).length} comment(s)
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
       </div>
     </div>
+  </div>
   );
 }
 
@@ -786,22 +900,128 @@ function lerp(a: number, b: number, t: number): number {
 // G Animation Preview - controlled by progress prop
 // ============================================
 
-function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { progress: number; isPlaying: boolean; size?: number; spinSpeed?: number }) {
+interface SpinOptions {
+  strokeDash?: boolean;  // 1: Material Design - stroke grows/shrinks as it rotates
+  gravity?: boolean;     // 2: Asymmetric speed - faster at bottom, slower at top
+  elastic?: boolean;     // 3: Elastic overshoot at key rotation positions
+  opacityFade?: boolean; // 4: Apple-style opacity trail on spokes
+  // Fine-tuning params
+  strokePulseSpeed?: number; // cycles per second for stroke dash
+  strokeMinVisible?: number; // minimum visible ratio (0-1)
+  strokeStagger?: number;    // stagger offset per ray
+  gravityStrength?: number;  // speed variation amount (0-1)
+  spinUpDuration?: number;   // seconds to ramp up to full speed
+  opacityFadeMin?: number;   // minimum opacity for trail (0-1)
+  steppedSpeed?: number;     // steps per second for Apple-style rotation
+}
+
+function GAnimationPreview({
+  progress,
+  isPlaying,
+  size = 64,
+  spinSpeed = 1,
+  spinOptions = {},
+  flipArcDirection = false
+}: {
+  progress: number;
+  isPlaying: boolean;
+  size?: number;
+  spinSpeed?: number;
+  spinOptions?: SpinOptions;
+  flipArcDirection?: boolean;
+}) {
   const [spinAngle, setSpinAngle] = useState(0);
-  const animationRef = useRef<number>();
+  const [strokeDashOffset, setStrokeDashOffset] = useState(0); // For material design effect
+  const [effectRamp, setEffectRamp] = useState(0); // 0-1 ramp for stroke dash fade-in
+  const animationRef = useRef<number | undefined>(undefined);
+  const angleRef = useRef(0); // Track angle without causing re-renders
+
 
   // Spin animation when playing
   useEffect(() => {
     if (!isPlaying) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      setSpinAngle(0); // Reset angle when not spinning
+      setEffectRamp(0); // Reset effect ramp
+      angleRef.current = 0;
       return;
     }
 
-    let lastTime = performance.now();
+    const startTime = performance.now();
+    let lastTime = startTime;
+    angleRef.current = 0; // Reset on play
+
     const animate = (time: number) => {
       const delta = (time - lastTime) / 1000;
+      const elapsed = (time - startTime) / 1000;
       lastTime = time;
-      setSpinAngle(a => (a + delta * 360 * spinSpeed) % 360);
+
+      // Gradual spin-up: ramp from 0 to full speed
+      const spinUpDur = spinOptions.spinUpDuration ?? 0.3;
+      const spinUpProgress = spinUpDur > 0 ? Math.min(1, elapsed / spinUpDur) : 1;
+      // Ease-out curve for natural acceleration
+      const spinUpMultiplier = 1 - Math.pow(1 - spinUpProgress, 3);
+
+      let newAngle: number;
+
+      if (spinOptions.opacityFade) {
+        // Apple-style: stepped rotation (discrete 45° jumps)
+        // Uses steppedSpeed (steps per second) instead of spinSpeed
+        const stepsPerRotation = 8;
+        const stepAngle = 360 / stepsPerRotation;
+        const speed = spinOptions.steppedSpeed ?? 8;
+        const effectiveSpeed = speed * spinUpMultiplier;
+        const totalSteps = Math.floor(elapsed * effectiveSpeed);
+        newAngle = (totalSteps * stepAngle) % 360;
+      } else if (spinOptions.gravity) {
+        // 2: Gravity effect - speed varies based on position
+        // Faster when rays point down (like gravity pulling), slower at top
+        const currentAngle = angleRef.current % 360;
+        const radians = (currentAngle * Math.PI) / 180;
+        const strength = spinOptions.gravityStrength ?? 0.5;
+        // At 90° (bottom), sin=1 → fastest. At 270° (top), sin=-1 → slowest
+        const gravityMultiplier = 1 + strength * Math.sin(radians);
+        const effectiveSpeed = spinSpeed * gravityMultiplier * spinUpMultiplier;
+        newAngle = (angleRef.current + delta * 360 * effectiveSpeed) % 360;
+      } else if (spinOptions.elastic) {
+        // 5: Elastic overshoot - overshoots and settles at 90° intervals
+        // Creates a "notchy" feel like it wants to snap to positions
+        const baseAngle = elapsed * 360 * spinSpeed * spinUpMultiplier;
+        const notchInterval = 90; // degrees between "notches"
+        const notchProgress = (baseAngle % notchInterval) / notchInterval;
+
+        // Elastic easing with overshoot using spring physics
+        let elasticT: number;
+        const c4 = (2 * Math.PI) / 3;
+        if (notchProgress < 0.7) {
+          // Main movement with overshoot
+          const t = notchProgress / 0.7;
+          elasticT = 1 + Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) * 0.3;
+        } else {
+          // Settle phase
+          elasticT = 1;
+        }
+
+        const notchBase = Math.floor(baseAngle / notchInterval) * notchInterval;
+        newAngle = (notchBase + elasticT * notchInterval) % 360;
+      } else {
+        // Default linear rotation with spin-up
+        const effectiveSpeed = spinSpeed * spinUpMultiplier;
+        newAngle = (angleRef.current + delta * 360 * effectiveSpeed) % 360;
+      }
+
+      angleRef.current = newAngle;
+      setSpinAngle(newAngle);
+
+      // 1: Stroke dash animation (Material Design effect)
+      if (spinOptions.strokeDash) {
+        // Cycle the dash offset for growing/shrinking stroke effect
+        const pulseSpeed = spinOptions.strokePulseSpeed ?? 2;
+        setStrokeDashOffset((elapsed * pulseSpeed) % 1);
+        // Track effect ramp (ease-out curve for smooth fade-in of dash effect)
+        setEffectRamp(spinUpMultiplier);
+      }
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -809,38 +1029,55 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying, spinSpeed]);
+  }, [isPlaying, spinSpeed, spinOptions.gravity, spinOptions.elastic, spinOptions.strokeDash, spinOptions.opacityFade, spinOptions.gravityStrength, spinOptions.strokePulseSpeed, spinOptions.spinUpDuration, spinOptions.steppedSpeed]);
 
   // Get state based on progress:
+  // FORWARD (0-5):
   // 0: Actual circle with face
   // 0-1: Circle breaks into 8 curved arcs, arcs morph to rays (g2)
   // 1-2: topRight flashes out, cardinals grow (g2→g3)
   // 2-3: Diagonals catch up (g3→g4)
   // 3-4: Face disappears, rays grow to g5
-  // 4+: Spinning at g5
+  // 4-5: Spinning at g5
+  // REVERSE (5-10):
+  // Depends on reverseStyle - generally mirrors forward
 
   const p = progress;
 
-  // Show actual circle only at p=0
-  const showCircle = p < 0.01;
+  // Determine if we're in the reverse phase (progress > 5)
+  const isReverse = p > 5;
 
-  // topRight visibility: visible until progress reaches 1, then instantly disappears
+  // Map reverse progress - direct morph mode
+  const morphP = isReverse ? 6 : p; // 6 = special marker for direct morph rendering
+
+  // Direct morph: t value for g5→circle transition (0 at p=5, 1 at p=10)
+  const directMorphT = p > 5 ? (p - 5) / 5 : 0;
+
+  // Show actual circle at start (p~0) or end (p>=10)
+  const showCircle = p < 0.01 || directMorphT >= 0.99;
+
+  // topRight visibility: visible at start, fades in during reverse
   const showTopRight = p < 1;
+  const topRightOpacity = directMorphT > 0 ? directMorphT : 1;
 
-  // Face visibility: disappears at progress 3 (same time rays start growing to g5)
-  const showFace = p < 3;
+  // Face visibility: visible during forward (morphP <= 3), fades in during reverse
+  const faceVisibility = isReverse
+    ? { show: true, opacity: directMorphT }
+    : { show: p <= 3, opacity: 1 };
 
-  // For p < 1: morphing from arcs to rays
-  // For p >= 1: just rays (use line elements)
-  const isArcPhase = p < 1;
+  // Arc phases: forward (0-1) or reverse direct morph (5-10)
+  const isArcPhase = p < 1 && p >= 0;
+  const isDirectMorphArcPhase = directMorphT > 0 && directMorphT < 0.99;
 
   const rayKeys = ['top', 'topRight', 'right', 'bottomRight', 'bottom', 'bottomLeft', 'left', 'topLeft'] as const;
 
-  // Calculate ray coordinates for p >= 1
+  // Calculate ray coordinates based on morphP (handles both forward and reverse)
   const getRays = () => {
-    if (p < 2) {
+    const mp = morphP; // Use morphP which handles reverse mapping
+
+    if (mp < 2) {
       // Progress 1-2: g2 → g3 (cardinals grow, diagonals stay short)
-      const t = p - 1;
+      const t = Math.max(0, mp - 1);
 
       return {
         top: lerpLine(G2_RAYS.top, G3_RAYS.top, t),
@@ -852,9 +1089,9 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
         bottomRight: G2_RAYS.bottomRight,
         bottomLeft: G2_RAYS.bottomLeft,
       };
-    } else if (p < 3) {
+    } else if (mp < 3) {
       // Progress 2-3: g3 → g4 (diagonals catch up)
-      const t = p - 2;
+      const t = mp - 2;
 
       return {
         top: G3_RAYS.top,
@@ -866,9 +1103,9 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
         bottomRight: lerpLine(G3_RAYS.bottomRight, G4_RAYS.bottomRight, t),
         bottomLeft: lerpLine(G3_RAYS.bottomLeft, G4_RAYS.bottomLeft, t),
       };
-    } else if (p < 4) {
+    } else if (mp < 4) {
       // Progress 3-4: g4 → g5 (all rays grow to max, face gone)
-      const t = p - 3;
+      const t = mp - 3;
 
       return {
         top: lerpLine(G4_RAYS.top, G5_RAYS.top, t),
@@ -881,7 +1118,7 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
         bottomLeft: lerpLine(G4_RAYS.bottomLeft, G5_RAYS.bottomLeft, t),
       };
     } else {
-      // Progress 4+: g5 state (spinning)
+      // Progress 4+: g5 state (spinning or transitioning)
       return {
         top: G5_RAYS.top,
         right: G5_RAYS.right,
@@ -897,6 +1134,23 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
 
   const rays = !isArcPhase ? getRays() : null;
 
+  // Rotation angle: spinning, or momentum settle during reverse
+  let rotationAngle = isPlaying ? spinAngle : 0;
+
+  // Add momentum/overshoot rotation during reverse morph
+  if (isReverse && !isPlaying) {
+    // Damped spring: overshoots forward then settles back
+    const t = directMorphT;
+    const overshootAmount = 25; // degrees of overshoot
+    const frequency = 2; // oscillations
+    const damping = 4; // decay rate
+
+    // Damped oscillation: starts with forward momentum, settles to 0
+    const decay = Math.exp(-damping * t);
+    const oscillation = Math.cos(frequency * Math.PI * t);
+    rotationAngle = overshootAmount * decay * (1 - oscillation * 0.5);
+  }
+
   return (
     <svg
       width={size}
@@ -904,7 +1158,7 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
       viewBox="0 0 32 32"
       fill="none"
       style={{
-        transform: isPlaying ? `rotate(${spinAngle}deg)` : 'none',
+        transform: rotationAngle !== 0 ? `rotate(${rotationAngle}deg)` : 'none',
       }}
     >
       {/* Actual circle - shown at p=0 */}
@@ -919,16 +1173,16 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
         />
       )}
 
-      {/* Face - visible until progress 3, then instantly disappears */}
-      {showFace && (
-        <path d={G_FACE_PATH} fill="black" />
+      {/* Face - visible based on morphP and reverseStyle */}
+      {faceVisibility.show && (
+        <path d={G_FACE_PATH} fill="black" opacity={faceVisibility.opacity} />
       )}
 
-      {/* Arc phase (0 < p < 1): 8 curved arcs morphing into rays */}
+      {/* Arc phase (0 < morphP < 1): 8 curved arcs morphing into/from rays */}
       {isArcPhase && !showCircle && rayKeys.map(key => {
         const arc = ARC_SEGMENTS[key];
         const ray = G2_RAYS[key];
-        const t = p; // 0 to 1
+        const t = morphP; // 0 to 1
 
         // Interpolate start point: arc.start → ray start
         const startX = lerp(arc.start[0], ray[0], t);
@@ -956,14 +1210,125 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
         );
       })}
 
+      {/* Direct-morph arc phase: G5 rays morph directly into curved arcs */}
+      {/* flipArcDirection: swap start/end so curve goes opposite way */}
+      {isDirectMorphArcPhase && !showCircle && rayKeys.map(key => {
+        const arc = ARC_SEGMENTS[key];
+        const ray = G5_RAYS[key]; // Start from G5 rays
+        const t = directMorphT; // 0 = rays, 1 = arcs
+
+        // Arc endpoints - flip if toggled
+        const arcStart = flipArcDirection ? arc.end : arc.start;
+        const arcEnd = flipArcDirection ? arc.start : arc.end;
+
+        // Skip topRight if it's null (it's gone in G5)
+        if (key === 'topRight' && !G5_RAYS.topRight) {
+          // TopRight needs to fade in as it morphs - interpolate from G2 position
+          const topRightRay = G2_RAYS.topRight;
+          const startX = lerp(topRightRay[0], arcStart[0], t);
+          const startY = lerp(topRightRay[1], arcStart[1], t);
+          const endX = lerp(topRightRay[2], arcEnd[0], t);
+          const endY = lerp(topRightRay[3], arcEnd[1], t);
+          const rayMidX = (topRightRay[0] + topRightRay[2]) / 2;
+          const rayMidY = (topRightRay[1] + topRightRay[3]) / 2;
+          const ctrlX = lerp(rayMidX, arc.control[0], t);
+          const ctrlY = lerp(rayMidY, arc.control[1], t);
+
+          return (
+            <path
+              key={key}
+              d={`M ${startX} ${startY} Q ${ctrlX} ${ctrlY} ${endX} ${endY}`}
+              stroke="black"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              fill="none"
+              opacity={topRightOpacity}
+            />
+          );
+        }
+
+        // For other rays: interpolate from G5 position to arc position
+        const startX = lerp(ray[0], arcStart[0], t);
+        const startY = lerp(ray[1], arcStart[1], t);
+        const endX = lerp(ray[2], arcEnd[0], t);
+        const endY = lerp(ray[3], arcEnd[1], t);
+
+        // Control point: from ray midpoint (straight) to arc control (curved)
+        const rayMidX = (ray[0] + ray[2]) / 2;
+        const rayMidY = (ray[1] + ray[3]) / 2;
+        const ctrlX = lerp(rayMidX, arc.control[0], t);
+        const ctrlY = lerp(rayMidY, arc.control[1], t);
+
+        return (
+          <path
+            key={key}
+            d={`M ${startX} ${startY} Q ${ctrlX} ${ctrlY} ${endX} ${endY}`}
+            stroke="black"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+        );
+      })}
+
       {/* Ray phase (p >= 1): straight line segments */}
-      {!isArcPhase && rays && rayKeys.map(key => {
+      {!isArcPhase && !isDirectMorphArcPhase && rays && rayKeys.map((key, rayIndex) => {
         if (key === 'topRight' && !showTopRight) return null;
 
         const line = rays[key];
         const dx = line[2] - line[0];
         const dy = line[3] - line[1];
-        if (Math.sqrt(dx * dx + dy * dy) < 0.3) return null;
+        const rayLength = Math.sqrt(dx * dx + dy * dy);
+        if (rayLength < 0.3) return null;
+
+        // Material Design stroke-dash effect: rays grow and shrink
+        // Effect ramps up during spin-up period for smooth transition
+        let strokeDasharray: string | undefined;
+        let strokeDashoffset: number | undefined;
+        if (spinOptions.strokeDash && isPlaying) {
+          // Each ray pulses its visible length
+          // Stagger the animation per ray for wave effect
+          const stagger = spinOptions.strokeStagger ?? 0.1;
+          const staggerOffset = rayIndex * stagger;
+          const phase = (strokeDashOffset + staggerOffset) % 1;
+          // Sine wave: min→1→min visible length
+          const minVisible = spinOptions.strokeMinVisible ?? 0.3;
+          const baseVisibleRatio = minVisible + (1 - minVisible) * Math.abs(Math.sin(phase * Math.PI));
+
+          // Use effectRamp to fade in the dash effect during spin-up
+          // Start fully visible (1.0), gradually transition to baseVisibleRatio
+          const visibleRatio = 1 - effectRamp * (1 - baseVisibleRatio);
+
+          const visibleLength = rayLength * visibleRatio;
+          strokeDasharray = `${visibleLength} ${rayLength}`;
+          strokeDashoffset = 0;
+        }
+
+        // Apple-style: each spoke has different opacity (trailing effect)
+        let opacity = 1;
+        if (spinOptions.opacityFade && isPlaying) {
+          // Map ray index to opacity: first ray = brightest, later rays fade
+          // rayKeys order: top, topRight, right, bottomRight, bottom, bottomLeft, left, topLeft
+          const numSpokes = 7; // We have 7 visible spokes (topRight is hidden)
+          const visibleIndex = key === 'topRight' ? -1 :
+            rayKeys.filter(k => k !== 'topRight').indexOf(key);
+          if (visibleIndex >= 0) {
+            // Calculate which "step" we're on based on spin angle
+            const stepAngle = 45;
+            const currentStep = Math.floor(spinAngle / stepAngle) % 8;
+            // Each spoke's position relative to the current "lit" position
+            const spokeAngles: Record<string, number> = {
+              top: 0, right: 2, bottom: 4, left: 6,
+              topLeft: 7, bottomRight: 3, bottomLeft: 5
+            };
+            const spokePos = spokeAngles[key] ?? 0;
+            // Distance from current lit position (0 = brightest)
+            const distance = (spokePos - currentStep + 8) % 8;
+            // Opacity fades based on distance
+            const minOpacity = spinOptions.opacityFadeMin ?? 0.2;
+            opacity = 1 - (distance / 7) * (1 - minOpacity);
+          }
+        }
 
         return (
           <line
@@ -975,6 +1340,9 @@ function GAnimationPreview({ progress, isPlaying, size = 64, spinSpeed = 1 }: { 
             stroke="black"
             strokeWidth="1.5"
             strokeLinecap="round"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            opacity={opacity}
           />
         );
       })}

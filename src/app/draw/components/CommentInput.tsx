@@ -1,4 +1,6 @@
 import { Point } from '../types';
+import { useAutoResizeTextarea } from '../hooks';
+import { SubmitArrowIcon } from './icons';
 
 interface CommentInputProps {
   position: Point;
@@ -18,6 +20,8 @@ export function CommentInput({
   onSubmit,
   onCancel,
 }: CommentInputProps) {
+  const handleTextareaResize = useAutoResizeTextarea(100);
+
   return (
     <>
       {/* Backdrop */}
@@ -55,11 +59,7 @@ export function CommentInput({
                 }
               }
             }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 100) + 'px';
-            }}
+            onInput={handleTextareaResize}
           />
           <button
             type="submit"
@@ -70,9 +70,7 @@ export function CommentInput({
               opacity: commentText.trim() ? 1 : 0.6,
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 10V2M3 5l3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <SubmitArrowIcon />
           </button>
         </div>
       </form>

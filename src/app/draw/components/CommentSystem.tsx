@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Comment, Point, Tool } from '../types';
 import { COMMENT_DOT_SIZE, COMMENT_HIT_AREA_SIZE } from '../constants';
+import { useAutoResizeTextarea } from '../hooks';
+import { CloseIcon, SubmitArrowIcon } from './icons';
 
 interface CommentSystemProps {
   comments: Comment[];
@@ -170,6 +172,8 @@ function CommentPopup({
   onReplySubmit,
   strokeColor,
 }: CommentPopupProps) {
+  const handleTextareaResize = useAutoResizeTextarea(80);
+
   return (
     <div
       className={`draw-comment-popup ${isOpen ? 'draw-comment-popup--open' : ''}`}
@@ -197,9 +201,7 @@ function CommentPopup({
             className="draw-comment-delete"
             title="Delete comment"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M3 3l6 6M9 3l-6 6" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <CloseIcon />
           </button>
         )}
       </div>
@@ -235,11 +237,7 @@ function CommentPopup({
                   onReplySubmit();
                 }
               }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = Math.min(target.scrollHeight, 80) + 'px';
-              }}
+              onInput={handleTextareaResize}
               onClick={(e) => e.stopPropagation()}
             />
             <button
@@ -251,9 +249,7 @@ function CommentPopup({
                 opacity: replyText?.trim() ? 1 : 0.6,
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 10V2M3 5l3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <SubmitArrowIcon />
             </button>
           </div>
         </div>

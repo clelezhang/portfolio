@@ -48,6 +48,8 @@ import { simplifyPath } from './utils/simplifyPath';
 
 // Components
 import { DrawToolbar, AnimationType } from './components/DrawToolbar';
+import { HeaderActions } from './components/HeaderActions';
+import { DrawIconButton } from './components/DrawIconButton';
 import { CustomCursor } from './components/CustomCursor';
 import { PencilCursor } from './components/icons/PencilCursor';
 import { EraserCursor } from './components/icons/EraserCursor';
@@ -56,8 +58,11 @@ import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 
 // Auth components
-import { UserMenu, ApiKeyModal, DrawingsPanel } from './components/auth';
+import { ApiKeyModal, DrawingsPanel } from './components/auth';
 import { useUser, useDrawings, useUserSettings } from '@/lib/supabase/hooks';
+
+// BaseUI provider (single instance for all tooltips)
+import { BaseUIProvider } from '../components/StyletronProvider';
 
 export default function DrawPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1835,7 +1840,36 @@ export default function DrawPage() {
   }, []);
 
   return (
-    <div className="draw-page relative overflow-hidden">
+    <BaseUIProvider>
+    <div className="draw-page">
+      {/* Header bar */}
+      <header className="draw-header">
+        <div className="draw-header-left">
+          <button
+            onClick={handleYourTurn}
+            disabled={isLoading}
+            className="draw-claude-btn"
+            title="Claude's turn"
+          >
+            <img src="/draw/claude.svg" alt="Claude" />
+          </button>
+          <span className="draw-header-text">
+            {isLoading ? 'thinking...' : claudeDrawing || "Let's draw together?"}
+          </span>
+        </div>
+        <div className="draw-header-right">
+          {/* User icon */}
+          <DrawIconButton
+            icon="USERICON"
+            onClick={() => {}}
+            tooltip="User"
+            tooltipPlacement="bottom"
+            size="sm"
+          />
+          <HeaderActions onClear={handleClear} onSave={handleSave} />
+        </div>
+      </header>
+
       {/* SVG filter definitions - Safari uses lower complexity for better perf */}
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
@@ -2004,7 +2038,7 @@ export default function DrawPage() {
         >
           {/* Transform wrapper for zoom/pan */}
           <div
-            className="absolute inset-0 overflow-hidden rounded-xl"
+            className="absolute inset-0 overflow-hidden"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
@@ -2473,34 +2507,6 @@ export default function DrawPage() {
           </div>
         )}
 
-        {/* Claude Narration Bubble - shows what Claude sees and is doing */}
-        {(claudeReasoning || claudeDrawing || isLoading) && (
-          <div className="absolute bottom-20 left-4 max-w-sm bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 z-20 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-2">
-              <img src="/draw/claude.svg" alt="" className="w-5 h-5" />
-              <span className="text-xs font-medium text-gray-500">
-                {interactionStyle === 'playful' ? 'feeling playful...' :
-                 interactionStyle === 'collaborative' ? 'collaborating...' :
-                 'thinking...'}
-              </span>
-            </div>
-            {claudeReasoning && (
-              <div className="mb-2 pb-2 border-b border-gray-100">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">thinking</p>
-                <p className="text-sm text-gray-600 italic">{claudeReasoning}</p>
-              </div>
-            )}
-            {claudeDrawing && (
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">drawing</p>
-                <p className="text-sm text-gray-700">{claudeDrawing}</p>
-              </div>
-            )}
-            {isLoading && !claudeReasoning && !claudeDrawing && (
-              <p className="text-sm text-gray-400 italic">Looking at the canvas...</p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Settings panel */}
@@ -2889,13 +2895,17 @@ export default function DrawPage() {
         showDownloadButton={showDownloadButton}
       />
 
-      {/* User menu - positioned in top right */}
-      <div className="absolute top-4 right-4 z-30">
-        <UserMenu
-          onOpenSettings={() => setShowApiKeyModal(true)}
-          onOpenDrawings={user ? () => setShowDrawingsPanel(true) : undefined}
-        />
-      </div>
+      {/* Settings button - bottom right */}
+      <button
+        onClick={() => setShowSettings(!showSettings)}
+        className={`absolute bottom-4 right-4 z-30 draw-header-icon-btn ${showSettings ? 'draw-header-icon-btn--active' : ''}`}
+        title="Settings"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+        </svg>
+      </button>
 
       {/* Auth modals */}
       <ApiKeyModal
@@ -2910,5 +2920,6 @@ export default function DrawPage() {
         currentDrawingId={currentDrawingId}
       />
     </div>
+    </BaseUIProvider>
   );
 }

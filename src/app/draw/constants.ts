@@ -44,3 +44,28 @@ export const DRAG_THRESHOLD = 5; // Minimum pixel distance before drag is recogn
 export const LOCALSTORAGE_DEBOUNCE_MS = 500; // Debounce delay for localStorage saves
 export const ANIMATION_FRAME_DELAY_MS = 15; // Base delay between animation frames
 export const CURSOR_HIDE_CHECK_INTERVAL_MS = 50; // Polling interval to check if Claude cursor should hide
+
+// Shared tooltip styling for BaseUI StatefulTooltip
+export const TOOLTIP_OVERRIDES = {
+  Body: {
+    style: {
+      backgroundColor: '#1a1a1a',
+      borderRadius: '6px',
+      fontSize: '12px',
+      fontWeight: 500,
+      zIndex: 1000,
+    },
+  },
+  Inner: {
+    style: {
+      backgroundColor: '#1a1a1a',
+      color: '#fff',
+      padding: '6px 10px',
+    },
+  },
+  Arrow: {
+    style: {
+      backgroundColor: '#1a1a1a',
+    },
+  },
+} as const;
