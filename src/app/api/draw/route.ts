@@ -62,10 +62,9 @@ interface AsciiResponse {
   sayY?: number;
   replyTo?: number; // Index of comment to reply to (1-indexed to match display)
   setPaletteIndex?: number;
-  // Narration fields - Claude explains what it sees and does
+  // Narration fields
   reasoning?: string; // Claude's thinking process
-  observation?: string; // What Claude sees on the canvas
-  intention?: string; // What Claude is drawing and why
+  drawing?: string; // 3-6 word summary of what Claude is adding
   mode?: DrawingMode; // forms, details, or general
   interactionStyle?: InteractionStyle; // Detected human interaction style
 }
@@ -430,8 +429,7 @@ Call the draw tool immediately with your shapes/blocks. Include interactionStyle
     : `<output-format>
 Output a single JSON object:
 {
-  "observation": "what you see (include positions)",
-  "intention": "what you're adding and where",
+  "drawing": "3-6 word summary of what you're adding",
   "interactionStyle": "collaborative" or "playful",
   "shapes": [...],
   "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''}
@@ -960,11 +958,8 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                 const jsonMatch = fullText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   const parsed = JSON.parse(jsonMatch[0]);
-                  if (parsed.observation) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'observation', data: parsed.observation })}\n\n`));
-                  }
-                  if (parsed.intention) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'intention', data: parsed.intention })}\n\n`));
+                  if (parsed.drawing) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing })}\n\n`));
                   }
                   if (parsed.interactionStyle) {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`));

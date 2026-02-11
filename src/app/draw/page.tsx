@@ -142,11 +142,10 @@ export default function DrawPage() {
   const [thinkingText, setThinkingText] = useState('');
   const [showThinkingPanel, setShowThinkingPanel] = useState(true);
 
-  // Claude narration state - what Claude sees and intends
+  // Claude narration state
   type InteractionStyle = 'collaborative' | 'playful' | 'neutral';
   const [claudeReasoning, setClaudeReasoning] = useState('');
-  const [claudeObservation, setClaudeObservation] = useState('');
-  const [claudeIntention, setClaudeIntention] = useState('');
+  const [claudeDrawing, setClaudeDrawing] = useState(''); // 3-6 word summary of what Claude is adding
   const [interactionStyle, setInteractionStyle] = useState<InteractionStyle>('neutral');
 
   // Token tracking state
@@ -1303,8 +1302,7 @@ export default function DrawPage() {
     }
     // Clear previous narration
     setClaudeReasoning('');
-    setClaudeObservation('');
-    setClaudeIntention('');
+    setClaudeDrawing('');
 
     const newHistory = [...history];
     if (humanHasDrawn || humanHasCommented) {
@@ -1328,9 +1326,6 @@ export default function DrawPage() {
     let streamingCommentIndex: number | null = null;
     let streamingReplyTarget: number | null = null; // Index of comment being replied to
 
-    // Track observation/intention for sync context capture
-    let capturedObservation = '';
-    let capturedIntention = '';
 
     try {
       // Capture the full canvas with all drawings (human + Claude)
@@ -1542,14 +1537,9 @@ export default function DrawPage() {
               } else if (event.type === 'reasoning') {
                 // Claude's thinking process (without API thinking)
                 setClaudeReasoning(event.data);
-              } else if (event.type === 'observation') {
-                // Claude describes what it sees
-                capturedObservation = event.data;
-                setClaudeObservation(event.data);
-              } else if (event.type === 'intention') {
-                // Claude explains what it's drawing and why
-                capturedIntention = event.data;
-                setClaudeIntention(event.data);
+              } else if (event.type === 'drawing') {
+                // 3-6 word summary of what Claude is adding
+                setClaudeDrawing(event.data);
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
                 setInteractionStyle(event.data);
@@ -1587,14 +1577,6 @@ export default function DrawPage() {
                   setHumanHasCommented(false);
                 }
 
-                // Save sync context for hybrid mode (so Claude remembers what it saw on sync turns)
-                if (hybridModeEnabled && isSyncTurn && (capturedObservation || capturedIntention)) {
-                  setLastSyncContext({
-                    observation: capturedObservation,
-                    intention: capturedIntention,
-                    turn: currentTurnNumber,
-                  });
-                }
 
                 // Stream complete - hide cursor after animations finish
                 finishClaudeAnimation();
@@ -2492,7 +2474,7 @@ export default function DrawPage() {
         )}
 
         {/* Claude Narration Bubble - shows what Claude sees and is doing */}
-        {(claudeReasoning || claudeObservation || claudeIntention || isLoading) && (
+        {(claudeReasoning || claudeDrawing || isLoading) && (
           <div className="absolute bottom-20 left-4 max-w-sm bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 z-20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-2">
               <img src="/draw/claude.svg" alt="" className="w-5 h-5" />
@@ -2508,19 +2490,13 @@ export default function DrawPage() {
                 <p className="text-sm text-gray-600 italic">{claudeReasoning}</p>
               </div>
             )}
-            {claudeObservation && (
-              <div className="mb-2">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">I see</p>
-                <p className="text-sm text-gray-700">{claudeObservation}</p>
-              </div>
-            )}
-            {claudeIntention && (
+            {claudeDrawing && (
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">So I&apos;m drawing</p>
-                <p className="text-sm text-gray-700">{claudeIntention}</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">drawing</p>
+                <p className="text-sm text-gray-700">{claudeDrawing}</p>
               </div>
             )}
-            {isLoading && !claudeReasoning && !claudeObservation && !claudeIntention && (
+            {isLoading && !claudeReasoning && !claudeDrawing && (
               <p className="text-sm text-gray-400 italic">Looking at the canvas...</p>
             )}
           </div>
