@@ -1155,11 +1155,12 @@ export default function DrawPage() {
     lastAsciiPoint.current = point;
 
     if (tool === 'erase' || tool === 'draw') {
-      // Always track the path (for both regular and ASCII strokes)
+      // Always track the path (needed for API to know where user drew)
       setCurrentStroke({
         d: `M ${point.x} ${point.y}`,
         color: tool === 'erase' ? '#ffffff' : strokeColor,
         strokeWidth: tool === 'erase' ? strokeSize * 5 : strokeSize,
+        isAsciiBacking: asciiStroke, // Mark ASCII backing strokes so we don't render them
       });
     }
   };
@@ -1171,14 +1172,14 @@ export default function DrawPage() {
     if (!point) return;
 
     if (tool === 'erase' || tool === 'draw') {
-      // Always update the path (for both regular and ASCII strokes)
+      // Always update the path (needed for API)
       setCurrentStroke(prev => prev ? {
         ...prev,
         d: `${prev.d} L ${point.x} ${point.y}`,
       } : null);
     }
 
-    // Additionally place ASCII chars if in ASCII mode
+    // Place ASCII chars if in ASCII mode
     if (asciiStroke) {
       const charSpacing = Math.max(8, strokeSize * 4);
       const lastAscii = lastAsciiPoint.current!;
@@ -1436,6 +1437,10 @@ export default function DrawPage() {
 
               if (event.type === 'thinking') {
                 setThinkingText((prev) => prev + event.data);
+              } else if (event.type === 'narration') {
+                // Streaming text narration from Claude (observation, intention, interactionStyle as prose)
+                // This is displayed in real-time, structured fields are parsed at the end
+                setClaudeReasoning((prev) => (prev || '') + event.data);
               } else if (event.type === 'block') {
                 // Queue ASCII block for cursor animation
                 streamedBlocks.push(event.data);
@@ -1451,9 +1456,19 @@ export default function DrawPage() {
                 claudeAnimationQueue.current.push({ type: 'shape', shape: event.data as Shape, id });
                 processClaudeAnimationQueue();
               } else if (event.type === 'say') {
-                // Legacy: full comment at once
-                addComment(event.data.say, 'claude', event.data.sayX, event.data.sayY);
-                claudeCommented = true;
+                // Full comment from tool call
+                if (event.data.replyTo) {
+                  // Reply to existing comment
+                  const commentIndex = event.data.replyTo - 1;
+                  if (commentIndex >= 0 && commentIndex < comments.length) {
+                    addReplyToComment(commentIndex, event.data.text, 'claude');
+                    claudeCommented = true;
+                  }
+                } else if (event.data.sayX !== undefined && event.data.sayY !== undefined) {
+                  // New comment at position
+                  addComment(event.data.text, 'claude', event.data.sayX, event.data.sayY);
+                  claudeCommented = true;
+                }
               } else if (event.type === 'sayStart') {
                 // Streaming: create comment with empty text and track index
                 setComments((prev) => {
@@ -2081,6 +2096,8 @@ export default function DrawPage() {
               }).map((element) => {
                 if (element.type === 'stroke') {
                   const stroke = element.data as HumanStroke;
+                  // Don't render ASCII backing strokes - they're just for API data
+                  if (stroke.isAsciiBacking) return null;
                   return (
                     <path
                       key={element.id}
@@ -2287,7 +2304,7 @@ export default function DrawPage() {
                 }
                 return null;
               })()}
-              {currentStroke && (
+              {currentStroke && !currentStroke.isAsciiBacking && (
                 <path
                   d={currentStroke.d}
                   stroke={currentStroke.color}

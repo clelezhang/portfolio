@@ -71,6 +71,7 @@ export interface HumanStroke {
   d: string;
   color: string;
   strokeWidth: number;
+  isAsciiBacking?: boolean; // True if this stroke is just for API data (ASCII brush), don't render
 }
 
 export interface HumanAsciiChar {

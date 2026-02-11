@@ -390,7 +390,7 @@ function getElementRegion(el: TrackedElement, canvasWidth: number, canvasHeight:
 
 // ===== End Element Format Functions =====
 
-function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], _paletteIndex?: number, _totalPalettes?: number, hasComments?: boolean, _drawingRole?: DrawingRole, turnCount?: number): string {
+function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, paletteColors?: string[], _paletteIndex?: number, _totalPalettes?: number, hasComments?: boolean, _drawingRole?: DrawingRole, turnCount?: number, useToolCalls: boolean = true): string {
   // Shape types available
   const shapeInfo = drawMode !== 'ascii' ? `Shape types:
   - path: d string (M move, L line, Q quadratic, C cubic, A arc, Z close)
@@ -422,6 +422,22 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
     ? `You can optionally add a comment with say/sayX/sayY${hasComments ? ' or reply to existing comment with replyTo' : ''}.`
     : '';
 
+  // Output format differs based on tool calls vs JSON mode
+  const outputFormat = useToolCalls
+    ? `<output-format>
+Call the draw tool immediately with your shapes/blocks. Include interactionStyle in the tool call.
+</output-format>`
+    : `<output-format>
+Output a single JSON object:
+{
+  "observation": "what you see (include positions)",
+  "intention": "what you're adding and where",
+  "interactionStyle": "collaborative" or "playful",
+  "shapes": [...],
+  "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''}
+}
+</output-format>`;
+
   return `<drawing-reference>
 ${drawingInfo}
 </drawing-reference>
@@ -438,11 +454,9 @@ Zones: top (sky/background), middle (main subject), bottom (ground/foreground)
 </canvas>
 
 <process>
-1. Look at canvas - note what exists and WHERE (coordinates)
-2. Pick ONE area to work on - finish it before moving elsewhere
-3. Plan what to add at POSITION (x,y)
-4. First write your observation, intention, and interactionStyle as text
-5. Then call the draw tool with your shapes and blocks
+1. Look at canvas - note what exists and WHERE
+2. Pick ONE area to add to
+3. ${useToolCalls ? 'Call draw tool immediately' : 'Output JSON response'}
 </process>
 
 <interaction>
@@ -450,14 +464,7 @@ ${interactionStyleGuide}
 ${commentGuide}
 </interaction>
 
-<output-format>
-First, write a brief text response with:
-- observation: what you see (include positions)
-- intention: what you're adding and where
-- interactionStyle: "collaborative" or "playful"
-
-Then call the draw tool with your shapes and/or blocks.
-</output-format>`;
+${outputFormat}`;
 }
 
 // Single unified prompt - kept minimal, details in getDrawingInstructions
@@ -518,6 +525,7 @@ const DRAW_TOOL: Anthropic.Tool = {
       sayY: { type: 'number', description: 'Y position for comment' },
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
+      interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
     },
   },
 };
@@ -530,6 +538,8 @@ export async function POST(req: NextRequest) {
       elements,
       diff,
       format = 'diff-only' as FormatMode,
+      // Tool calls toggle - when false, use legacy JSON output mode
+      useToolCalls = false,
     } = await req.json();
 
     // Image is required unless elements are provided (diff-only mode)
@@ -636,7 +646,7 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
     // Single-stage: Opus sees image directly and draws
     // (twoStage removed - it was causing Opus to draw blind from text descriptions)
     const hasComments = comments && Array.isArray(comments) && comments.length > 0;
-    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount);
+    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount, useToolCalls);
 
     // Standard max tokens
     const defaultMaxTokens = drawMode === 'ascii' ? 512 : drawMode === 'shapes' ? 640 : 768;
@@ -652,6 +662,13 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
     const systemPrompt = `${basePrompt}
 
 ${drawingInstructions}`;
+
+    // Debug: log prompt sizes
+    const toolSchemaSize = JSON.stringify(DRAW_TOOL).length;
+    console.log(`[DEBUG] useToolCalls=${useToolCalls}`);
+    console.log(`[DEBUG] systemPrompt=${systemPrompt.length} chars (~${Math.ceil(systemPrompt.length/4)} tokens)`);
+    console.log(`[DEBUG] drawingInstructions=${drawingInstructions.length} chars`);
+    console.log(`[DEBUG] tool schema=${toolSchemaSize} chars (~${Math.ceil(toolSchemaSize/4)} tokens)`);
 
     // Build user message - three modes:
     // 1. sharedObservation provided: Draw based on pre-computed observation (for comparison tests)
@@ -724,8 +741,8 @@ Look at the canvas. What do you see? What could be a good addition? How can that
           content: messageContent,
         },
       ],
-      // Add the draw tool
-      tools: [DRAW_TOOL],
+      // Add the draw tool (only when useToolCalls is enabled)
+      ...(useToolCalls ? { tools: [DRAW_TOOL] } : {}),
       // Extended thinking - when enabled, temperature must not be set
       // Early turns (≤2): higher temp for exploration, later: lower for focus
       ...(thinkingEnabled
@@ -795,6 +812,10 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     if (input.setPaletteIndex !== undefined) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'setPalette', data: input.setPaletteIndex })}\n\n`));
                     }
+                    // Send interaction style from tool call
+                    if (input.interactionStyle) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: input.interactionStyle })}\n\n`));
+                    }
                   } catch { /* tool input parsing failed */ }
                 }
                 currentBlockType = null;
@@ -806,15 +827,69 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'thinking', data: event.delta.thinking })}\n\n`));
               }
 
-              // Handle text deltas (narration: observation, intention, interactionStyle)
+              // Handle text deltas
               if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                 fullText += event.delta.text;
-                // Stream text as narration - client can parse observation/intention/interactionStyle
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'narration', data: event.delta.text })}\n\n`));
+
+                if (!useToolCalls) {
+                  // Legacy JSON mode: parse shapes/blocks from text
+                  const jsonMatch = fullText.match(/\{[\s\S]*$/);
+                  if (jsonMatch) {
+                    const partialJson = jsonMatch[0];
+
+                    // Extract shapes array
+                    const shapesMatch = partialJson.match(/"shapes"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
+                    if (shapesMatch) {
+                      const shapesContent = shapesMatch[1];
+                      let braceCount = 0;
+                      let currentShape = '';
+                      const shapes: string[] = [];
+
+                      for (let i = 0; i < shapesContent.length; i++) {
+                        const char = shapesContent[i];
+                        if (char === '{') {
+                          braceCount++;
+                          currentShape += char;
+                        } else if (char === '}') {
+                          braceCount--;
+                          currentShape += char;
+                          if (braceCount === 0 && currentShape.trim()) {
+                            shapes.push(currentShape);
+                            currentShape = '';
+                          }
+                        } else if (braceCount > 0) {
+                          currentShape += char;
+                        }
+                      }
+
+                      for (let i = sentShapesCount; i < shapes.length; i++) {
+                        try {
+                          const shape = JSON.parse(shapes[i]);
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'shape', data: shape })}\n\n`));
+                          sentShapesCount++;
+                        } catch { /* skip incomplete */ }
+                      }
+                    }
+
+                    // Extract blocks array
+                    const blocksMatch = partialJson.match(/"blocks"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
+                    if (blocksMatch) {
+                      const blockRegex = /\{[^{}]*"block"\s*:[^{}]*\}/g;
+                      const blocks = blocksMatch[1].match(blockRegex) || [];
+                      for (let i = sentBlocksCount; i < blocks.length; i++) {
+                        try {
+                          const block = JSON.parse(blocks[i]);
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'block', data: block })}\n\n`));
+                          sentBlocksCount++;
+                        } catch { /* skip incomplete */ }
+                      }
+                    }
+                  }
+                }
               }
 
-              // Handle tool call input streaming
-              if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
+              // Handle tool call input streaming (only when useToolCalls is enabled)
+              if (useToolCalls && event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
                 toolInput += event.delta.partial_json;
 
                 // Try to extract and stream shapes/blocks as they complete
@@ -878,28 +953,55 @@ Look at the canvas. What do you see? What could be a good addition? How can that
             // Get final message for usage stats
             const finalMessage = await messageStream.finalMessage();
 
-            // Parse narration text for structured fields
-            // Claude outputs: "observation: ... intention: ... interactionStyle: ..."
-            const observationMatch = fullText.match(/observation[:\s]+([^.]+\.)/i);
-            const intentionMatch = fullText.match(/intention[:\s]+([^.]+\.)/i);
-            const styleMatch = fullText.match(/interactionStyle[:\s]+(collaborative|playful|neutral)/i);
-
-            if (observationMatch) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'observation', data: observationMatch[1].trim() })}\n\n`));
-            }
-            if (intentionMatch) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'intention', data: intentionMatch[1].trim() })}\n\n`));
-            }
-            if (styleMatch) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: styleMatch[1] })}\n\n`));
+            // Parse structured fields from response (legacy mode only - tool call mode sends via tool)
+            if (!useToolCalls) {
+              // Legacy JSON mode: parse from JSON in text
+              try {
+                const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  if (parsed.observation) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'observation', data: parsed.observation })}\n\n`));
+                  }
+                  if (parsed.intention) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'intention', data: parsed.intention })}\n\n`));
+                  }
+                  if (parsed.interactionStyle) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`));
+                  }
+                  // Send any unsent shapes/blocks from final parse
+                  if (parsed.shapes) {
+                    for (let i = sentShapesCount; i < parsed.shapes.length; i++) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'shape', data: parsed.shapes[i] })}\n\n`));
+                    }
+                  }
+                  if (parsed.blocks) {
+                    for (let i = sentBlocksCount; i < parsed.blocks.length; i++) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'block', data: parsed.blocks[i] })}\n\n`));
+                    }
+                  }
+                  // Handle say/setPalette in legacy mode
+                  if (parsed.say && parsed.sayX !== undefined && parsed.sayY !== undefined) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'say', data: { text: parsed.say, sayX: parsed.sayX, sayY: parsed.sayY } })}\n\n`));
+                  }
+                  if (parsed.setPaletteIndex !== undefined) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'setPalette', data: parsed.setPaletteIndex })}\n\n`));
+                  }
+                }
+              } catch { /* JSON parse failed */ }
             }
 
             // Send usage info
             const usage = finalMessage.usage;
+            // Debug: log full usage including cache stats
+            console.log(`[DEBUG] useToolCalls=${useToolCalls}, usage:`, JSON.stringify(usage));
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'usage',
               input_tokens: usage?.input_tokens || 0,
-              output_tokens: usage?.output_tokens || 0
+              output_tokens: usage?.output_tokens || 0,
+              // Include cache stats if available
+              cache_creation_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_creation_input_tokens,
+              cache_read_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_read_input_tokens,
             })}\n\n`));
 
             // Send raw text for debugging
@@ -927,54 +1029,59 @@ Look at the canvas. What do you see? What could be a good addition? How can that
     // Non-streaming mode (default)
     const response = await anthropic.messages.create(messageParams);
 
-    // Extract text content (narration)
+    // Extract text content
     const textContent = response.content.find((block) => block.type === 'text');
     const narrationText = textContent?.type === 'text' ? textContent.text : '';
 
-    // Extract tool call (drawing data)
-    const toolUseContent = response.content.find((block) => block.type === 'tool_use');
+    if (useToolCalls) {
+      // Tool call mode: extract from tool_use block
+      const toolUseContent = response.content.find((block) => block.type === 'tool_use');
 
-    if (!toolUseContent || toolUseContent.type !== 'tool_use' || toolUseContent.name !== 'draw') {
-      // Fallback: try to parse JSON from text (backwards compatibility)
-      const jsonMatch = narrationText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const asciiResponse: AsciiResponse = JSON.parse(jsonMatch[0]);
-        return NextResponse.json(asciiResponse);
+      if (!toolUseContent || toolUseContent.type !== 'tool_use' || toolUseContent.name !== 'draw') {
+        // Fallback: try to parse JSON from text
+        const jsonMatch = narrationText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const asciiResponse: AsciiResponse = JSON.parse(jsonMatch[0]);
+          return NextResponse.json(asciiResponse);
+        }
+        return NextResponse.json({ error: 'No draw tool call in response' }, { status: 500 });
       }
-      return NextResponse.json({ error: 'No draw tool call in response' }, { status: 500 });
+
+      // Parse tool input
+      const toolInput = toolUseContent.input as {
+        shapes?: Shape[];
+        blocks?: AsciiBlock[];
+        say?: string;
+        sayX?: number;
+        sayY?: number;
+        replyTo?: number;
+        setPaletteIndex?: number;
+        interactionStyle?: InteractionStyle;
+      };
+
+      // Build response from tool data (no text parsing needed)
+      const asciiResponse: AsciiResponse = {
+        shapes: toolInput.shapes,
+        blocks: toolInput.blocks,
+        say: toolInput.say,
+        sayX: toolInput.sayX,
+        sayY: toolInput.sayY,
+        replyTo: toolInput.replyTo,
+        setPaletteIndex: toolInput.setPaletteIndex,
+        interactionStyle: toolInput.interactionStyle,
+      };
+
+      return NextResponse.json(asciiResponse);
+    } else {
+      // Legacy JSON mode: parse from text
+      const jsonMatch = narrationText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return NextResponse.json({ error: 'Invalid response format' }, { status: 500 });
+      }
+
+      const asciiResponse: AsciiResponse = JSON.parse(jsonMatch[0]);
+      return NextResponse.json(asciiResponse);
     }
-
-    // Parse tool input
-    const toolInput = toolUseContent.input as {
-      shapes?: Shape[];
-      blocks?: AsciiBlock[];
-      say?: string;
-      sayX?: number;
-      sayY?: number;
-      replyTo?: number;
-      setPaletteIndex?: number;
-    };
-
-    // Parse narration from text
-    const observationMatch = narrationText.match(/observation[:\s]+([^.]+\.)/i);
-    const intentionMatch = narrationText.match(/intention[:\s]+([^.]+\.)/i);
-    const styleMatch = narrationText.match(/interactionStyle[:\s]+(collaborative|playful|neutral)/i);
-
-    // Build response combining narration and tool data
-    const asciiResponse: AsciiResponse = {
-      shapes: toolInput.shapes,
-      blocks: toolInput.blocks,
-      say: toolInput.say,
-      sayX: toolInput.sayX,
-      sayY: toolInput.sayY,
-      replyTo: toolInput.replyTo,
-      setPaletteIndex: toolInput.setPaletteIndex,
-      observation: observationMatch?.[1]?.trim(),
-      intention: intentionMatch?.[1]?.trim(),
-      interactionStyle: styleMatch?.[1] as InteractionStyle | undefined,
-    };
-
-    return NextResponse.json(asciiResponse);
   } catch (error) {
     console.error('Draw API error:', error);
     return NextResponse.json(
