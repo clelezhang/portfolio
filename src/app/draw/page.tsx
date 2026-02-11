@@ -1023,21 +1023,8 @@ export default function DrawPage() {
       }
     });
 
-    humanAsciiChars.forEach((charData) => {
-      ctx.font = `${charData.fontSize}px monospace`;
-      ctx.fillStyle = charData.color;
-      ctx.fillText(charData.char, charData.x, charData.y);
-    });
-
-    asciiBlocks.forEach((block) => {
-      ctx.font = '16px monospace';
-      ctx.fillStyle = block.color || '#3b82f6';
-      const lines = block.block.split('\n');
-      lines.forEach((line, i) => {
-        ctx.fillText(line, block.x, block.y + i * 18);
-      });
-    });
-  }, [asciiBlocks, shapes, humanAsciiChars]);
+    // Human ASCII chars and Claude's blocks are now rendered as SVG <text> elements
+  }, [shapes]);
 
   // Set up canvas size
   useEffect(() => {
@@ -1167,7 +1154,8 @@ export default function DrawPage() {
     lastPoint.current = point;
     lastAsciiPoint.current = point;
 
-    if (tool === 'erase' || (tool === 'draw' && !asciiStroke)) {
+    if (tool === 'erase' || tool === 'draw') {
+      // Always track the path (for both regular and ASCII strokes)
       setCurrentStroke({
         d: `M ${point.x} ${point.y}`,
         color: tool === 'erase' ? '#ffffff' : strokeColor,
@@ -1182,12 +1170,16 @@ export default function DrawPage() {
     const point = getPoint(e);
     if (!point) return;
 
-    if (tool === 'erase' || (tool === 'draw' && !asciiStroke)) {
+    if (tool === 'erase' || tool === 'draw') {
+      // Always update the path (for both regular and ASCII strokes)
       setCurrentStroke(prev => prev ? {
         ...prev,
         d: `${prev.d} L ${point.x} ${point.y}`,
       } : null);
-    } else if (asciiStroke) {
+    }
+
+    // Additionally place ASCII chars if in ASCII mode
+    if (asciiStroke) {
       const charSpacing = Math.max(8, strokeSize * 4);
       const lastAscii = lastAsciiPoint.current!;
       const dx = point.x - lastAscii.x;
@@ -1354,36 +1346,42 @@ export default function DrawPage() {
       let response: Response;
 
       if (hybridModeEnabled) {
-        // HYBRID MODE: Use element-based API with diff-only format
+        // HYBRID MODE: Use merged /api/draw with element tracking
         // Compute diff to only send new strokes (saves ~18% tokens on non-sync turns)
         const { elements, diff } = computeDiff(currentTurnNumber);
 
         // Save current elements for next turn's diff computation
         setLastTurnElements(drawingElements.filter(e => e.source === 'human'));
 
-        response = await fetch('/api/draw-elements', {
+        response = await fetch('/api/draw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // Element tracking params
             elements,
             diff: diff.created.length > 0 || diff.deleted.length > 0 ? diff : undefined,
+            format: 'diff-only',
+            // Image only on sync turns
+            image: isSyncTurn ? image : undefined,
+            // Standard draw params
             canvasWidth: containerRect?.width || canvas.width,
             canvasHeight: containerRect?.height || canvas.height,
-            turnCount: currentTurnNumber,
+            history: newHistory,
+            comments: comments.length > 0 ? comments : undefined,
+            sayEnabled,
             temperature: getEffectiveTemperature(newHistory.length),
+            turnCount: currentTurnNumber,
             maxTokens,
             prompt: prompt !== DEFAULT_PROMPT ? prompt : undefined,
             streaming: true,
             drawMode: effectiveDrawMode,
+            thinkingEnabled,
+            thinkingBudget: 10000,
             model: 'opus',
+            paletteColors: COLOR_PALETTES[paletteIndex],
+            paletteIndex,
+            totalPalettes: COLOR_PALETTES.length,
             userApiKey: userSettings?.anthropic_api_key || undefined,
-            // Include image only on sync turns
-            image: isSyncTurn ? image : undefined,
-            // Pass context from last sync turn for non-sync turns
-            lastSyncContext: !isSyncTurn ? lastSyncContext : undefined,
-            // Use diff-only format for token efficiency
-            allowOperations: false,
-            format: 'diff-only',
           }),
         });
       } else {
@@ -1845,7 +1843,7 @@ export default function DrawPage() {
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           {/* Main filter - used for canvas/strokes (and everything on Chrome) */}
-          <filter id="wobbleFilter" x="-10%" y="-10%" width="120%" height="120%">
+          <filter id="wobbleFilter" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
             <feTurbulence
               ref={turbulenceRef}
               type="turbulence"
@@ -1862,8 +1860,28 @@ export default function DrawPage() {
               yChannelSelector="G"
             />
           </filter>
-          {/* Grid-only filter for Safari - lower distortion */}
-          <filter id="wobbleFilterGrid" x="-10%" y="-10%" width="120%" height="120%">
+          {/* Safari stroke filter - has dilate to prevent white edge bleeding */}
+          {isSafari && (
+            <filter id="wobbleFilterStroke" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+              <feTurbulence
+                type="turbulence"
+                baseFrequency="0.02"
+                numOctaves={1}
+                seed="1"
+                result="noise"
+              />
+              <feMorphology in="SourceGraphic" operator="dilate" radius="1" result="dilated" />
+              <feDisplacementMap
+                in="dilated"
+                in2="noise"
+                scale={distortionAmount * 3.5}
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            </filter>
+          )}
+          {/* Grid-only filter for Safari - lower distortion, no dilate (would hide thin lines) */}
+          <filter id="wobbleFilterGrid" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
             <feTurbulence
               type="turbulence"
               baseFrequency="0.02"
@@ -2030,11 +2048,11 @@ export default function DrawPage() {
               />
             </div>
 
-            {/* Canvas + Strokes layer - both Chrome and Safari get wiggle filter */}
+            {/* Canvas + Strokes layer - Chrome uses container filter, Safari uses per-element filters */}
             <div
               className="absolute inset-0"
               style={{
-                ...(distortionAmount > 0 && !isPanning && !isTouchGesture ? {
+                ...(distortionAmount > 0 && !isPanning && !isTouchGesture && !isSafari ? {
                   filter: 'url(#wobbleFilter)',
                   willChange: 'filter',
                   transform: 'translateZ(0)',
@@ -2073,10 +2091,12 @@ export default function DrawPage() {
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilterStroke)' : undefined}
                     />
                   );
                 }
                 const shape = element.data as Shape;
+                const safariStrokeFilter = isSafari && distortionAmount > 0 ? 'url(#wobbleFilterStroke)' : undefined;
                 if (shape.type === 'path' && shape.d) {
                   return (
                     <path
@@ -2090,6 +2110,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2108,6 +2129,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2127,6 +2149,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2146,6 +2169,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2163,6 +2187,7 @@ export default function DrawPage() {
                       strokeLinecap={shape.strokeLinecap || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2180,6 +2205,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2206,6 +2232,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      filter={safariStrokeFilter}
                     />
                   );
                 }
@@ -2226,6 +2253,7 @@ export default function DrawPage() {
                   pathLength: 1,
                   strokeDasharray: 1,
                   strokeDashoffset: 1 - progress, // 1 = hidden, 0 = fully revealed
+                  filter: isSafari && distortionAmount > 0 ? 'url(#wobbleFilterStroke)' : undefined,
                 };
 
                 if (shape.type === 'path' && shape.d) {
@@ -2267,8 +2295,47 @@ export default function DrawPage() {
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilterStroke)' : undefined}
                 />
               )}
+              {/* Human ASCII chars as SVG text elements */}
+              {humanAsciiChars.map((charData, i) => (
+                <text
+                  key={`human-ascii-${i}`}
+                  x={charData.x}
+                  y={charData.y}
+                  fill={charData.color}
+                  fontFamily="monospace"
+                  fontSize={charData.fontSize}
+                  className="draw-stroke"
+                  filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilter)' : undefined}
+                >
+                  {charData.char}
+                </text>
+              ))}
+              {/* Claude's ASCII blocks as SVG text elements */}
+              {asciiBlocks.map((block, i) => (
+                <text
+                  key={`block-${i}`}
+                  x={block.x}
+                  y={block.y}
+                  fill={block.color || '#3b82f6'}
+                  fontFamily="monospace"
+                  fontSize={16}
+                  className="draw-stroke"
+                  filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilter)' : undefined}
+                >
+                  {block.block.split('\n').map((line, lineIdx) => (
+                    <tspan
+                      key={lineIdx}
+                      x={block.x}
+                      dy={lineIdx === 0 ? 0 : 18}
+                    >
+                      {line}
+                    </tspan>
+                  ))}
+                </text>
+              ))}
             </svg>
             </div>
             {/* End canvas/strokes container */}
