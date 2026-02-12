@@ -2,8 +2,8 @@ import { ReactNode } from 'react';
 import { StatefulTooltip, PLACEMENT } from 'baseui/tooltip';
 import { TOOLTIP_OVERRIDES } from '../constants';
 
-// Toggle to disable tooltips globally (set to true to re-enable)
-const TOOLTIPS_ENABLED = false;
+// Toggle to disable tooltips globally (set to false to disable)
+const TOOLTIPS_ENABLED = true;
 
 interface DrawIconButtonProps {
   icon: string;

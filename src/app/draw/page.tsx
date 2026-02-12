@@ -48,8 +48,8 @@ const LOADING_MESSAGES = [
   'Thinking thoughts...',
 ];
 
-// Toggle to disable custom cursors globally (set to true to re-enable)
-const CUSTOM_CURSORS_ENABLED = false;
+// Toggle to disable custom cursors globally (set to false to disable)
+const CUSTOM_CURSORS_ENABLED = true;
 
 // Hooks
 import { useZoomPan } from './hooks/useZoomPan';
