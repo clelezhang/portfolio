@@ -64,7 +64,7 @@ const DEFAULT_PHASES: AnimationPhase[] = [
   { id: 'rays-grow', name: 'Rays Grow + Face Gone', startProgress: 3, endProgress: 4, duration: 0.3, easing: 'ease-in' },
   { id: 'spinning', name: 'Spinning', startProgress: 4, endProgress: 5, duration: 3, easing: 'linear' },
   // Reverse phase (5-10) - single smooth morph back to circle
-  { id: 'morph-to-circle', name: 'Morph → Circle', startProgress: 5, endProgress: 10, duration: 0.25, easing: 'ease-out' },
+  { id: 'morph-to-circle', name: 'Morph → Circle', startProgress: 5, endProgress: 10, duration: 1, easing: 'ease-out' },
 ];
 
 const ANIMATION_STATES = [
@@ -1060,9 +1060,10 @@ function GAnimationPreview({
   const showTopRight = p < 1;
   const topRightOpacity = directMorphT > 0 ? directMorphT : 1;
 
-  // Face visibility: visible during forward (morphP <= 3), fades in during reverse
+  // Face visibility: visible during forward (morphP <= 3), appears instantly at end of reverse
+  const faceAppearThreshold = 0.25; // Face appears when morph is 85% complete
   const faceVisibility = isReverse
-    ? { show: true, opacity: directMorphT }
+    ? { show: directMorphT >= faceAppearThreshold, opacity: 1 } // Instant appear, no fade
     : { show: p <= 3, opacity: 1 };
 
   // Arc phases: forward (0-1) or reverse direct morph (5-10)
@@ -1137,18 +1138,19 @@ function GAnimationPreview({
   // Rotation angle: spinning, or momentum settle during reverse
   let rotationAngle = isPlaying ? spinAngle : 0;
 
-  // Add momentum/overshoot rotation during reverse morph
-  if (isReverse && !isPlaying) {
-    // Damped spring: overshoots forward then settles back
-    const t = directMorphT;
-    const overshootAmount = 25; // degrees of overshoot
-    const frequency = 2; // oscillations
-    const damping = 4; // decay rate
+  // Add momentum/overshoot rotation AFTER face appears (last 15% of reverse morph)
+  if (isReverse && directMorphT >= faceAppearThreshold) {
+    // Remap t from 0.85-1.0 to 0-1 for the wobble animation
+    const t = (directMorphT - faceAppearThreshold) / (1 - faceAppearThreshold);
+    const overshootAmount = 40; // degrees of initial forward roll
+    const frequency = 1.5; // oscillations
+    const damping = 1.5; // decay rate
 
-    // Damped oscillation: starts with forward momentum, settles to 0
+    // Use cos so it STARTS at max rotation (momentum carrying forward)
+    // then oscillates back and settles to 0
     const decay = Math.exp(-damping * t);
     const oscillation = Math.cos(frequency * Math.PI * t);
-    rotationAngle = overshootAmount * decay * (1 - oscillation * 0.5);
+    rotationAngle = overshootAmount * decay * oscillation;
   }
 
   return (

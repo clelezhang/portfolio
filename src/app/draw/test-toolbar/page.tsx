@@ -88,14 +88,17 @@ function FullToolbarTest({
   const getPaletteClass = () => {
     if (!isRolling) return '';
     switch (animationType) {
-      case 'chaos': return 'draw-palette-chaos';
-      case 'glitch': return 'draw-palette-glitch';
-      case 'tumble': return 'draw-palette-tumble';
-      case 'scatter': return 'draw-palette-scatter';
+      // These use reel-based animations now, no palette class needed
+      case 'slot':
+      case 'slide':
+      case 'chaos':
+      case 'glitch':
+      case 'tumble':
+      case 'scatter':
+      case 'bounce':
+        return '';
+      // Spin rotates the whole palette container
       case 'spin': return 'draw-palette-spin';
-      case 'bounce': return 'draw-palette-bounce';
-      case 'slot': return 'draw-palette-slot';
-      case 'slide': return 'draw-palette-slide';
       default: return '';
     }
   };
@@ -262,7 +265,7 @@ function FullToolbarTest({
 
                   return (
                     <button
-                      key={`${paletteIndex}-${index}`}
+                      key={index}
                       onClick={() => setStrokeColor(color)}
                       className={`draw-color-btn ${strokeColor === color ? 'draw-color-btn--selected' : ''} ${getColorClass()}`}
                       style={{
