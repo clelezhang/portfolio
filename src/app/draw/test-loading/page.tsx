@@ -58,13 +58,13 @@ function applyEasing(t: number, easing: string): number {
 
 const DEFAULT_PHASES: AnimationPhase[] = [
   // Forward phases (0-5)
-  { id: 'circle-to-rays', name: 'Circle → Rays', startProgress: 0, endProgress: 1, duration: 0.125, easing: 'bounce' },
-  { id: 'cardinals-grow', name: 'Cardinals Grow', startProgress: 1, endProgress: 2, duration: 0.2, easing: 'ease-in' },
-  { id: 'diagonals-catch-up', name: 'Diagonals Catch Up', startProgress: 2, endProgress: 3, duration: 0.15, easing: 'ease-in' },
+  { id: 'circle-to-rays', name: 'Circle → Rays', startProgress: 0, endProgress: 1, duration: 0.3, easing: 'bounce' },
+  { id: 'cardinals-grow', name: 'Cardinals Grow', startProgress: 1, endProgress: 2, duration: 0.4, easing: 'ease-in' },
+  { id: 'diagonals-catch-up', name: 'Diagonals Catch Up', startProgress: 2, endProgress: 3, duration: 0.2, easing: 'ease-in' },
   { id: 'rays-grow', name: 'Rays Grow + Face Gone', startProgress: 3, endProgress: 4, duration: 0.3, easing: 'ease-in' },
   { id: 'spinning', name: 'Spinning', startProgress: 4, endProgress: 5, duration: 3, easing: 'linear' },
   // Reverse phase (5-10) - single smooth morph back to circle
-  { id: 'morph-to-circle', name: 'Morph → Circle', startProgress: 5, endProgress: 10, duration: 1, easing: 'ease-out' },
+  { id: 'morph-to-circle', name: 'Morph → Circle', startProgress: 5, endProgress: 10, duration: 0.75, easing: 'ease-out' },
 ];
 
 const ANIMATION_STATES = [
@@ -101,7 +101,7 @@ export default function LoadingAnimationsTestPage() {
 
   // Animation editor state
   const [phases, setPhases] = useState<AnimationPhase[]>(DEFAULT_PHASES);
-  const [spinSpeed, setSpinSpeed] = useState(1); // rotations per second
+  const [spinSpeed, setSpinSpeed] = useState(1.5); // rotations per second
   const [circlePauseDuration, setCirclePauseDuration] = useState(0.5); // pause at circle before looping
   const [flipArcDirection, setFlipArcDirection] = useState(false); // flip arc curve direction on reverse
   // Spin effects
@@ -111,7 +111,7 @@ export default function LoadingAnimationsTestPage() {
   const [spinOpacityFade, setSpinOpacityFade] = useState(false); // 4: Apple-style opacity trail
   // Fine-tuning params
   const [strokePulseSpeed, setStrokePulseSpeed] = useState(2); // cycles per second
-  const [strokeMinVisible, setStrokeMinVisible] = useState(0.5); // minimum visible ratio (0-1)
+  const [strokeMinVisible, setStrokeMinVisible] = useState(0.4); // minimum visible ratio (0-1)
   const [strokeStagger, setStrokeStagger] = useState(0.3); // stagger offset per ray
   const [gravityStrength, setGravityStrength] = useState(0.45); // speed variation (0-1)
   const [spinUpDuration, setSpinUpDuration] = useState(0.3); // seconds to ramp up to full speed

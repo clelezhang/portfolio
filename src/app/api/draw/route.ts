@@ -427,13 +427,14 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
 Call the draw tool immediately with your shapes/blocks. Include interactionStyle in the tool call.
 </output-format>`
     : `<output-format>
-Output a single JSON object:
+Output a single JSON object with ALL these fields:
 {
-  "drawing": "3-6 word summary of what you're adding",
+  "drawing": "REQUIRED: 3-6 word summary of what you're adding",
   "interactionStyle": "collaborative" or "playful",
   "shapes": [...],
   "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''}
 }
+IMPORTANT: Always include the "drawing" field with a brief summary.
 </output-format>`;
 
   return `<drawing-reference>
@@ -763,6 +764,7 @@ Look at the canvas. What do you see? What could be a good addition? How can that
           let currentToolName = '';
           let sentShapesCount = 0;
           let sentBlocksCount = 0;
+          let sentDrawing = false;
 
           // Track current content block type
           let currentBlockType: 'thinking' | 'text' | 'tool_use' | null = null;
@@ -798,8 +800,8 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'block', data: input.blocks[i] })}\n\n`));
                       }
                     }
-                    // Send comment if present
-                    if (input.say) {
+                    // Send comment if present (skip empty/whitespace-only)
+                    if (input.say && input.say.trim()) {
                       if (input.replyTo) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'say', data: { text: input.say, replyTo: input.replyTo } })}\n\n`));
                       } else if (input.sayX !== undefined && input.sayY !== undefined) {
@@ -882,6 +884,16 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                         } catch { /* skip incomplete */ }
                       }
                     }
+
+                    // Extract drawing field early (so it streams before connection closes)
+                    if (!sentDrawing) {
+                      const drawingMatch = partialJson.match(/"drawing"\s*:\s*"([^"]+)"/);
+                      if (drawingMatch) {
+                        console.log('[DEBUG] Streaming drawing event:', drawingMatch[1]);
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: drawingMatch[1] })}\n\n`));
+                        sentDrawing = true;
+                      }
+                    }
                   }
                 }
               }
@@ -958,52 +970,55 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                 const jsonMatch = fullText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   const parsed = JSON.parse(jsonMatch[0]);
-                  if (parsed.drawing) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing })}\n\n`));
+                  // Helper to safely enqueue (controller may be closed if client disconnected)
+                  const safeEnqueue = (data: string) => {
+                    try {
+                      controller.enqueue(encoder.encode(data));
+                    } catch { /* controller closed */ }
+                  };
+                  if (parsed.drawing && !sentDrawing) {
+                    console.log('[DEBUG] Sending drawing event (final):', parsed.drawing);
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing })}\n\n`);
                   }
                   if (parsed.interactionStyle) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`));
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`);
                   }
                   // Send any unsent shapes/blocks from final parse
                   if (parsed.shapes) {
                     for (let i = sentShapesCount; i < parsed.shapes.length; i++) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'shape', data: parsed.shapes[i] })}\n\n`));
+                      safeEnqueue(`data: ${JSON.stringify({ type: 'shape', data: parsed.shapes[i] })}\n\n`);
                     }
                   }
                   if (parsed.blocks) {
                     for (let i = sentBlocksCount; i < parsed.blocks.length; i++) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'block', data: parsed.blocks[i] })}\n\n`));
+                      safeEnqueue(`data: ${JSON.stringify({ type: 'block', data: parsed.blocks[i] })}\n\n`);
                     }
                   }
-                  // Handle say/setPalette in legacy mode
-                  if (parsed.say && parsed.sayX !== undefined && parsed.sayY !== undefined) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'say', data: { text: parsed.say, sayX: parsed.sayX, sayY: parsed.sayY } })}\n\n`));
+                  // Handle say/setPalette in legacy mode (skip empty/whitespace-only)
+                  if (parsed.say && parsed.say.trim() && parsed.sayX !== undefined && parsed.sayY !== undefined) {
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'say', data: { text: parsed.say, sayX: parsed.sayX, sayY: parsed.sayY } })}\n\n`);
                   }
                   if (parsed.setPaletteIndex !== undefined) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'setPalette', data: parsed.setPaletteIndex })}\n\n`));
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'setPalette', data: parsed.setPaletteIndex })}\n\n`);
                   }
                 }
-              } catch { /* JSON parse failed */ }
+              } catch (e) { console.log('[DEBUG] JSON parse error:', e); }
             }
 
-            // Send usage info
+            // Send usage info (use try-catch in case controller is closed)
             const usage = finalMessage.usage;
-            // Debug: log full usage including cache stats
             console.log(`[DEBUG] useToolCalls=${useToolCalls}, usage:`, JSON.stringify(usage));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'usage',
-              input_tokens: usage?.input_tokens || 0,
-              output_tokens: usage?.output_tokens || 0,
-              // Include cache stats if available
-              cache_creation_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_creation_input_tokens,
-              cache_read_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_read_input_tokens,
-            })}\n\n`));
-
-            // Send raw text for debugging
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'rawText', data: fullText.slice(0, 500) })}\n\n`));
-
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-            controller.close();
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'usage',
+                input_tokens: usage?.input_tokens || 0,
+                output_tokens: usage?.output_tokens || 0,
+                cache_creation_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_creation_input_tokens,
+                cache_read_input_tokens: (usage as unknown as Record<string, unknown>)?.cache_read_input_tokens,
+              })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+              controller.close();
+            } catch { /* controller already closed */ }
           } catch (error) {
             console.error('Streaming error:', error);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: error instanceof Error ? error.message : 'Failed' })}\n\n`));

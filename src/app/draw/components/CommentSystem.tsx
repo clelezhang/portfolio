@@ -221,7 +221,7 @@ function CommentPopup({
       {/* Reply input (only when open) */}
       {isOpen && isReplying && setReplyText && onReplyCancel && onReplySubmit && strokeColor && (
         <div className="draw-comment-row draw-comment-row--reply">
-          <img src="/draw/user.svg" alt="" className="draw-reply-btn-icon draw-img-no-anim" />
+          <img src="/draw/user.svg" alt="" draggable={false} className="draw-reply-btn-icon draw-img-no-anim" />
           <div className="flex-1 relative">
             <textarea
               value={replyText}
@@ -258,7 +258,7 @@ function CommentPopup({
       {/* Reply button (only when open and not replying) */}
       {isOpen && !isReplying && onReplyStart && (
         <div className="draw-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-          <img src="/draw/user.svg" alt="" className="draw-reply-btn-icon draw-img-no-anim" />
+          <img src="/draw/user.svg" alt="" draggable={false} className="draw-reply-btn-icon draw-img-no-anim" />
           <span className="draw-reply-btn-text">Reply...</span>
         </div>
       )}

@@ -74,7 +74,7 @@
 .draw-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .draw-header-right {
@@ -1156,12 +1156,14 @@
 
 /* Slot Machine Spin - scrolls through all colors like slot reels
    Linear scroll until near the end, then decelerates and bounces */
+/* Default: 2 settle bounces */
 @keyframes reelSlotSpin {
   0% {
     transform: translateY(0);
   }
-  /* Scroll through most colors linearly */
-  10% { transform: translateY(-10%); }
+  /* Scroll through most colors - accelerate then decelerate */
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  10% { transform: translateY(calc(-10% * var(--slot-acceleration, 1))); }
   20% { transform: translateY(-20%); }
   30% { transform: translateY(-30%); }
   40% { transform: translateY(-45%); }
@@ -1175,13 +1177,121 @@
   }
   /* Overshoot with squish */
   93% {
-    transform: translateY(calc(-100% + var(--draw-icon-size) - 5px)) scaleY(0.95);
+    transform: translateY(calc(-100% + var(--draw-icon-size) - var(--slot-overshoot, 5px))) scaleY(0.95);
   }
   /* Bounce back */
   97% {
-    transform: translateY(calc(-100% + var(--draw-icon-size) + 2px)) scaleY(1.02);
+    transform: translateY(calc(-100% + var(--draw-icon-size) + calc(var(--slot-overshoot, 5px) * 0.4))) scaleY(1.02);
   }
   /* Click into place */
+  100% {
+    transform: translateY(calc(-100% + var(--draw-icon-size))) scaleY(1);
+  }
+}
+
+/* Slot variant: 0 settle bounces - sharp stop */
+@keyframes reelSlotSpin0 {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  15% { transform: translateY(-15%); }
+  30% { transform: translateY(-35%); }
+  50% { transform: translateY(-60%); }
+  70% { transform: translateY(-82%); }
+  85% { transform: translateY(-95%); }
+  100% { transform: translateY(calc(-100% + var(--draw-icon-size))); }
+}
+
+/* Slot variant: 1 settle bounce - minimal settle */
+@keyframes reelSlotSpin1 {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  15% { transform: translateY(-15%); }
+  30% { transform: translateY(-35%); }
+  50% { transform: translateY(-60%); }
+  70% { transform: translateY(-82%); }
+  85% { transform: translateY(-95%); }
+  /* Single overshoot */
+  94% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - var(--slot-overshoot, 5px))) scaleY(0.97);
+  }
+  100% {
+    transform: translateY(calc(-100% + var(--draw-icon-size))) scaleY(1);
+  }
+}
+
+/* Slot variant: 2 settle bounces - default */
+@keyframes reelSlotSpin2 {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  15% { transform: translateY(-15%); }
+  30% { transform: translateY(-35%); }
+  50% { transform: translateY(-60%); }
+  70% { transform: translateY(-82%); }
+  82% { transform: translateY(-92%); }
+  /* Overshoot 1 */
+  90% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - var(--slot-overshoot, 5px))) scaleY(0.95);
+  }
+  /* Bounce back */
+  96% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) + calc(var(--slot-overshoot, 5px) * 0.4))) scaleY(1.02);
+  }
+  100% {
+    transform: translateY(calc(-100% + var(--draw-icon-size))) scaleY(1);
+  }
+}
+
+/* Slot variant: 3 settle bounces - springy */
+@keyframes reelSlotSpin3 {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  15% { transform: translateY(-15%); }
+  30% { transform: translateY(-35%); }
+  50% { transform: translateY(-60%); }
+  68% { transform: translateY(-80%); }
+  78% { transform: translateY(-90%); }
+  /* Overshoot 1 - big */
+  86% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - var(--slot-overshoot, 5px))) scaleY(0.94);
+  }
+  /* Bounce back 1 */
+  91% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) + calc(var(--slot-overshoot, 5px) * 0.5))) scaleY(1.03);
+  }
+  /* Overshoot 2 - small */
+  96% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - calc(var(--slot-overshoot, 5px) * 0.25))) scaleY(0.99);
+  }
+  100% {
+    transform: translateY(calc(-100% + var(--draw-icon-size))) scaleY(1);
+  }
+}
+
+/* Slot variant: 4 settle bounces - very springy */
+@keyframes reelSlotSpin4 {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(calc(-5% * var(--slot-acceleration, 1))); }
+  15% { transform: translateY(-15%); }
+  30% { transform: translateY(-35%); }
+  48% { transform: translateY(-58%); }
+  65% { transform: translateY(-78%); }
+  75% { transform: translateY(-88%); }
+  /* Overshoot 1 - big */
+  82% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - var(--slot-overshoot, 5px))) scaleY(0.93);
+  }
+  /* Bounce back 1 */
+  87% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) + calc(var(--slot-overshoot, 5px) * 0.6))) scaleY(1.04);
+  }
+  /* Overshoot 2 */
+  92% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) - calc(var(--slot-overshoot, 5px) * 0.35))) scaleY(0.98);
+  }
+  /* Bounce back 2 */
+  96% {
+    transform: translateY(calc(-100% + var(--draw-icon-size) + calc(var(--slot-overshoot, 5px) * 0.15))) scaleY(1.01);
+  }
   100% {
     transform: translateY(calc(-100% + var(--draw-icon-size))) scaleY(1);
   }
@@ -1190,7 +1300,23 @@
 .draw-reel-slot-spin {
   /* Start at first color, not default last color position */
   transform: translateY(0) !important;
-  animation: reelSlotSpin var(--reel-duration, 800ms) linear forwards;
+  animation: reelSlotSpin var(--reel-duration, 800ms) var(--slot-easing, linear) forwards;
+}
+
+.draw-reel-slot-spin[data-slot-settle="0"] {
+  animation-name: reelSlotSpin0;
+}
+.draw-reel-slot-spin[data-slot-settle="1"] {
+  animation-name: reelSlotSpin1;
+}
+.draw-reel-slot-spin[data-slot-settle="2"] {
+  animation-name: reelSlotSpin2;
+}
+.draw-reel-slot-spin[data-slot-settle="3"] {
+  animation-name: reelSlotSpin3;
+}
+.draw-reel-slot-spin[data-slot-settle="4"] {
+  animation-name: reelSlotSpin4;
 }
 
 /* Chaos Reel - rapid erratic scrolling through colors */
@@ -1308,20 +1434,125 @@
   animation: reelSpin var(--reel-duration, 600ms) cubic-bezier(0.25, 0.1, 0.68, 1) forwards;
 }
 
-/* Bounce Reel - bouncy energetic scroll */
+/* Bounce Reel - bouncy energetic scroll with configurable intensity */
+/* Default bounce: 3 bounces with moderate intensity */
 @keyframes reelBounce {
   0% { transform: translateY(0); }
-  20% { transform: translateY(-35%); }
-  35% { transform: translateY(-25%); }
-  50% { transform: translateY(-65%); }
-  65% { transform: translateY(-55%); }
+  20% { transform: translateY(calc(-35% * var(--bounce-intensity, 1))); }
+  35% { transform: translateY(calc(-25% * var(--bounce-intensity, 1))); }
+  50% { transform: translateY(calc(-65% * var(--bounce-intensity, 1))); }
+  65% { transform: translateY(calc(-55% * var(--bounce-intensity, 1))); }
   80% { transform: translateY(-90%); }
-  90% { transform: translateY(calc(-100% + 1.5rem + 4px)); }
+  90% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 4px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 0 bounce - pure smooth slide, no oscillation whatsoever */
+@keyframes reelBounce0 {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 1 bounce - single subtle overshoot at end */
+@keyframes reelBounce1 {
+  0% { transform: translateY(0); }
+  85% { transform: translateY(-98%); }
+  94% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 3px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 2 bounces - light bounce */
+@keyframes reelBounce2 {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(calc(-60% * var(--bounce-intensity, 1))); }
+  65% { transform: translateY(calc(-50% * var(--bounce-intensity, 1))); }
+  80% { transform: translateY(-95%); }
+  90% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 5px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 3 bounces - default */
+@keyframes reelBounce3 {
+  0% { transform: translateY(0); }
+  20% { transform: translateY(calc(-35% * var(--bounce-intensity, 1))); }
+  35% { transform: translateY(calc(-25% * var(--bounce-intensity, 1))); }
+  50% { transform: translateY(calc(-65% * var(--bounce-intensity, 1))); }
+  65% { transform: translateY(calc(-55% * var(--bounce-intensity, 1))); }
+  80% { transform: translateY(-90%); }
+  90% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 4px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 4 bounces - energetic */
+@keyframes reelBounce4 {
+  0% { transform: translateY(0); }
+  15% { transform: translateY(calc(-25% * var(--bounce-intensity, 1))); }
+  25% { transform: translateY(calc(-18% * var(--bounce-intensity, 1))); }
+  35% { transform: translateY(calc(-50% * var(--bounce-intensity, 1))); }
+  45% { transform: translateY(calc(-42% * var(--bounce-intensity, 1))); }
+  55% { transform: translateY(calc(-70% * var(--bounce-intensity, 1))); }
+  65% { transform: translateY(calc(-62% * var(--bounce-intensity, 1))); }
+  80% { transform: translateY(-92%); }
+  90% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 3px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 5 bounces - very bouncy */
+@keyframes reelBounce5 {
+  0% { transform: translateY(0); }
+  12% { transform: translateY(calc(-20% * var(--bounce-intensity, 1))); }
+  20% { transform: translateY(calc(-14% * var(--bounce-intensity, 1))); }
+  28% { transform: translateY(calc(-38% * var(--bounce-intensity, 1))); }
+  36% { transform: translateY(calc(-32% * var(--bounce-intensity, 1))); }
+  44% { transform: translateY(calc(-55% * var(--bounce-intensity, 1))); }
+  52% { transform: translateY(calc(-48% * var(--bounce-intensity, 1))); }
+  60% { transform: translateY(calc(-72% * var(--bounce-intensity, 1))); }
+  68% { transform: translateY(calc(-65% * var(--bounce-intensity, 1))); }
+  80% { transform: translateY(-94%); }
+  90% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 2px))); }
+  100% { transform: translateY(calc(-100% + 1.5rem)); }
+}
+
+/* Bounce variant: 6 bounces - extreme */
+@keyframes reelBounce6 {
+  0% { transform: translateY(0); }
+  10% { transform: translateY(calc(-16% * var(--bounce-intensity, 1))); }
+  16% { transform: translateY(calc(-12% * var(--bounce-intensity, 1))); }
+  22% { transform: translateY(calc(-30% * var(--bounce-intensity, 1))); }
+  28% { transform: translateY(calc(-26% * var(--bounce-intensity, 1))); }
+  34% { transform: translateY(calc(-44% * var(--bounce-intensity, 1))); }
+  40% { transform: translateY(calc(-39% * var(--bounce-intensity, 1))); }
+  46% { transform: translateY(calc(-56% * var(--bounce-intensity, 1))); }
+  52% { transform: translateY(calc(-51% * var(--bounce-intensity, 1))); }
+  58% { transform: translateY(calc(-68% * var(--bounce-intensity, 1))); }
+  64% { transform: translateY(calc(-63% * var(--bounce-intensity, 1))); }
+  75% { transform: translateY(-90%); }
+  85% { transform: translateY(calc(-100% + 1.5rem + var(--bounce-overshoot, 2px))); }
   100% { transform: translateY(calc(-100% + 1.5rem)); }
 }
 
 .draw-reel-bounce {
-  animation: reelBounce var(--reel-duration, 600ms) cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  animation: reelBounce var(--reel-duration, 600ms) var(--bounce-easing, cubic-bezier(0.25, 0.1, 0.25, 1)) forwards;
+  --bounce-overshoot: calc(4px * var(--bounce-intensity, 1));
+}
+
+.draw-reel-bounce[data-bounce-count="1"] {
+  animation-name: reelBounce1;
+}
+.draw-reel-bounce[data-bounce-count="2"] {
+  animation-name: reelBounce2;
+}
+.draw-reel-bounce[data-bounce-count="3"] {
+  animation-name: reelBounce3;
+}
+.draw-reel-bounce[data-bounce-count="4"] {
+  animation-name: reelBounce4;
+}
+.draw-reel-bounce[data-bounce-count="5"] {
+  animation-name: reelBounce5;
+}
+.draw-reel-bounce[data-bounce-count="6"] {
+  animation-name: reelBounce6;
 }
 
 /* Confetti Animation - confetti bursts then colors change */

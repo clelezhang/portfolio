@@ -38,6 +38,18 @@ import {
 // Storage key for localStorage persistence
 const CANVAS_STORAGE_KEY = 'draw-canvas-state';
 
+// Whimsical loading messages
+const LOADING_MESSAGES = [
+  'Contemplating pixels...',
+  'Calibrating imagination...',
+  'Downloading inspiration...',
+  'Whispering with shapes...',
+  'Negotiating with colors...',
+  'Thinking thoughts...',
+];
+
+// Toggle to disable custom cursors globally (set to true to re-enable)
+const CUSTOM_CURSORS_ENABLED = false;
 
 // Hooks
 import { useZoomPan } from './hooks/useZoomPan';
@@ -56,6 +68,7 @@ import { EraserCursor } from './components/icons/EraserCursor';
 import { AsciiCursor } from './components/icons/AsciiCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
+import { ClaudeIcon } from './components/ClaudeIcon';
 
 // Auth components
 import { ApiKeyModal, DrawingsPanel } from './components/auth';
@@ -87,6 +100,7 @@ export default function DrawPage() {
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
   const [asciiBlocks, setAsciiBlocks] = useState<AsciiBlock[]>([]);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
@@ -152,6 +166,11 @@ export default function DrawPage() {
   const [claudeReasoning, setClaudeReasoning] = useState('');
   const [claudeDrawing, setClaudeDrawing] = useState(''); // 3-6 word summary of what Claude is adding
   const [interactionStyle, setInteractionStyle] = useState<InteractionStyle>('neutral');
+
+  // Typewriter effect for header text
+  const [displayedHeaderText, setDisplayedHeaderText] = useState("Let's draw together?");
+  const headerTextTargetRef = useRef("Let's draw together?");
+  const typewriterRef = useRef<NodeJS.Timeout | null>(null);
 
   // Token tracking state
   type TokenUsage = { input_tokens: number; output_tokens: number };
@@ -1015,6 +1034,67 @@ export default function DrawPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
 
+  // Cycle through whimsical loading messages
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Typewriter effect for header text
+  useEffect(() => {
+    // Determine target text
+    const targetText = isLoading
+      ? (claudeDrawing || loadingMessage)
+      : (claudeDrawing || "Let's draw together?");
+
+    // If target hasn't changed, do nothing
+    if (targetText === headerTextTargetRef.current) return;
+
+    // Clear any existing animation
+    if (typewriterRef.current) {
+      clearTimeout(typewriterRef.current);
+    }
+
+    headerTextTargetRef.current = targetText;
+
+    // Split into words for chunk-based streaming with random timing
+    const words = targetText.split(' ');
+    let currentWordIndex = 0;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const showNextWord = () => {
+      currentWordIndex++;
+      setDisplayedHeaderText(words.slice(0, currentWordIndex).join(' '));
+
+      if (currentWordIndex < words.length) {
+        // Random delay between 50-150ms per word
+        const delay = 50 + Math.random() * 100;
+        timeoutId = setTimeout(showNextWord, delay);
+      }
+    };
+
+    // Show first word immediately
+    setDisplayedHeaderText(words[0] || '');
+    currentWordIndex = 1;
+
+    if (words.length > 1) {
+      const delay = 50 + Math.random() * 100;
+      timeoutId = setTimeout(showNextWord, delay);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isLoading, claudeDrawing, loadingMessage]);
+
   // Redraw ASCII blocks and shapes
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1544,6 +1624,7 @@ export default function DrawPage() {
                 setClaudeReasoning(event.data);
               } else if (event.type === 'drawing') {
                 // 3-6 word summary of what Claude is adding
+                console.log('[DEBUG] drawing event received:', event.data);
                 setClaudeDrawing(event.data);
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
@@ -1845,16 +1926,14 @@ export default function DrawPage() {
       {/* Header bar */}
       <header className="draw-header">
         <div className="draw-header-left">
-          <button
+          <ClaudeIcon
+            size={32}
+            isLoading={isLoading}
             onClick={handleYourTurn}
             disabled={isLoading}
-            className="draw-claude-btn"
-            title="Claude's turn"
-          >
-            <img src="/draw/claude.svg" alt="Claude" />
-          </button>
+          />
           <span className="draw-header-text">
-            {isLoading ? 'thinking...' : claudeDrawing || "Let's draw together?"}
+            {displayedHeaderText.charAt(0).toUpperCase() + displayedHeaderText.slice(1)}
           </span>
         </div>
         <div className="draw-header-right">
@@ -1937,7 +2016,7 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: isPanning ? 'grabbing' : (tool === 'select' ? 'default' : 'none') }}
+          style={{ cursor: isPanning ? 'grabbing' : (tool === 'select' ? 'default' : (CUSTOM_CURSORS_ENABLED ? 'none' : 'crosshair')) }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onMouseDown={(e) => {
@@ -2398,7 +2477,7 @@ export default function DrawPage() {
             ))}
 
             {/* Claude's cursor - rendered inside transform wrapper at canvas coordinates */}
-            {claudeCursorPos && (
+            {CUSTOM_CURSORS_ENABLED && claudeCursorPos && (
               <div
                 className="absolute pointer-events-none"
                 style={{
@@ -2425,14 +2504,16 @@ export default function DrawPage() {
           </div>
 
           {/* Custom cursor - User */}
-          <CustomCursor
-            cursorPos={cursorPos}
-            isPanning={isPanning}
-            isTouch={isTouch}
-            tool={tool}
-            asciiStroke={asciiStroke}
-            strokeColor={strokeColor}
-          />
+          {CUSTOM_CURSORS_ENABLED && (
+            <CustomCursor
+              cursorPos={cursorPos}
+              isPanning={isPanning}
+              isTouch={isTouch}
+              tool={tool}
+              asciiStroke={asciiStroke}
+              strokeColor={strokeColor}
+            />
+          )}
 
 
           {/* Comment system */}
@@ -2497,7 +2578,7 @@ export default function DrawPage() {
                   {thinkingText}
                 </pre>
               ) : isLoading ? (
-                <p className="text-xs text-gray-400 italic">Thinking...</p>
+                <p className="text-xs text-gray-400 italic">{loadingMessage}</p>
               ) : (
                 <p className="text-xs text-gray-400 italic">
                   Claude&apos;s reasoning will appear here when drawing.

@@ -131,7 +131,7 @@ export function DrawToolbar({
             onClick={() => setTool('comment')}
             className={`draw-comment-btn ${tool === 'comment' ? 'draw-comment-btn--active' : ''}`}
           >
-            <img src="/draw/TCOMMENT.svg" alt="" />
+            <img src="/draw/TCOMMENT.svg" alt="" draggable={false} />
           </button>
         </StatefulTooltip>
       </div>
@@ -151,6 +151,7 @@ export function DrawToolbar({
                 <img
                   src={`/draw/${icon}.svg`}
                   alt=""
+                  draggable={false}
                   className={`draw-tool-icon ${isSelected ? 'draw-tool-icon--selected' : ''}`}
                   style={{ bottom: isSelected ? '-2px' : '-20px' }}
                 />

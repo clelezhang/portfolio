@@ -2,6 +2,9 @@ import { ReactNode } from 'react';
 import { StatefulTooltip, PLACEMENT } from 'baseui/tooltip';
 import { TOOLTIP_OVERRIDES } from '../constants';
 
+// Toggle to disable tooltips globally (set to true to re-enable)
+const TOOLTIPS_ENABLED = false;
+
 interface DrawIconButtonProps {
   icon: string;
   onClick: () => void;
@@ -62,6 +65,7 @@ export function DrawIconButton({
           <img
             src={`/draw/${icon}.svg`}
             alt=""
+            draggable={false}
             className={`${sizeClasses[size]} ${selectedClass} ${iconClassName}`.trim()}
             style={{ bottom: isSelected ? '-2px' : '-20px' }}
           />
@@ -69,6 +73,7 @@ export function DrawIconButton({
           <img
             src={`/draw/${icon}.svg`}
             alt=""
+            draggable={false}
             className={`${sizeClasses[size]} draw-stroke-icon ${iconClassName}`.trim()}
           />
         )
@@ -76,7 +81,7 @@ export function DrawIconButton({
     </button>
   );
 
-  if (!tooltip) {
+  if (!tooltip || !TOOLTIPS_ENABLED) {
     return buttonContent;
   }
 
