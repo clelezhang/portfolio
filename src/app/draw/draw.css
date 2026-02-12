@@ -1536,6 +1536,9 @@
   --bounce-overshoot: calc(4px * var(--bounce-intensity, 1));
 }
 
+.draw-reel-bounce[data-bounce-count="0"] {
+  animation-name: reelBounce0;
+}
 .draw-reel-bounce[data-bounce-count="1"] {
   animation-name: reelBounce1;
 }

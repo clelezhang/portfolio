@@ -209,7 +209,7 @@ function FullToolbarTest({
             <span>Count:</span>
             <input
               type="range"
-              min={1}
+              min={0}
               max={6}
               step={1}
               value={bounceCount}

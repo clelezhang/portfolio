@@ -1,9 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ReactElement } from 'react';
 import { StatefulTooltip, PLACEMENT } from 'baseui/tooltip';
 import { Tool } from '../types';
 import { COLOR_PALETTES, TOOLTIP_OVERRIDES } from '../constants';
 import { DrawIconButton } from './DrawIconButton';
 import { ToolbarDiceCube } from './ToolbarDiceCube';
+import { ToolbarPencilIcon } from './icons/ToolbarPencilIcon';
+
+// Toggle to disable tooltips globally (set to true to re-enable)
+const TOOLTIPS_ENABLED = false;
+
+// Wrapper that conditionally renders tooltip
+function MaybeTooltip({ content, placement, popperOptions, children }: {
+  content: string;
+  placement: typeof PLACEMENT.top | typeof PLACEMENT.bottom;
+  popperOptions: object;
+  children: ReactElement;
+}) {
+  if (!TOOLTIPS_ENABLED) return children;
+  return (
+    <StatefulTooltip
+      content={content}
+      placement={placement}
+      showArrow
+      onMouseEnterDelay={400}
+      overrides={TOOLTIP_OVERRIDES}
+      popperOptions={popperOptions}
+    >
+      {children}
+    </StatefulTooltip>
+  );
+}
 
 // Popper options for tooltip positioning
 const toolsPopperOptions = {
@@ -33,11 +59,19 @@ interface DrawToolbarProps {
   setStrokeSize: (size: number) => void;
   paletteIndex: number;
   setPaletteIndex: (index: number) => void;
+  showSettings?: boolean;
+  setShowSettings?: (value: boolean) => void;
   isLoading: boolean;
   onYourTurn: () => void;
+  onClear?: () => void;
+  onSave?: () => void;
   animationType: AnimationType;
   slideDuration?: number;
   slideStagger?: number;
+  slideBounce?: boolean;
+  showSelectTool?: boolean;
+  showReactButton?: boolean;
+  showDownloadButton?: boolean;
 }
 
 export function DrawToolbar({
@@ -51,11 +85,19 @@ export function DrawToolbar({
   setStrokeSize,
   paletteIndex,
   setPaletteIndex,
+  showSettings: _showSettings,
+  setShowSettings: _setShowSettings,
   isLoading,
   onYourTurn,
+  onClear: _onClear,
+  onSave: _onSave,
   animationType,
   slideDuration = 500,
   slideStagger = 30,
+  slideBounce: _slideBounce,
+  showSelectTool: _showSelectTool,
+  showReactButton: _showReactButton,
+  showDownloadButton: _showDownloadButton,
 }: DrawToolbarProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [targetPaletteIndex, setTargetPaletteIndex] = useState<number | null>(null);
@@ -119,21 +161,14 @@ export function DrawToolbar({
     <div className="draw-toolbar">
       {/* Comment button - separate from main toolbar */}
       <div className="draw-toolbar-comment">
-        <StatefulTooltip
-          content="Comment"
-          placement={PLACEMENT.top}
-          showArrow
-          onMouseEnterDelay={400}
-          overrides={TOOLTIP_OVERRIDES}
-          popperOptions={defaultPopperOptions}
-        >
+        <MaybeTooltip content="Comment" placement={PLACEMENT.top} popperOptions={defaultPopperOptions}>
           <button
             onClick={() => setTool('comment')}
             className={`draw-comment-btn ${tool === 'comment' ? 'draw-comment-btn--active' : ''}`}
           >
             <img src="/draw/TCOMMENT.svg" alt="" draggable={false} />
           </button>
-        </StatefulTooltip>
+        </MaybeTooltip>
       </div>
 
       {/* Main tools toolbar */}
@@ -141,12 +176,22 @@ export function DrawToolbar({
 
         {/* Drawing tools */}
         <div className="draw-tools-container">
+          {/* Pencil - uses dynamic color */}
+          <MaybeTooltip content="Pencil" placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
+            <button onClick={() => { setTool('draw'); setAsciiStroke(false); }} className="draw-tool-btn">
+              <ToolbarPencilIcon
+                color={strokeColor}
+                className={`draw-tool-icon ${tool === 'draw' && !asciiStroke ? 'draw-tool-icon--selected' : ''}`}
+                style={{ bottom: tool === 'draw' && !asciiStroke ? '-2px' : '-20px' }}
+              />
+            </button>
+          </MaybeTooltip>
+          {/* ASCII and Eraser */}
           {[
-            { id: 'pencil', label: 'Pencil', icon: 'TPENCIL', isSelected: tool === 'draw' && !asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(false); } },
             { id: 'ascii', label: 'ASCII art', icon: 'TASCII', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
             { id: 'eraser', label: 'Eraser', icon: 'TERASER', isSelected: tool === 'erase', onClick: () => setTool('erase') },
           ].map(({ id, label, icon, isSelected, onClick }) => (
-            <StatefulTooltip key={id} content={label} placement={PLACEMENT.top} showArrow onMouseEnterDelay={400} overrides={TOOLTIP_OVERRIDES} popperOptions={toolsPopperOptions}>
+            <MaybeTooltip key={id} content={label} placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
               <button onClick={onClick} className="draw-tool-btn">
                 <img
                   src={`/draw/${icon}.svg`}
@@ -156,7 +201,7 @@ export function DrawToolbar({
                   style={{ bottom: isSelected ? '-2px' : '-20px' }}
                 />
               </button>
-            </StatefulTooltip>
+            </MaybeTooltip>
           ))}
         </div>
 
@@ -201,7 +246,7 @@ export function DrawToolbar({
             })}
 
             {/* Dice button inside palette */}
-            <StatefulTooltip content="Change palette" placement={PLACEMENT.top} showArrow onMouseEnterDelay={400} overrides={TOOLTIP_OVERRIDES} popperOptions={defaultPopperOptions}>
+            <MaybeTooltip content="Change palette" placement={PLACEMENT.top} popperOptions={defaultPopperOptions}>
               <button
                 onClick={handleDiceClick}
                 className="draw-color-btn draw-color-btn--dice"
@@ -212,7 +257,7 @@ export function DrawToolbar({
                   clickCount={clickCount}
                 />
               </button>
-            </StatefulTooltip>
+            </MaybeTooltip>
           </div>
 
           {/* Stroke sizes */}

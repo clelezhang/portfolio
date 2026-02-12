@@ -268,10 +268,10 @@ export default function RoleComparisonPage() {
     if (!canvas) return;
 
     // Collect results for merging
-    let formsShapes: Shape[] = [];
-    let formsBlocks: AsciiBlock[] = [];
-    let detailsShapes: Shape[] = [];
-    let detailsBlocks: AsciiBlock[] = [];
+    const formsShapes: Shape[] = [];
+    const formsBlocks: AsciiBlock[] = [];
+    const detailsShapes: Shape[] = [];
+    const detailsBlocks: AsciiBlock[] = [];
 
     // Helper to process streaming response
     const processStream = async (

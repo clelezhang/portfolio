@@ -1,0 +1,78 @@
+interface ToolbarPencilIconProps {
+  color: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+// Toolbar pencil icon with dynamic color while preserving gradient appearance
+export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIconProps) {
+  // Generate unique IDs for this instance to avoid conflicts
+  const id = Math.random().toString(36).substr(2, 9);
+
+  return (
+    <svg
+      width="40"
+      height="72"
+      viewBox="0 0 40 72"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={style}
+    >
+      <g clipPath={`url(#clip_${id})`}>
+        <g filter={`url(#filter_${id})`}>
+          <path d="M18.4954 7.55899C18.8161 6.68489 20.0524 6.68489 20.373 7.55899L24.6497 19.2162H14.2188L18.4954 7.55899Z" fill={color}/>
+        </g>
+        <path d="M18.9648 7.73145C19.1252 7.29439 19.743 7.2944 19.9033 7.73145L23.9336 18.7158H14.9355L18.9648 7.73145Z" stroke="#02061D" strokeOpacity="0.1"/>
+        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint0_${id})`}/>
+        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint1_${id})`} fillOpacity="0.3"/>
+        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint2_${id})`}/>
+        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint3_${id})`} fillOpacity="0.2"/>
+        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint4_${id})`} fillOpacity="0.2"/>
+        <path d="M14.4189 17.3721H24.6465C24.8522 17.3721 25.0372 17.4979 25.1123 17.6895L35.6553 44.5879C36.5439 46.8551 37 49.269 37 51.7041V72.1191H2.5V51.5752C2.5 49.2216 2.92626 46.8874 3.75781 44.6855L13.9512 17.6953C14.0247 17.5008 14.211 17.3721 14.4189 17.3721Z" stroke="#0F1931" strokeOpacity="0.1"/>
+      </g>
+      <defs>
+        <filter id={`filter_${id}`} x="14.2188" y="5.90344" width="10.4297" height="13.3127" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+          <feOffset dy="-1"/>
+          <feGaussianBlur stdDeviation="2"/>
+          <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+          <feBlend mode="normal" in2="shape" result="effect1_innerShadow"/>
+        </filter>
+        <linearGradient id={`paint0_${id}`} x1="20.0849" y1="45.8458" x2="20.0849" y2="57.582" gradientUnits="userSpaceOnUse">
+          <stop stopColor={color} stopOpacity="0"/>
+          <stop offset="1" stopColor={color}/>
+        </linearGradient>
+        <linearGradient id={`paint1_${id}`} x1="38.8396" y1="44.8678" x2="0.660377" y2="44.8678" gradientUnits="userSpaceOnUse">
+          <stop/>
+          <stop offset="0.245082" stopColor="#666666" stopOpacity="0.75"/>
+          <stop offset="0.294077" stopColor="#666666" stopOpacity="0"/>
+          <stop offset="0.374934" stopColor="#666666" stopOpacity="0.25"/>
+          <stop offset="0.623271" stopColor="#666666" stopOpacity="0.1"/>
+          <stop offset="0.69" stopColor="#666666" stopOpacity="0"/>
+          <stop offset="0.748823" stopColor="#666666" stopOpacity="0.5"/>
+          <stop offset="1"/>
+        </linearGradient>
+        <linearGradient id={`paint2_${id}`} x1="20.0849" y1="16.9943" x2="20.0849" y2="61.0051" gradientUnits="userSpaceOnUse">
+          <stop offset="0.01" stopColor="#F4EADE"/>
+          <stop offset="0.650404" stopColor="#F9F1E7" stopOpacity="0.85"/>
+          <stop offset="1" stopColor={color} stopOpacity="0"/>
+        </linearGradient>
+        <linearGradient id={`paint3_${id}`} x1="16.066" y1="47.3129" x2="2.68942" y2="42.7323" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#B2753F" stopOpacity="0"/>
+          <stop offset="1" stopColor="#B2753F"/>
+        </linearGradient>
+        <linearGradient id={`paint4_${id}`} x1="28.1226" y1="43.1563" x2="35.1866" y2="40.9573" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#B2753F" stopOpacity="0"/>
+          <stop offset="1" stopColor="#B2753F"/>
+        </linearGradient>
+        <clipPath id={`clip_${id}`}>
+          <rect width="40" height="72" fill="white"/>
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
