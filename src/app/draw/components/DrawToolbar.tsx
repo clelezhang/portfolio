@@ -48,6 +48,19 @@ const STROKE_SIZES = [
 
 export type AnimationType = 'slide' | 'slot' | 'confetti';
 
+// Calculate click brightness based on color luminance
+// Light colors get subtle darkening (0.98), dark colors get more noticeable darkening (0.9)
+function getClickBrightness(hexColor: string): number {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  // Relative luminance
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  // Dark (luminance=0): 0.9, Light (luminance=1): 0.99
+  return 0.9 + luminance * 0.09;
+}
+
 interface DrawToolbarProps {
   tool: Tool;
   setTool: (tool: Tool) => void;
@@ -102,6 +115,7 @@ export function DrawToolbar({
   const [isRolling, setIsRolling] = useState(false);
   const [targetPaletteIndex, setTargetPaletteIndex] = useState<number | null>(null);
   const [clickCount, setClickCount] = useState(1);
+  const [poppingColorIndex, setPoppingColorIndex] = useState<number | null>(null);
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingPaletteRef = useRef<number>(paletteIndex);
 
@@ -221,8 +235,12 @@ export function DrawToolbar({
               return (
                 <button
                   key={`${paletteIndex}-${index}`}
-                  onClick={() => setStrokeColor(color)}
-                  className={`draw-color-btn ${strokeColor === color ? 'draw-color-btn--selected' : ''}`}
+                  onClick={() => {
+                    setStrokeColor(color);
+                    setPoppingColorIndex(index);
+                    setTimeout(() => setPoppingColorIndex(null), 250);
+                  }}
+                  className={`draw-color-btn ${strokeColor === color ? 'draw-color-btn--selected' : ''} ${poppingColorIndex === index ? 'draw-color-btn--pop' : ''}`}
                   style={{ animationDelay: isRolling ? `${index * slideStagger}ms` : '0ms' }}
                   aria-label={`Color ${color}`}
                 >
@@ -230,6 +248,7 @@ export function DrawToolbar({
                     className={`draw-color-reel ${isRolling && animationType === 'slide' ? 'draw-reel-slide-bounce' : ''}`}
                     style={{
                       '--slide-duration': `${slideDuration}ms`,
+                      '--click-brightness': getClickBrightness(color),
                       animationDelay: isRolling ? `${index * slideStagger}ms` : '0ms',
                     } as React.CSSProperties}
                   >

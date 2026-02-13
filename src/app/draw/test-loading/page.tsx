@@ -89,6 +89,7 @@ export default function LoadingAnimationsTestPage() {
   const [comments, setComments] = useState<StateComment[]>([]);
   const [currentComment, setCurrentComment] = useState('');
   const [jsonCopied, setJsonCopied] = useState(false);
+  const [isIconHovered, setIsIconHovered] = useState(false);
 
   // Animation playback
   const [isAnimating, setIsAnimating] = useState(false);
@@ -117,6 +118,57 @@ export default function LoadingAnimationsTestPage() {
   const [spinUpDuration, setSpinUpDuration] = useState(0.3); // seconds to ramp up to full speed
   const [opacityFadeMin, setOpacityFadeMin] = useState(0.2); // minimum opacity for trail
   const [steppedSpeed, setSteppedSpeed] = useState(8); // steps per second for Apple-style
+  // Face spin params - with localStorage persistence
+  const [faceSpinTotal, setFaceSpinTotal] = useState(540);
+  const [faceSpinEasing, setFaceSpinEasing] = useState(3);
+  const [faceSpinEasingType, setFaceSpinEasingType] = useState<'in' | 'out' | 'in-out' | 'bounce'>('bounce');
+  const [faceSpinDirection, setFaceSpinDirection] = useState<1 | -1>(1);
+  const [faceSpinStart, setFaceSpinStart] = useState(0);
+  const [faceSpinEnd, setFaceSpinEnd] = useState(4);
+  const [faceFadeStart, setFaceFadeStart] = useState(2);
+  const [faceFadeEnd, setFaceFadeEnd] = useState(4);
+  // Bounce-specific params
+  const [bounceFrequency, setBounceFrequency] = useState(1.5);
+  const [bounceDamping, setBounceDamping] = useState(1.5);
+  const [bounceOvershoot, setBounceOvershoot] = useState(0.3);
+
+  // Load face spin settings from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('faceSpinSettings');
+    if (saved) {
+      try {
+        const settings = JSON.parse(saved);
+        if (settings.total !== undefined) setFaceSpinTotal(settings.total);
+        if (settings.easing !== undefined) setFaceSpinEasing(settings.easing);
+        if (settings.easingType !== undefined) setFaceSpinEasingType(settings.easingType);
+        if (settings.direction !== undefined) setFaceSpinDirection(settings.direction);
+        if (settings.spinStart !== undefined) setFaceSpinStart(settings.spinStart);
+        if (settings.spinEnd !== undefined) setFaceSpinEnd(settings.spinEnd);
+        if (settings.fadeStart !== undefined) setFaceFadeStart(settings.fadeStart);
+        if (settings.fadeEnd !== undefined) setFaceFadeEnd(settings.fadeEnd);
+        if (settings.bounceFrequency !== undefined) setBounceFrequency(settings.bounceFrequency);
+        if (settings.bounceDamping !== undefined) setBounceDamping(settings.bounceDamping);
+        if (settings.bounceOvershoot !== undefined) setBounceOvershoot(settings.bounceOvershoot);
+      } catch { /* ignore parse errors */ }
+    }
+  }, []);
+
+  // Save face spin settings to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('faceSpinSettings', JSON.stringify({
+      total: faceSpinTotal,
+      easing: faceSpinEasing,
+      easingType: faceSpinEasingType,
+      direction: faceSpinDirection,
+      spinStart: faceSpinStart,
+      spinEnd: faceSpinEnd,
+      fadeStart: faceFadeStart,
+      fadeEnd: faceFadeEnd,
+      bounceFrequency,
+      bounceDamping,
+      bounceOvershoot,
+    }));
+  }, [faceSpinTotal, faceSpinEasing, faceSpinEasingType, faceSpinDirection, faceSpinStart, faceSpinEnd, faceFadeStart, faceFadeEnd, bounceFrequency, bounceDamping, bounceOvershoot]);
 
   const currentState = ANIMATION_STATES[currentStateIndex];
 
@@ -263,13 +315,31 @@ export default function LoadingAnimationsTestPage() {
       {/* Sticky Left Preview */}
       <div className="w-48 border-r border-black/5 p-6 sticky top-0 h-screen flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-28 h-28 border border-black/10 rounded-2xl flex items-center justify-center mb-4">
+          <button
+            className="w-16 h-16 border border-black/10 rounded-xl flex items-center justify-center mb-4 hover:border-black/20 hover:bg-black/[0.02] transition-colors cursor-pointer"
+            onMouseEnter={() => setIsIconHovered(true)}
+            onMouseLeave={() => setIsIconHovered(false)}
+            onClick={() => {
+              if (isAnimating) {
+                setIsAnimating(false);
+                setIsPaused(false);
+                accumulatedTimeRef.current = 0;
+                setAnimProgress(0);
+              } else {
+                setAnimProgress(0);
+                accumulatedTimeRef.current = 0;
+                setIsAnimating(true);
+                setIsPaused(false);
+              }
+            }}
+          >
             <GAnimationPreview
               progress={isAnimating ? animProgress : currentState.progress}
               isPlaying={((isAnimating && animProgress >= 4 && animProgress < 5) || isSpinning) && !isPaused && !isScrubbing}
-              size={64}
+              size={32}
               spinSpeed={spinSpeed * animSpeed}
               flipArcDirection={flipArcDirection}
+              isHovered={isIconHovered && !isAnimating}
               spinOptions={{
                 strokeDash: spinStrokeDash,
                 gravity: spinGravity,
@@ -283,8 +353,21 @@ export default function LoadingAnimationsTestPage() {
                 opacityFadeMin,
                 steppedSpeed: steppedSpeed * animSpeed,
               }}
+              faceSpinOptions={{
+                totalDegrees: faceSpinTotal,
+                easingPower: faceSpinEasing,
+                easingType: faceSpinEasingType,
+                direction: faceSpinDirection,
+                spinStart: faceSpinStart,
+                spinEnd: faceSpinEnd,
+                fadeStart: faceFadeStart,
+                fadeEnd: faceFadeEnd,
+                bounceFrequency,
+                bounceDamping,
+                bounceOvershoot,
+              }}
             />
-          </div>
+          </button>
           <div className="text-xs text-black/40 text-center mb-4">{currentState.name}</div>
 
           {/* Play Controls */}
@@ -414,7 +497,7 @@ export default function LoadingAnimationsTestPage() {
           )}
 
           {/* Circle Pause Duration */}
-          <div className="w-full text-[10px] text-black/40">
+          <div className="w-full text-[10px] text-black/40 mb-4">
             <div className="flex justify-between items-center">
               <span>Hold at start</span>
               <input
@@ -425,6 +508,221 @@ export default function LoadingAnimationsTestPage() {
                 value={circlePauseDuration}
                 onChange={(e) => setCirclePauseDuration(parseFloat(e.target.value) || 0)}
                 className="w-12 px-1 py-0.5 border border-black/10 rounded text-center text-black/60 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Face Spin Controls */}
+          <div className="w-full text-[10px] text-black/40 space-y-2 border-t border-black/10 pt-3 overflow-y-auto max-h-[300px]">
+            <div className="text-black/50 font-medium mb-2">Face Spin</div>
+
+            {/* Total spin */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Total spin</span>
+                <span>{faceSpinTotal}°</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1440"
+                step="45"
+                value={faceSpinTotal}
+                onChange={(e) => setFaceSpinTotal(Number(e.target.value))}
+                className="w-full accent-black/30"
+              />
+            </div>
+
+            {/* Direction */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Direction</span>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setFaceSpinDirection(1)}
+                  className={`flex-1 px-1 py-1 text-[9px] border border-black/10 rounded ${
+                    faceSpinDirection === 1 ? 'bg-black text-white' : 'hover:bg-black/5'
+                  }`}
+                >
+                  ↻ CW
+                </button>
+                <button
+                  onClick={() => setFaceSpinDirection(-1)}
+                  className={`flex-1 px-1 py-1 text-[9px] border border-black/10 rounded ${
+                    faceSpinDirection === -1 ? 'bg-black text-white' : 'hover:bg-black/5'
+                  }`}
+                >
+                  ↺ CCW
+                </button>
+              </div>
+            </div>
+
+            {/* Easing type */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Easing type</span>
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {(['in', 'out', 'in-out', 'bounce'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFaceSpinEasingType(type)}
+                    className={`flex-1 px-1 py-1 text-[9px] border border-black/10 rounded ${
+                      faceSpinEasingType === type ? 'bg-black text-white' : 'hover:bg-black/5'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Easing power - only show for non-bounce types */}
+            {faceSpinEasingType !== 'bounce' && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span>Easing power</span>
+                  <span>{faceSpinEasing}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  step="0.5"
+                  value={faceSpinEasing}
+                  onChange={(e) => setFaceSpinEasing(Number(e.target.value))}
+                  className="w-full accent-black/30"
+                />
+              </div>
+            )}
+
+            {/* Bounce params - only show for bounce type */}
+            {faceSpinEasingType === 'bounce' && (
+              <>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span>Frequency</span>
+                    <span>{bounceFrequency.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="4"
+                    step="0.1"
+                    value={bounceFrequency}
+                    onChange={(e) => setBounceFrequency(Number(e.target.value))}
+                    className="w-full accent-black/30"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span>Damping</span>
+                    <span>{bounceDamping.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5"
+                    step="0.1"
+                    value={bounceDamping}
+                    onChange={(e) => setBounceDamping(Number(e.target.value))}
+                    className="w-full accent-black/30"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span>Overshoot</span>
+                    <span>{(bounceOvershoot * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={bounceOvershoot}
+                    onChange={(e) => setBounceOvershoot(Number(e.target.value))}
+                    className="w-full accent-black/30"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Spin timing */}
+            <div className="border-t border-black/5 pt-2 mt-2">
+              <div className="text-black/50 font-medium mb-2">Spin Timing</div>
+            </div>
+
+            {/* Spin start */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Spin start</span>
+                <span>p={faceSpinStart}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="4"
+                step="0.25"
+                value={faceSpinStart}
+                onChange={(e) => setFaceSpinStart(Number(e.target.value))}
+                className="w-full accent-black/30"
+              />
+            </div>
+
+            {/* Spin end */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Spin end</span>
+                <span>p={faceSpinEnd}</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.25"
+                value={faceSpinEnd}
+                onChange={(e) => setFaceSpinEnd(Number(e.target.value))}
+                className="w-full accent-black/30"
+              />
+            </div>
+
+            {/* Fade timing */}
+            <div className="border-t border-black/5 pt-2 mt-2">
+              <div className="text-black/50 font-medium mb-2">Fade Timing</div>
+            </div>
+
+            {/* Fade start */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Fade start</span>
+                <span>p={faceFadeStart}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="4"
+                step="0.25"
+                value={faceFadeStart}
+                onChange={(e) => setFaceFadeStart(Number(e.target.value))}
+                className="w-full accent-black/30"
+              />
+            </div>
+
+            {/* Fade end */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <span>Fade end</span>
+                <span>p={faceFadeEnd}</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.25"
+                value={faceFadeEnd}
+                onChange={(e) => setFaceFadeEnd(Number(e.target.value))}
+                className="w-full accent-black/30"
               />
             </div>
           </div>
@@ -701,6 +999,11 @@ export default function LoadingAnimationsTestPage() {
 
 const G_FACE_PATH = "M11.5158 14.125C11.5158 13.9025 11.5818 13.685 11.7054 13.5C11.829 13.315 12.0047 13.1708 12.2103 13.0856C12.4159 13.0005 12.6421 12.9782 12.8603 13.0216C13.0785 13.065 13.279 13.1722 13.4363 13.3295C13.5936 13.4868 13.7008 13.6873 13.7442 13.9055C13.7876 14.1238 13.7653 14.35 13.6802 14.5555C13.595 14.7611 13.4508 14.9368 13.2658 15.0604C13.0808 15.184 12.8633 15.25 12.6408 15.25C12.3424 15.25 12.0563 15.1315 11.8453 14.9205C11.6343 14.7095 11.5158 14.4234 11.5158 14.125ZM20.5158 14.125C20.5158 14.3475 20.4498 14.565 20.3262 14.75C20.2026 14.935 20.0269 15.0792 19.8213 15.1644C19.6158 15.2495 19.3896 15.2718 19.1713 15.2284C18.9531 15.185 18.7527 15.0778 18.5953 14.9205C18.438 14.7632 18.3308 14.5627 18.2874 14.3445C18.244 14.1262 18.2663 13.9 18.3514 13.6945C18.4366 13.4889 18.5808 13.3132 18.7658 13.1896C18.9508 13.066 19.1683 13 19.3908 13C19.6892 13 19.9753 13.1185 20.1863 13.3295C20.3973 13.5405 20.5158 13.8266 20.5158 14.125ZM20.4155 18.625C19.4508 20.2928 17.8467 21.25 16.0158 21.25C14.1849 21.25 12.5818 20.2938 11.6171 18.625C11.5628 18.5396 11.5264 18.4442 11.5099 18.3444C11.4935 18.2446 11.4975 18.1425 11.5215 18.0442C11.5456 17.946 11.5893 17.8536 11.65 17.7727C11.7107 17.6918 11.7871 17.6239 11.8747 17.5733C11.9622 17.5227 12.0591 17.4903 12.1596 17.4781C12.26 17.4659 12.3618 17.4742 12.459 17.5023C12.5561 17.5305 12.6466 17.5781 12.7248 17.6421C12.8031 17.7062 12.8677 17.7854 12.9146 17.875C13.6149 19.0853 14.7155 19.75 16.0158 19.75C17.3161 19.75 18.4168 19.0844 19.1161 17.875C19.2156 17.7027 19.3794 17.577 19.5716 17.5254C19.7637 17.4739 19.9685 17.5009 20.1408 17.6003C20.3131 17.6998 20.4389 17.8636 20.4904 18.0558C20.5419 18.2479 20.515 18.4527 20.4155 18.625Z";
 
+// Separate face parts for wink animation
+const LEFT_EYE_PATH = "M11.5158 14.125C11.5158 13.9025 11.5818 13.685 11.7054 13.5C11.829 13.315 12.0047 13.1708 12.2103 13.0856C12.4159 13.0005 12.6421 12.9782 12.8603 13.0216C13.0785 13.065 13.279 13.1722 13.4363 13.3295C13.5936 13.4868 13.7008 13.6873 13.7442 13.9055C13.7876 14.1238 13.7653 14.35 13.6802 14.5555C13.595 14.7611 13.4508 14.9368 13.2658 15.0604C13.0808 15.184 12.8633 15.25 12.6408 15.25C12.3424 15.25 12.0563 15.1315 11.8453 14.9205C11.6343 14.7095 11.5158 14.4234 11.5158 14.125Z";
+const SMILE_PATH = "M20.4155 18.625C19.4508 20.2928 17.8467 21.25 16.0158 21.25C14.1849 21.25 12.5818 20.2938 11.6171 18.625C11.5628 18.5396 11.5264 18.4442 11.5099 18.3444C11.4935 18.2446 11.4975 18.1425 11.5215 18.0442C11.5456 17.946 11.5893 17.8536 11.65 17.7727C11.7107 17.6918 11.7871 17.6239 11.8747 17.5733C11.9622 17.5227 12.0591 17.4903 12.1596 17.4781C12.26 17.4659 12.3618 17.4742 12.459 17.5023C12.5561 17.5305 12.6466 17.5781 12.7248 17.6421C12.8031 17.7062 12.8677 17.7854 12.9146 17.875C13.6149 19.0853 14.7155 19.75 16.0158 19.75C17.3161 19.75 18.4168 19.0844 19.1161 17.875C19.2156 17.7027 19.3794 17.577 19.5716 17.5254C19.7637 17.4739 19.9685 17.5009 20.1408 17.6003C20.3131 17.6998 20.4389 17.8636 20.4904 18.0558C20.5419 18.2479 20.515 18.4527 20.4155 18.625Z";
+const WINK_LINE = { x1: 18.2, y: 14.125, x2: 20.6 };
+
 // ============================================
 // G Series: EXACT coordinates from actual SVGs
 // g1 = circle with face
@@ -915,13 +1218,30 @@ interface SpinOptions {
   steppedSpeed?: number;     // steps per second for Apple-style rotation
 }
 
+interface FaceSpinOptions {
+  totalDegrees?: number;
+  easingPower?: number;
+  easingType?: 'in' | 'out' | 'in-out' | 'bounce';
+  direction?: 1 | -1;
+  spinStart?: number;
+  spinEnd?: number;
+  fadeStart?: number;
+  fadeEnd?: number;
+  // Bounce params
+  bounceFrequency?: number;
+  bounceDamping?: number;
+  bounceOvershoot?: number;
+}
+
 function GAnimationPreview({
   progress,
   isPlaying,
   size = 64,
   spinSpeed = 1,
   spinOptions = {},
-  flipArcDirection = false
+  flipArcDirection = false,
+  isHovered = false,
+  faceSpinOptions = {},
 }: {
   progress: number;
   isPlaying: boolean;
@@ -929,12 +1249,52 @@ function GAnimationPreview({
   spinSpeed?: number;
   spinOptions?: SpinOptions;
   flipArcDirection?: boolean;
+  isHovered?: boolean;
+  faceSpinOptions?: FaceSpinOptions;
 }) {
   const [spinAngle, setSpinAngle] = useState(0);
   const [strokeDashOffset, setStrokeDashOffset] = useState(0); // For material design effect
   const [effectRamp, setEffectRamp] = useState(0); // 0-1 ramp for stroke dash fade-in
+  const [winkProgress, setWinkProgress] = useState(0);
   const animationRef = useRef<number | undefined>(undefined);
+  const winkAnimRef = useRef<number | undefined>(undefined);
   const angleRef = useRef(0); // Track angle without causing re-renders
+
+  // Wink animation on hover (only when not loading/playing)
+  useEffect(() => {
+    if (!isHovered || isPlaying || progress > 0.01) {
+      if (winkAnimRef.current) cancelAnimationFrame(winkAnimRef.current);
+      setWinkProgress(0);
+      return;
+    }
+
+    const duration = 0.5;
+    const frequency = 1.5;
+    const damping = 1.5;
+    const startTime = performance.now();
+
+    const animate = (time: number) => {
+      const elapsed = (time - startTime) / 1000;
+      const t = elapsed / duration;
+      setWinkProgress(t);
+
+      const currentDecay = Math.exp(-damping * t);
+      const currentOscillation = Math.sin(frequency * Math.PI * t);
+      const currentRotation = Math.abs(40 * currentDecay * currentOscillation);
+
+      if (t > 0.8 && currentRotation < 0.5) {
+        setWinkProgress(0);
+        return;
+      }
+
+      winkAnimRef.current = requestAnimationFrame(animate);
+    };
+
+    winkAnimRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (winkAnimRef.current) cancelAnimationFrame(winkAnimRef.current);
+    };
+  }, [isHovered, isPlaying, progress]);
 
 
   // Spin animation when playing
@@ -1060,11 +1420,60 @@ function GAnimationPreview({
   const showTopRight = p < 1;
   const topRightOpacity = directMorphT > 0 ? directMorphT : 1;
 
-  // Face visibility: visible during forward (morphP <= 3), appears instantly at end of reverse
+  // Face visibility: visible during forward, spins from start with momentum, fades out
   const faceAppearThreshold = 0.25; // Face appears when morph is 85% complete
+  const faceFadeStart = faceSpinOptions.fadeStart ?? 2; // Start fading
+  const faceFadeEnd = faceSpinOptions.fadeEnd ?? 4; // Fully gone
+  const faceSpinTotal = faceSpinOptions.totalDegrees ?? 540; // total degrees to spin
+  const faceSpinPower = faceSpinOptions.easingPower ?? 3; // easing power
+  const faceSpinEasingType = faceSpinOptions.easingType ?? 'in-out';
+  const faceSpinDirection = faceSpinOptions.direction ?? 1;
+  const faceSpinStart = faceSpinOptions.spinStart ?? 0;
+  const faceSpinEnd = faceSpinOptions.spinEnd ?? 4;
+
+  // Calculate spin progress (0-1) based on spinStart and spinEnd
+  // Use < instead of <= so spin starts immediately when p equals spinStart
+  const faceSpinT = p < faceSpinStart ? 0 : p >= faceSpinEnd ? 1 : (p - faceSpinStart) / (faceSpinEnd - faceSpinStart);
+
+  // Apply easing based on type
+  let faceSpinEased: number;
+  if (faceSpinEasingType === 'in') {
+    // Ease-in: slow start, fast end
+    faceSpinEased = Math.pow(faceSpinT, faceSpinPower);
+  } else if (faceSpinEasingType === 'out') {
+    // Ease-out: fast start, slow end
+    faceSpinEased = 1 - Math.pow(1 - faceSpinT, faceSpinPower);
+  } else if (faceSpinEasingType === 'bounce') {
+    // Bounce: like the wink - fast start with overshoot, settles at target
+    // Uses damped oscillation but only overshoots forward, doesn't roll back
+    const frequency = faceSpinOptions.bounceFrequency ?? 1.5;
+    const damping = faceSpinOptions.bounceDamping ?? 1.5;
+    const overshoot = faceSpinOptions.bounceOvershoot ?? 0.3;
+
+    // Base ease-out for the main movement
+    const baseT = 1 - Math.pow(1 - faceSpinT, 2);
+
+    // Add decaying overshoot on top (only positive, no oscillation back)
+    const decay = Math.exp(-damping * faceSpinT * 3);
+    const bounce = overshoot * decay * Math.sin(frequency * Math.PI * faceSpinT);
+
+    // Clamp to prevent going backwards
+    faceSpinEased = Math.max(0, baseT + bounce);
+  } else {
+    // Ease-in-out: slow start and end, fast middle
+    faceSpinEased = faceSpinT < 0.5
+      ? Math.pow(2, faceSpinPower - 1) * Math.pow(faceSpinT, faceSpinPower)
+      : 1 - Math.pow(-2 * faceSpinT + 2, faceSpinPower) / 2;
+  }
+
   const faceVisibility = isReverse
-    ? { show: directMorphT >= faceAppearThreshold, opacity: 1 } // Instant appear, no fade
-    : { show: p <= 3, opacity: 1 };
+    ? { show: directMorphT >= faceAppearThreshold, opacity: 1, rotation: 0 } // Instant appear, no fade
+    : {
+        show: p <= faceFadeEnd,
+        opacity: p <= faceFadeStart ? 1 : Math.max(0, 1 - (p - faceFadeStart) / (faceFadeEnd - faceFadeStart)),
+        // Face spins with configurable direction and easing
+        rotation: faceSpinEased * faceSpinTotal * faceSpinDirection,
+      };
 
   // Arc phases: forward (0-1) or reverse direct morph (5-10)
   const isArcPhase = p < 1 && p >= 0;
@@ -1135,7 +1544,7 @@ function GAnimationPreview({
 
   const rays = !isArcPhase ? getRays() : null;
 
-  // Rotation angle: spinning, or momentum settle during reverse
+  // Rotation angle: spinning, momentum settle during reverse, or wink
   let rotationAngle = isPlaying ? spinAngle : 0;
 
   // Add momentum/overshoot rotation AFTER face appears (last 15% of reverse morph)
@@ -1152,6 +1561,16 @@ function GAnimationPreview({
     const oscillation = Math.cos(frequency * Math.PI * t);
     rotationAngle = overshootAmount * decay * oscillation;
   }
+
+  // Wink rotation when hovering at rest (not playing, not in animation)
+  if (!isPlaying && p < 0.01 && winkProgress > 0) {
+    const winkDecay = Math.exp(-1.5 * winkProgress);
+    const winkOscillation = Math.sin(1.5 * Math.PI * winkProgress);
+    rotationAngle = 40 * winkDecay * winkOscillation;
+  }
+
+  // Determine if winking (for eye display)
+  const isWinking = rotationAngle > 10 && !isPlaying && p < 0.01;
 
   return (
     <svg
@@ -1175,9 +1594,34 @@ function GAnimationPreview({
         />
       )}
 
-      {/* Face - visible based on morphP and reverseStyle */}
-      {faceVisibility.show && (
-        <path d={G_FACE_PATH} fill="black" opacity={faceVisibility.opacity} />
+      {/* Face - visible based on morphP and reverseStyle, spins and fades during transition */}
+      {faceVisibility.show && !isWinking && (
+        <path
+          d={G_FACE_PATH}
+          fill="black"
+          opacity={faceVisibility.opacity}
+          style={{
+            transformOrigin: '16px 16px',
+            transform: faceVisibility.rotation ? `rotate(${faceVisibility.rotation}deg)` : 'none',
+          }}
+        />
+      )}
+
+      {/* Winking face (left eye + wink line + smile) */}
+      {faceVisibility.show && isWinking && (
+        <>
+          <path d={LEFT_EYE_PATH} fill="black" />
+          <line
+            x1={WINK_LINE.x1}
+            y1={WINK_LINE.y}
+            x2={WINK_LINE.x2}
+            y2={WINK_LINE.y}
+            stroke="black"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path d={SMILE_PATH} fill="black" />
+        </>
       )}
 
       {/* Arc phase (0 < morphP < 1): 8 curved arcs morphing into/from rays */}

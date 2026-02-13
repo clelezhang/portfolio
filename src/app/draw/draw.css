@@ -1752,6 +1752,15 @@
   animation-delay: calc(var(--index, 0) * 60ms);
 }
 
+/* Color button click animation - brightness varies by color luminance */
+.draw-color-palette > .draw-color-btn > .draw-color-reel {
+  transition: filter 110ms ease-out;
+}
+
+.draw-color-palette > .draw-color-btn.draw-color-btn--pop > .draw-color-reel {
+  filter: brightness(var(--click-brightness, 0.92));
+}
+
 /* -----------------------------------------------------------------------------
    Wiggle Animation (CSS Keyframes Alternative to SVG Filter)
 

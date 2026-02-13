@@ -4,7 +4,7 @@ interface ToolbarPencilIconProps {
   style?: React.CSSProperties;
 }
 
-// Toolbar pencil icon with dynamic color while preserving gradient appearance
+// Toolbar pencil icon with dynamic tip color while preserving gradient appearance
 export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIconProps) {
   // Generate unique IDs for this instance to avoid conflicts
   const id = Math.random().toString(36).substr(2, 9);
@@ -20,19 +20,26 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
       style={style}
     >
       <g clipPath={`url(#clip_${id})`}>
+        {/* Pencil tip - dynamic color */}
         <g filter={`url(#filter_${id})`}>
-          <path d="M18.4954 7.55899C18.8161 6.68489 20.0524 6.68489 20.373 7.55899L24.6497 19.2162H14.2188L18.4954 7.55899Z" fill={color}/>
+          <path d="M18.5637 6.49688C18.8881 5.63171 20.1119 5.63171 20.4363 6.49688L27 24H12L18.5637 6.49688Z" fill={color}/>
         </g>
-        <path d="M18.9648 7.73145C19.1252 7.29439 19.743 7.2944 19.9033 7.73145L23.9336 18.7158H14.9355L18.9648 7.73145Z" stroke="#02061D" strokeOpacity="0.1"/>
-        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint0_${id})`}/>
-        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint1_${id})`} fillOpacity="0.3"/>
-        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint2_${id})`}/>
-        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint3_${id})`} fillOpacity="0.2"/>
-        <path d="M2 72.619V51.575C2 49.161 2.43703 46.767 3.28994 44.5087L13.4834 17.5188C13.6304 17.1296 14.003 16.8721 14.4189 16.8721H24.6465C25.0579 16.8721 25.4273 17.1241 25.5775 17.5071L36.1207 44.4051C37.0322 46.7305 37.5 49.2061 37.5 51.7038V72.619H2Z" fill={`url(#paint4_${id})`} fillOpacity="0.2"/>
-        <path d="M14.4189 17.3721H24.6465C24.8522 17.3721 25.0372 17.4979 25.1123 17.6895L35.6553 44.5879C36.5439 46.8551 37 49.269 37 51.7041V72.1191H2.5V51.5752C2.5 49.2216 2.92626 46.8874 3.75781 44.6855L13.9512 17.6953C14.0247 17.5008 14.211 17.3721 14.4189 17.3721Z" stroke="#0F1931" strokeOpacity="0.1"/>
+        {/* Pencil tip stroke */}
+        <path d="M19.0322 6.67285C19.1944 6.24026 19.8056 6.24027 19.9678 6.67285L26.2783 23.5H12.7217L19.0322 6.67285Z" stroke="#02061D" strokeOpacity="0.1"/>
+        {/* Pencil body - base fill */}
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill="#F3F0ED"/>
+        {/* Pencil body - gradient overlays */}
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill={`url(#paint0_${id})`}/>
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill={`url(#paint1_${id})`} fillOpacity="0.3"/>
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill={`url(#paint2_${id})`}/>
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill={`url(#paint3_${id})`} fillOpacity="0.2"/>
+        <path d="M2 72.1217V50.7296C2 48.2939 2.44493 45.8786 3.31289 43.6028L12.2545 20.1572C12.4023 19.7696 12.7741 19.5135 13.1889 19.5135H25.8227C26.2317 19.5135 26.5995 19.7627 26.7513 20.1425L36.0725 43.4724C37.0155 45.8327 37.5 48.3511 37.5 50.8928V72.1217H2Z" fill={`url(#paint4_${id})`} fillOpacity="0.2"/>
+        {/* Pencil body stroke */}
+        <path d="M13.1885 20.0135H25.8223C26.0268 20.0135 26.2112 20.1381 26.2871 20.328L35.6084 43.6581C36.5277 45.9592 37 48.4145 37 50.8925V71.6219H2.5V50.7294C2.50003 48.3546 2.93407 46 3.78027 43.7811L12.7217 20.3358C12.7955 20.1422 12.9812 20.0137 13.1885 20.0135Z" stroke="#0F1931" strokeOpacity="0.1"/>
       </g>
       <defs>
-        <filter id={`filter_${id}`} x="14.2188" y="5.90344" width="10.4297" height="13.3127" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+        {/* Inner shadow filter for pencil tip */}
+        <filter id={`filter_${id}`} x="12" y="4.84802" width="15" height="19.152" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
           <feFlood floodOpacity="0" result="BackgroundImageFix"/>
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
           <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
@@ -42,11 +49,13 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
           <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
           <feBlend mode="normal" in2="shape" result="effect1_innerShadow"/>
         </filter>
-        <linearGradient id={`paint0_${id}`} x1="20.0849" y1="45.8458" x2="20.0849" y2="57.582" gradientUnits="userSpaceOnUse">
-          <stop stopColor={color} stopOpacity="0"/>
-          <stop offset="1" stopColor={color}/>
+        {/* Gradient 0 - bottom highlight */}
+        <linearGradient id={`paint0_${id}`} x1="20.0849" y1="44.9349" x2="20.0849" y2="56.8524" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#E3F5FF" stopOpacity="0"/>
+          <stop offset="1" stopColor="#FBFBFB"/>
         </linearGradient>
-        <linearGradient id={`paint1_${id}`} x1="38.8396" y1="44.8678" x2="0.660377" y2="44.8678" gradientUnits="userSpaceOnUse">
+        {/* Gradient 1 - side shading */}
+        <linearGradient id={`paint1_${id}`} x1="38.8396" y1="43.9417" x2="0.660377" y2="43.9417" gradientUnits="userSpaceOnUse">
           <stop/>
           <stop offset="0.245082" stopColor="#666666" stopOpacity="0.75"/>
           <stop offset="0.294077" stopColor="#666666" stopOpacity="0"/>
@@ -56,16 +65,19 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
           <stop offset="0.748823" stopColor="#666666" stopOpacity="0.5"/>
           <stop offset="1"/>
         </linearGradient>
-        <linearGradient id={`paint2_${id}`} x1="20.0849" y1="16.9943" x2="20.0849" y2="61.0051" gradientUnits="userSpaceOnUse">
+        {/* Gradient 2 - main body gradient */}
+        <linearGradient id={`paint2_${id}`} x1="20.0849" y1="15.6377" x2="20" y2="60.5" gradientUnits="userSpaceOnUse">
           <stop offset="0.01" stopColor="#F4EADE"/>
-          <stop offset="0.650404" stopColor="#F9F1E7" stopOpacity="0.85"/>
-          <stop offset="1" stopColor={color} stopOpacity="0"/>
+          <stop offset="0.709254" stopColor="#F9F1E7" stopOpacity="0.85"/>
+          <stop offset="1" stopColor="white" stopOpacity="0"/>
         </linearGradient>
-        <linearGradient id={`paint3_${id}`} x1="16.066" y1="47.3129" x2="2.68942" y2="42.7323" gradientUnits="userSpaceOnUse">
+        {/* Gradient 3 - left edge shadow */}
+        <linearGradient id={`paint3_${id}`} x1="16.066" y1="46.4246" x2="2.6469" y2="41.8993" gradientUnits="userSpaceOnUse">
           <stop stopColor="#B2753F" stopOpacity="0"/>
           <stop offset="1" stopColor="#B2753F"/>
         </linearGradient>
-        <linearGradient id={`paint4_${id}`} x1="28.1226" y1="43.1563" x2="35.1866" y2="40.9573" gradientUnits="userSpaceOnUse">
+        {/* Gradient 4 - right edge shadow */}
+        <linearGradient id={`paint4_${id}`} x1="28.1226" y1="42.2038" x2="35.2055" y2="40.0324" gradientUnits="userSpaceOnUse">
           <stop stopColor="#B2753F" stopOpacity="0"/>
           <stop offset="1" stopColor="#B2753F"/>
         </linearGradient>
