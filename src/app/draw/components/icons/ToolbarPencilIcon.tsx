@@ -22,7 +22,7 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
       <g clipPath={`url(#clip_${id})`}>
         {/* Pencil tip - dynamic color */}
         <g filter={`url(#filter_${id})`}>
-          <path d="M18.5637 6.49688C18.8881 5.63171 20.1119 5.63171 20.4363 6.49688L27 24H12L18.5637 6.49688Z" fill={color}/>
+          <path d="M18.5637 6.49688C18.8881 5.63171 20.1119 5.63171 20.4363 6.49688L27 24H12L18.5637 6.49688Z" fill={color} style={{ transition: 'fill 110ms ease-out' }}/>
         </g>
         {/* Pencil tip stroke */}
         <path d="M19.0322 6.67285C19.1944 6.24026 19.8056 6.24027 19.9678 6.67285L26.2783 23.5H12.7217L19.0322 6.67285Z" stroke="#02061D" strokeOpacity="0.1"/>
@@ -49,21 +49,21 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
           <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
           <feBlend mode="normal" in2="shape" result="effect1_innerShadow"/>
         </filter>
-        {/* Gradient 0 - bottom highlight */}
-        <linearGradient id={`paint0_${id}`} x1="20.0849" y1="44.9349" x2="20.0849" y2="56.8524" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#E3F5FF" stopOpacity="0"/>
-          <stop offset="1" stopColor="#FBFBFB"/>
+        {/* Gradient 0 - bottom warm glow */}
+        <linearGradient id={`paint0_${id}`} x1="20.0849" y1="44.9349" x2="20" y2="69.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="white" stopOpacity="0"/>
+          <stop offset="1" stopColor="#F9F1E7"/>
         </linearGradient>
-        {/* Gradient 1 - side shading */}
+        {/* Gradient 1 - side shading (warm brown) */}
         <linearGradient id={`paint1_${id}`} x1="38.8396" y1="43.9417" x2="0.660377" y2="43.9417" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="0.245082" stopColor="#666666" stopOpacity="0.75"/>
-          <stop offset="0.294077" stopColor="#666666" stopOpacity="0"/>
-          <stop offset="0.374934" stopColor="#666666" stopOpacity="0.25"/>
-          <stop offset="0.623271" stopColor="#666666" stopOpacity="0.1"/>
-          <stop offset="0.69" stopColor="#666666" stopOpacity="0"/>
-          <stop offset="0.748823" stopColor="#666666" stopOpacity="0.5"/>
-          <stop offset="1"/>
+          <stop stopColor="#B2753F"/>
+          <stop offset="0.245082" stopColor="#B2753F" stopOpacity="0.75"/>
+          <stop offset="0.294077" stopColor="#B2753F" stopOpacity="0"/>
+          <stop offset="0.374934" stopColor="#B2753F" stopOpacity="0.25"/>
+          <stop offset="0.623271" stopColor="#B2753F" stopOpacity="0.1"/>
+          <stop offset="0.69" stopColor="#B2753F" stopOpacity="0"/>
+          <stop offset="0.748823" stopColor="#B2753F" stopOpacity="0.5"/>
+          <stop offset="1" stopColor="#B2753F"/>
         </linearGradient>
         {/* Gradient 2 - main body gradient */}
         <linearGradient id={`paint2_${id}`} x1="20.0849" y1="15.6377" x2="20" y2="60.5" gradientUnits="userSpaceOnUse">

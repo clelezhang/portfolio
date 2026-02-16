@@ -302,13 +302,16 @@ function useDynamicSpringAccumCSS(
   damping: number,
   mass: number,
   velocity: number,
-  clickCount: number = 1
+  clickCount: number = 1,
+  energyMultiplier: number = 1.0,
+  windUpAmount: number = 10,
+  bounceIntensity: number = 1.0
 ) {
   useEffect(() => {
-    // Energy accumulates with each click
-    const energyLevel = clickCount;
-    const amp = (stiffness / 100) * energyLevel;
-    const windUp = 10 * energyLevel; // Wind up before release
+    // Energy accumulates with each click, scaled by multiplier
+    const energyLevel = clickCount * energyMultiplier;
+    const amp = (stiffness / 100) * energyLevel * bounceIntensity;
+    const windUp = windUpAmount * energyLevel; // Wind up before release
 
     const b1 = 18 * amp;
     const b2 = 12 * amp * 0.7;
@@ -341,7 +344,7 @@ function useDynamicSpringAccumCSS(
       document.head.appendChild(styleEl);
     }
     styleEl.textContent = css;
-  }, [id, stiffness, damping, mass, velocity, clickCount]);
+  }, [id, stiffness, damping, mass, velocity, clickCount, energyMultiplier, windUpAmount, bounceIntensity]);
 
   return `reelSpringAccum-${id}`;
 }
@@ -445,9 +448,14 @@ function FullToolbarTest({
 
   // Rapid click detection
   const lastClickTimeRef = useRef<number>(0);
-  const [rapidClickVariant, setRapidClickVariant] = useState<'snap' | 'rubber' | 'chaos' | 'accum'>('snap');
+  const [rapidClickVariant, setRapidClickVariant] = useState<'snap' | 'rubber' | 'chaos' | 'accum'>('accum');
   const [isRapidClicking, setIsRapidClicking] = useState(false);
   const [animationKey, setAnimationKey] = useState(0); // Key to force animation restart
+
+  // Fast-click animation controls
+  const [fastClickEnergyMultiplier, setFastClickEnergyMultiplier] = useState(1.0); // How much energy builds per click
+  const [fastClickWindUp, setFastClickWindUp] = useState(14); // Wind-up amount in px
+  const [fastClickBounceIntensity, setFastClickBounceIntensity] = useState(1.2); // Bounce strength multiplier
 
   // Bounce-specific controls
   const [bounceIntensity, setBounceIntensity] = useState(1.0); // Multiplier for overshoot
@@ -517,7 +525,8 @@ function FullToolbarTest({
     instanceId, springStiffness, springDamping, springMass, springVelocity, clickCount
   );
   const springAccumAnimName = useDynamicSpringAccumCSS(
-    instanceId, springStiffness, springDamping, springMass, springVelocity, clickCount
+    instanceId, springStiffness, springDamping, springMass, springVelocity, clickCount,
+    fastClickEnergyMultiplier, fastClickWindUp, fastClickBounceIntensity
   );
 
   const handleDiceClick = () => {
@@ -881,6 +890,28 @@ function FullToolbarTest({
               <option value="chaos">🌀 Chaos</option>
               <option value="accum">📈 Accum</option>
             </select>
+          </label>
+        </div>
+      )}
+
+      {/* Fast-click animation controls - shown when Spring is selected */}
+      {showSpringControls && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, marginLeft: 116, fontSize: 11, background: '#fff5f0', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(255, 140, 0, 0.2)' }}>
+          <span style={{ fontWeight: 500, color: '#d97706' }}>📈 Fast-click:<Tip text="Controls for the fast-click animation. These affect what happens when you click rapidly." /></span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>Energy:<Tip text="How much energy builds up per click. Higher = more dramatic accumulation." /></span>
+            <input type="range" min={0.5} max={2.5} step={0.1} value={fastClickEnergyMultiplier} onChange={(e) => setFastClickEnergyMultiplier(Number(e.target.value))} style={{ width: 50 }} />
+            <span style={{ width: 30 }}>{fastClickEnergyMultiplier.toFixed(1)}x</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>Wind-up:<Tip text="How far it pulls back before releasing. Higher = more anticipation." /></span>
+            <input type="range" min={0} max={30} step={2} value={fastClickWindUp} onChange={(e) => setFastClickWindUp(Number(e.target.value))} style={{ width: 50 }} />
+            <span style={{ width: 25 }}>{fastClickWindUp}px</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>Bounce:<Tip text="Intensity of the bounces. Higher = bigger overshoots." /></span>
+            <input type="range" min={0.3} max={2.0} step={0.1} value={fastClickBounceIntensity} onChange={(e) => setFastClickBounceIntensity(Number(e.target.value))} style={{ width: 50 }} />
+            <span style={{ width: 30 }}>{fastClickBounceIntensity.toFixed(1)}x</span>
           </label>
         </div>
       )}

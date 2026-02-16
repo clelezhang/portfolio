@@ -190,8 +190,8 @@ export default function DrawPage() {
   const [wiggleSpeed, setWiggleSpeed] = useState(270); // ms between frames (lower = faster)
   const [bounceIntensity, setBounceIntensity] = useState(1.0); // 0-2 range for animation bounce
   // Palette animation settings (fixed values)
-  const animationType: AnimationType = 'slide';
-  const slideDuration = 500; // ms
+  const animationType: AnimationType = 'spring';
+  const slideDuration = 700; // ms
   const slideStagger = 30; // ms between each color
   const slideBounce = true; // enable bounce effect
 

@@ -46,19 +46,84 @@ const STROKE_SIZES = [
   { size: 12, label: 'Thick', icon: 'TLG' },
 ] as const;
 
-export type AnimationType = 'slide' | 'slot' | 'confetti';
+export type AnimationType = 'slide' | 'slot' | 'confetti' | 'spring';
+
+// Dynamic Spring CSS hook - generates keyframes based on parameters
+function useDynamicSpringAccumCSS(
+  id: string,
+  stiffness: number,
+  damping: number,
+  mass: number,
+  velocity: number,
+  clickCount: number,
+  energyMultiplier: number,
+  windUpAmount: number,
+  bounceIntensity: number
+) {
+  useEffect(() => {
+    const energyLevel = clickCount * energyMultiplier;
+    const amp = (stiffness / 100) * energyLevel * bounceIntensity;
+    const windUp = windUpAmount * energyLevel;
+
+    const b1 = 18 * amp;
+    const b2 = 12 * amp * 0.7;
+    const b3 = 8 * amp * 0.5;
+    const b4 = 5 * amp * 0.3;
+    const b5 = 3 * amp * 0.15;
+
+    const extraBounces = energyLevel > 2 ? `
+        78% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - ${b4}px)); }
+        88% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) + ${b5}px)); }
+    ` : '';
+
+    const css = `
+      @keyframes reelSpringAccum-${id} {
+        0% { transform: translateY(0); }
+        ${energyLevel > 1 ? `8% { transform: translateY(${windUp}px); }` : ''}
+        35% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - ${b1}px)); }
+        50% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) + ${b2}px)); }
+        65% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - ${b3}px)); }
+        ${extraBounces}
+        100% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)))); }
+      }
+    `;
+
+    let styleEl = document.getElementById(`dynamic-spring-accum-${id}`) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = `dynamic-spring-accum-${id}`;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = css;
+  }, [id, stiffness, damping, mass, velocity, clickCount, energyMultiplier, windUpAmount, bounceIntensity]);
+
+  return `reelSpringAccum-${id}`;
+}
 
 // Calculate click brightness based on color luminance
-// Light colors get subtle darkening (0.98), dark colors get more noticeable darkening (0.9)
+// Three tiers: dark colors get strong darkening, medium moderate, light subtle
 function getClickBrightness(hexColor: string): number {
   const hex = hexColor.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16) / 255;
   const g = parseInt(hex.substring(2, 4), 16) / 255;
   const b = parseInt(hex.substring(4, 6), 16) / 255;
-  // Relative luminance
+  // Relative luminance (perceptual)
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-  // Dark (luminance=0): 0.9, Light (luminance=1): 0.99
-  return 0.9 + luminance * 0.09;
+
+  // Three-tier brightness with smooth transitions
+  // Dark (0-0.25): 0.75-0.84 (stronger darkening for visibility)
+  // Medium (0.25-0.55): 0.84-0.94 (subtle darkening)
+  // Light (0.55-1.0): 0.94-0.98 (very subtle, already visible)
+  if (luminance < 0.25) {
+    // Dark: 0.75 to 0.84 (25-16% darkening)
+    return 0.75 + (luminance / 0.25) * 0.09;
+  } else if (luminance < 0.55) {
+    // Medium: 0.84 to 0.94 (16-6% darkening)
+    return 0.84 + ((luminance - 0.25) / 0.30) * 0.10;
+  } else {
+    // Light: 0.94 to 0.98 (6-2% darkening)
+    return 0.94 + ((luminance - 0.55) / 0.45) * 0.04;
+  }
 }
 
 interface DrawToolbarProps {
@@ -119,6 +184,27 @@ export function DrawToolbar({
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingPaletteRef = useRef<number>(paletteIndex);
 
+  // Rapid-click detection for Spring animation
+  const lastClickTimeRef = useRef<number>(0);
+  const [isRapidClicking, setIsRapidClicking] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
+
+  // Generate unique ID for this toolbar instance
+  const instanceId = useRef(`toolbar-${Math.random().toString(36).slice(2, 8)}`).current;
+
+  // Dynamic CSS for Spring animation (hardcoded optimal values)
+  const springAnimName = useDynamicSpringAccumCSS(
+    instanceId,
+    100,   // stiffness
+    27,    // damping
+    1.25,  // mass
+    -50,   // velocity
+    clickCount,
+    1.0,   // energyMultiplier
+    14,    // windUp
+    1.2    // bounceIntensity
+  );
+
   // Keep pendingPaletteRef in sync when paletteIndex changes externally
   useEffect(() => {
     if (!isRolling) {
@@ -127,6 +213,13 @@ export function DrawToolbar({
   }, [paletteIndex, isRolling]);
 
   const handleDiceClick = () => {
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+    lastClickTimeRef.current = now;
+
+    // Detect rapid clicking (< 400ms between clicks)
+    const isRapid = timeSinceLastClick < 400 && timeSinceLastClick > 0;
+
     // If already rolling, add to click count for faster spinning
     if (isRolling) {
       setClickCount(prev => Math.min(prev + 1, 5)); // Cap at 5x
@@ -134,18 +227,23 @@ export function DrawToolbar({
       // Advance to next palette for each click
       pendingPaletteRef.current = (pendingPaletteRef.current + 1) % COLOR_PALETTES.length;
       setTargetPaletteIndex(pendingPaletteRef.current);
+      setIsRapidClicking(true);
+      setAnimationKey(prev => prev + 1); // Force animation restart
 
       // Clear existing reset timeout and set a new one
       if (resetTimeoutRef.current) {
         clearTimeout(resetTimeoutRef.current);
       }
+
+      const rapidDuration = animationType === 'spring' ? Math.max(slideDuration * 0.6, 300) : 500;
       resetTimeoutRef.current = setTimeout(() => {
         setPaletteIndex(pendingPaletteRef.current);
         setStrokeColor(COLOR_PALETTES[pendingPaletteRef.current][0]);
         setIsRolling(false);
         setTargetPaletteIndex(null);
         setClickCount(1);
-      }, 500);
+        setIsRapidClicking(false);
+      }, rapidDuration);
       return;
     }
 
@@ -155,20 +253,22 @@ export function DrawToolbar({
     setTargetPaletteIndex(nextIndex);
     setIsRolling(true);
     setClickCount(1);
+    setIsRapidClicking(isRapid);
+    setAnimationKey(prev => prev + 1);
 
-    // 3D cube animation timing: 450ms duration, bouncy easing
-    // Change palette early in the animation while cube is mid-tumble
+    // Change palette early in the animation
     setTimeout(() => {
       setPaletteIndex(pendingPaletteRef.current);
       setStrokeColor(COLOR_PALETTES[pendingPaletteRef.current][0]);
-    }, 150);
+    }, animationType === 'spring' ? slideDuration * 0.3 : 150);
 
-    // Reset after animation completes (450ms + small buffer)
+    // Reset after animation completes
     resetTimeoutRef.current = setTimeout(() => {
       setIsRolling(false);
       setTargetPaletteIndex(null);
       setClickCount(1);
-    }, 500);
+      setIsRapidClicking(false);
+    }, slideDuration + 50);
   };
 
   return (
@@ -222,15 +322,39 @@ export function DrawToolbar({
         {/* Colors and stroke sizes section */}
         <div className="draw-colors-section">
           {/* Color palette */}
-          <div className={`draw-color-palette ${isRolling ? `draw-palette-${animationType}` : ''}`}>
+          <div className={`draw-color-palette ${isRolling && animationType !== 'spring' ? `draw-palette-${animationType}` : ''}`}>
             {COLOR_PALETTES[paletteIndex].map((color, index) => {
               const targetIdx = targetPaletteIndex ?? paletteIndex;
               const targetColor = COLOR_PALETTES[targetIdx][index];
               const nextIdx = (targetIdx + 1) % COLOR_PALETTES.length;
               const nextColor = COLOR_PALETTES[nextIdx][index];
-              const reelColors = isRolling && targetPaletteIndex !== null && animationType === 'slide'
-                ? [nextColor, targetColor, color]
-                : [color];
+              const numPalettes = COLOR_PALETTES.length;
+
+              // Build reel colors based on animation type
+              let reelColors: string[];
+              let reelClass = '';
+
+              if (!isRolling || targetPaletteIndex === null) {
+                reelColors = [color];
+              } else if (animationType === 'spring') {
+                // Spring: show palettes cycling to target with buffer for overshoot
+                reelColors = [];
+                for (let p = 0; p < numPalettes; p++) {
+                  reelColors.push(COLOR_PALETTES[(paletteIndex + p) % numPalettes][index]);
+                }
+                reelColors.push(targetColor);
+                // Add buffer colors for overshoot visibility
+                const nextPalette1 = (targetIdx + 1) % numPalettes;
+                const nextPalette2 = (targetIdx + 2) % numPalettes;
+                reelColors.push(COLOR_PALETTES[nextPalette1][index]);
+                reelColors.push(COLOR_PALETTES[nextPalette2][index]);
+                reelClass = 'draw-reel-spring';
+              } else if (animationType === 'slide') {
+                reelColors = [nextColor, targetColor, color];
+                reelClass = 'draw-reel-slide-bounce';
+              } else {
+                reelColors = [color];
+              }
 
               return (
                 <button
@@ -245,10 +369,20 @@ export function DrawToolbar({
                   aria-label={`Color ${color}`}
                 >
                   <div
-                    className={`draw-color-reel ${isRolling && animationType === 'slide' ? 'draw-reel-slide-bounce' : ''}`}
+                    key={`reel-${index}-${animationKey}`}
+                    className={`draw-color-reel ${isRolling ? reelClass : ''}`}
                     style={{
                       '--slide-duration': `${slideDuration}ms`,
+                      '--reel-items': reelColors.length,
+                      '--reel-duration': `${slideDuration}ms`,
                       '--click-brightness': getClickBrightness(color),
+                      // Spring animation styles
+                      ...(isRolling && animationType === 'spring' ? {
+                        animationName: springAnimName,
+                        animationDuration: isRapidClicking ? `${Math.max(slideDuration * 0.6, 300)}ms` : `${slideDuration}ms`,
+                        animationTimingFunction: 'cubic-bezier(0.2, 0, 0.2, 1)',
+                        animationFillMode: 'forwards',
+                      } : {}),
                       animationDelay: isRolling ? `${index * slideStagger}ms` : '0ms',
                     } as React.CSSProperties}
                   >
