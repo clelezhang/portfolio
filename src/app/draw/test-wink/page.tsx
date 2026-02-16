@@ -84,12 +84,12 @@ export default function WinkAnimationTestPage() {
   const isWinking = rotationAngle > rotationThreshold;
 
   return (
-    <div className="min-h-screen bg-white text-black flex">
+    <div className="min-h-screen bg-lightgray text-slate flex font-sans">
       {/* Left Preview */}
-      <div className="w-64 border-r border-black/5 p-6 sticky top-0 h-screen flex flex-col">
+      <div className="w-64 border-r border-gray-100 p-6 sticky top-0 h-screen flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center">
           {/* Large preview */}
-          <div className="w-40 h-40 border border-black/10 rounded-2xl flex items-center justify-center mb-6">
+          <div className="w-40 h-40 border border-gray-100 rounded-2xl flex items-center justify-center mb-6 bg-white/50">
             <svg
               width={96}
               height={96}
@@ -104,12 +104,12 @@ export default function WinkAnimationTestPage() {
                 cx={CIRCLE_CENTER}
                 cy={CIRCLE_CENTER}
                 r={CIRCLE_RADIUS}
-                stroke="black"
+                stroke="currentColor"
                 strokeWidth="1.5"
                 fill="none"
               />
               {/* Left eye (always normal) */}
-              <path d={LEFT_EYE_PATH} fill="black" />
+              <path d={LEFT_EYE_PATH} fill="currentColor" />
               {/* Right eye (normal or winking) */}
               {isWinking ? (
                 <line
@@ -117,15 +117,15 @@ export default function WinkAnimationTestPage() {
                   y1={WINK_LINE.y}
                   x2={WINK_LINE.x2}
                   y2={WINK_LINE.y}
-                  stroke="black"
+                  stroke="currentColor"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                 />
               ) : (
-                <path d={RIGHT_EYE_PATH} fill="black" />
+                <path d={RIGHT_EYE_PATH} fill="currentColor" />
               )}
               {/* Smile */}
-              <path d={SMILE_PATH} fill="black" />
+              <path d={SMILE_PATH} fill="currentColor" />
             </svg>
           </div>
 
@@ -135,14 +135,14 @@ export default function WinkAnimationTestPage() {
               setProgress(0);
               setIsPlaying(true);
             }}
-            className="w-full px-4 py-2 text-sm border border-black/10 rounded-lg hover:bg-black/5 mb-4"
+            className="w-full px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 mb-4 font-medium transition-colors"
           >
             {isPlaying ? 'Playing...' : '▶ Play Wink'}
           </button>
 
           {/* Progress scrubber */}
           <div className="w-full mb-6">
-            <div className="text-[10px] text-black/40 mb-1">Progress</div>
+            <div className="text-[10px] text-gray-400 mb-1">Progress</div>
             <input
               type="range"
               min="0"
@@ -153,16 +153,16 @@ export default function WinkAnimationTestPage() {
                 setIsPlaying(false);
                 setProgress(parseFloat(e.target.value));
               }}
-              className="w-full accent-black/30"
+              className="w-full accent-slate"
             />
-            <div className="text-[10px] text-black/30 text-center">
+            <div className="text-[10px] text-gray-400 text-center">
               {progress.toFixed(2)}
             </div>
           </div>
 
           {/* Duration */}
           <div className="w-full mb-4">
-            <div className="flex justify-between text-[10px] text-black/40 mb-1">
+            <div className="flex justify-between text-[10px] text-gray-400 mb-1">
               <span>Duration</span>
               <span>{duration.toFixed(2)}s</span>
             </div>
@@ -173,7 +173,7 @@ export default function WinkAnimationTestPage() {
               step="0.05"
               value={duration}
               onChange={(e) => setDuration(parseFloat(e.target.value))}
-              className="w-full accent-black/30"
+              className="w-full accent-slate"
             />
           </div>
         </div>
@@ -182,13 +182,13 @@ export default function WinkAnimationTestPage() {
       {/* Main Content - Controls */}
       <div className="flex-1 p-8">
         <div className="max-w-md">
-          <h1 className="text-lg font-medium mb-6">Wink Animation</h1>
+          <h1 className="text-lg font-medium mb-6 tracking-[-0.02em]">Wink Animation</h1>
 
-          <div className="text-xs text-black/40 mb-2">Normal → Overshoot + Wink → Settle</div>
+          <div className="text-xs text-gray-400 mb-2">Normal → Overshoot + Wink → Settle</div>
 
           {/* Overshoot Amount */}
           <div className="mb-6">
-            <div className="flex justify-between text-xs text-black/40 mb-2">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
               <span>Overshoot Amount</span>
               <span>{overshootAmount}°</span>
             </div>
@@ -199,13 +199,13 @@ export default function WinkAnimationTestPage() {
               step="5"
               value={overshootAmount}
               onChange={(e) => setOvershootAmount(parseFloat(e.target.value))}
-              className="w-full accent-black/30"
+              className="w-full accent-slate"
             />
           </div>
 
           {/* Frequency */}
           <div className="mb-6">
-            <div className="flex justify-between text-xs text-black/40 mb-2">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
               <span>Oscillation Frequency</span>
               <span>{frequency}</span>
             </div>
@@ -216,13 +216,13 @@ export default function WinkAnimationTestPage() {
               step="0.25"
               value={frequency}
               onChange={(e) => setFrequency(parseFloat(e.target.value))}
-              className="w-full accent-black/30"
+              className="w-full accent-slate"
             />
           </div>
 
           {/* Damping */}
           <div className="mb-6">
-            <div className="flex justify-between text-xs text-black/40 mb-2">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
               <span>Damping</span>
               <span>{damping}</span>
             </div>
@@ -233,13 +233,13 @@ export default function WinkAnimationTestPage() {
               step="0.25"
               value={damping}
               onChange={(e) => setDamping(parseFloat(e.target.value))}
-              className="w-full accent-black/30"
+              className="w-full accent-slate"
             />
           </div>
 
           {/* Info */}
-          <div className="mt-8 p-4 bg-black/[0.02] rounded-lg">
-            <div className="text-xs text-black/40 space-y-1">
+          <div className="mt-8 p-4 bg-gray-50 rounded-xl">
+            <div className="text-xs text-gray-400 space-y-1">
               <div>Rotation: {rotationAngle.toFixed(1)}°</div>
               <div>Wink: {isWinking ? 'Yes' : 'No'} (threshold: {rotationThreshold}°)</div>
             </div>
@@ -248,26 +248,26 @@ export default function WinkAnimationTestPage() {
           {/* State previews */}
           <div className="mt-8 flex gap-4">
             <div className="text-center">
-              <div className="w-16 h-16 border border-black/10 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-16 h-16 border border-gray-100 rounded-xl flex items-center justify-center mb-1 bg-white/50">
                 <svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-                  <circle cx={CIRCLE_CENTER} cy={CIRCLE_CENTER} r={CIRCLE_RADIUS} stroke="black" strokeWidth="1.5" fill="none" />
-                  <path d={LEFT_EYE_PATH} fill="black" />
-                  <path d={RIGHT_EYE_PATH} fill="black" />
-                  <path d={SMILE_PATH} fill="black" />
+                  <circle cx={CIRCLE_CENTER} cy={CIRCLE_CENTER} r={CIRCLE_RADIUS} stroke="currentColor" strokeWidth="1.5" fill="none" />
+                  <path d={LEFT_EYE_PATH} fill="currentColor" />
+                  <path d={RIGHT_EYE_PATH} fill="currentColor" />
+                  <path d={SMILE_PATH} fill="currentColor" />
                 </svg>
               </div>
-              <div className="text-[10px] text-black/30">Normal</div>
+              <div className="text-[10px] text-gray-400">Normal</div>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 border border-black/10 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-16 h-16 border border-gray-100 rounded-xl flex items-center justify-center mb-1 bg-white/50">
                 <svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-                  <circle cx={CIRCLE_CENTER} cy={CIRCLE_CENTER} r={CIRCLE_RADIUS} stroke="black" strokeWidth="1.5" fill="none" />
-                  <path d={LEFT_EYE_PATH} fill="black" />
-                  <line x1={WINK_LINE.x1} y1={WINK_LINE.y} x2={WINK_LINE.x2} y2={WINK_LINE.y} stroke="black" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d={SMILE_PATH} fill="black" />
+                  <circle cx={CIRCLE_CENTER} cy={CIRCLE_CENTER} r={CIRCLE_RADIUS} stroke="currentColor" strokeWidth="1.5" fill="none" />
+                  <path d={LEFT_EYE_PATH} fill="currentColor" />
+                  <line x1={WINK_LINE.x1} y1={WINK_LINE.y} x2={WINK_LINE.x2} y2={WINK_LINE.y} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d={SMILE_PATH} fill="currentColor" />
                 </svg>
               </div>
-              <div className="text-[10px] text-black/30">Wink</div>
+              <div className="text-[10px] text-gray-400">Wink</div>
             </div>
           </div>
         </div>

@@ -135,11 +135,12 @@ const PHASES = [
 ];
 
 const SPIN_SPEED = 1.5;
-const SPIN_UP_DURATION = 0.3;
+const SPIN_UP_DURATION = 0;
 const STROKE_PULSE_SPEED = 2;
 const STROKE_MIN_VISIBLE = 0.4;
 const STROKE_STAGGER = 0.3;
-const GRAVITY_STRENGTH = 0.45;
+const GRAVITY_STRENGTH = 0.35;
+const GRAVITY_INERTIA = 0.95;
 
 // Face spin settings
 const FACE_SPIN_TOTAL = 360;
@@ -150,6 +151,7 @@ const FACE_FADE_END = 3.25;
 const BOUNCE_FREQUENCY = 1.9;
 const BOUNCE_DAMPING = 1.5;
 const BOUNCE_OVERSHOOT = 0.55;
+const BOUNCE_BASE_CURVE: 'in' | 'out' = 'in';
 
 // Outer spin settings
 const OUTER_SPIN_TOTAL = 360;
@@ -158,7 +160,11 @@ const OUTER_SPIN_END = 4;
 
 // Reverse fade settings
 const REVERSE_FADE_START = 0;
-const REVERSE_FADE_END = 0.45;
+const REVERSE_FADE_END = 0.6;
+
+// Transition settings
+const TRANSITION_PRESERVE_ANGLE = true;
+const TRANSITION_SIN_WOBBLE = true;
 
 // ============================================
 // ClaudeIcon Component
@@ -185,7 +191,9 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
   const winkAnimRef = useRef<number | undefined>(undefined);
   const loadingAnimRef = useRef<number | undefined>(undefined);
   const angleRef = useRef(0);
+  const velocityRef = useRef(SPIN_SPEED);
   const wasLoadingRef = useRef(false);
+  const exitAngleRef = useRef(0); // Store spinner angle when transitioning to reverse
 
   // Wink animation on hover (only when not loading)
   useEffect(() => {
@@ -233,6 +241,7 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
       setIsReversing(false);
       setAnimProgress(0);
       angleRef.current = 0;
+      velocityRef.current = SPIN_SPEED;
     } else if (!isLoading && wasLoadingRef.current) {
       // Just stopped loading - animate reverse
       setIsReversing(true);
@@ -301,12 +310,17 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
           const spinUpProgress = SPIN_UP_DURATION > 0 ? Math.min(1, spinElapsed / SPIN_UP_DURATION) : 1;
           const spinUpMultiplier = 1 - Math.pow(1 - spinUpProgress, 3);
 
-          // Gravity effect
+          // Gravity effect with momentum smoothing
           const currentAngle = angleRef.current % 360;
           const radians = (currentAngle * Math.PI) / 180;
           const gravityMultiplier = 1 + GRAVITY_STRENGTH * Math.sin(radians);
-          const effectiveSpeed = SPIN_SPEED * gravityMultiplier * spinUpMultiplier;
-          const newAngle = (angleRef.current + delta * 360 * effectiveSpeed) % 360;
+          const targetSpeed = SPIN_SPEED * gravityMultiplier * spinUpMultiplier;
+
+          // Smooth velocity transition using inertia
+          const newVelocity = velocityRef.current + (targetSpeed - velocityRef.current) * (1 - GRAVITY_INERTIA);
+          velocityRef.current = newVelocity;
+
+          const newAngle = (angleRef.current + delta * 360 * newVelocity) % 360;
 
           angleRef.current = newAngle;
           setSpinAngle(newAngle);
@@ -330,11 +344,14 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
   // ============================================
   // Calculate render state from animProgress
   // ============================================
-  const p = animProgress;
-  const isReverse = p > 5;
+  // Guard against invalid state: if reversing but progress hasn't caught up, use spinning state
+  const p = (isReversing && animProgress < 5) ? 5 : animProgress;
+  const isReverse = p >= 5 && isReversing;
   const morphP = isReverse ? 6 : p;
-  const directMorphT = p > 5 ? (p - 5) / 5 : 0;
+  const directMorphT = isReverse ? (p - 5) / 5 : 0;
 
+  // Show circle at rest (p=0) or at end of reverse morph
+  // The p guard above ensures p >= 5 when isReversing, so p < 0.01 won't trigger during reverse
   const showCircle = p < 0.01 || directMorphT >= 0.99;
   const showTopRight = p < 1;
   const topRightOpacity = directMorphT > 0 ? directMorphT : 1;
@@ -342,8 +359,10 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
   // Face spin calculation (bounce easing with ease-in base)
   // faceSpinT goes from 0→1 as p goes from FACE_SPIN_START→FACE_SPIN_END
   const faceSpinT = p < FACE_SPIN_START ? 0 : p >= FACE_SPIN_END ? 1 : (p - FACE_SPIN_START) / (FACE_SPIN_END - FACE_SPIN_START);
-  // Ease-in: slow start, fast end (t² curve)
-  const baseT = Math.pow(faceSpinT, 2);
+  // Base curve: ease-in (slow→fast) or ease-out (fast→slow)
+  const baseT = BOUNCE_BASE_CURVE === 'out'
+    ? 1 - Math.pow(1 - faceSpinT, 2)  // ease-out
+    : Math.pow(faceSpinT, 2);          // ease-in
   // Bounce adds overshoot that decays over time
   const decay = Math.exp(-BOUNCE_DAMPING * faceSpinT * 3);
   const bounce = BOUNCE_OVERSHOOT * decay * Math.sin(BOUNCE_FREQUENCY * Math.PI * faceSpinT);
@@ -360,7 +379,9 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
         rotation: 0,
       }
     : {
-        show: p <= FACE_FADE_END || p === 0,
+        // Show face during forward morph until it fades out
+        // The p guard ensures p >= 5 when isReversing, so this won't trigger during reverse
+        show: p <= FACE_FADE_END,
         opacity: p <= FACE_FADE_START ? 1 : Math.max(0, 1 - (p - FACE_FADE_START) / (FACE_FADE_END - FACE_FADE_START)),
         rotation: faceSpinRotation,
       };
@@ -424,17 +445,41 @@ export function ClaudeIcon({ size = 24, isLoading = false, onClick, className = 
   // Rotation calculation (for whole SVG - spinner phase and wink)
   let rotationAngle = 0;
 
+  // Store exit angle when entering reverse phase
+  if (isReverse && directMorphT < 0.01) {
+    exitAngleRef.current = spinAngle % 360;
+    // Normalize to -180 to 180 range for smoother transitions
+    if (exitAngleRef.current > 180) exitAngleRef.current -= 360;
+  }
+
   if (isSpinning) {
     rotationAngle = spinAngle;
-  } else if (isReverse && directMorphT >= REVERSE_FADE_START) {
-    // Momentum wobble after face starts appearing
-    const t = (directMorphT - REVERSE_FADE_START) / (1 - REVERSE_FADE_START);
+  } else if (isReverse) {
+    // Momentum/overshoot rotation during reverse phase
     const overshootAmount = 40;
-    const frequency = 1.4;
-    const wobbleDamping = 1.5;
-    const wobbleDecay = Math.exp(-wobbleDamping * t);
-    const oscillation = Math.cos(frequency * Math.PI * t);
-    rotationAngle = overshootAmount * wobbleDecay * oscillation;
+    const frequency = 1.5;
+    const damping = 1.5;
+
+    // Preserve angle: start from spinner's exit angle and decay to 0
+    let baseAngle = 0;
+    if (TRANSITION_PRESERVE_ANGLE) {
+      const decayToZero = Math.exp(-3 * directMorphT);
+      baseAngle = exitAngleRef.current * decayToZero;
+    }
+
+    // Wobble calculation (only after face starts appearing)
+    let wobble = 0;
+    if (directMorphT >= REVERSE_FADE_START) {
+      const t = (directMorphT - REVERSE_FADE_START) / (1 - REVERSE_FADE_START);
+      const decay = Math.exp(-damping * t);
+      // Use sin() so wobble starts at 0 (smoother entry)
+      const oscillation = TRANSITION_SIN_WOBBLE
+        ? Math.sin(frequency * Math.PI * t)
+        : Math.cos(frequency * Math.PI * t);
+      wobble = overshootAmount * decay * oscillation;
+    }
+
+    rotationAngle = baseAngle + wobble;
   } else if (!isLoading && !isReversing && p === 0) {
     // Wink rotation when not loading
     const winkDecay = Math.exp(-1.5 * winkProgress);

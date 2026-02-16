@@ -114,8 +114,9 @@ export default function LoadingAnimationsTestPage() {
   const [strokePulseSpeed, setStrokePulseSpeed] = useState(2); // cycles per second
   const [strokeMinVisible, setStrokeMinVisible] = useState(0.4); // minimum visible ratio (0-1)
   const [strokeStagger, setStrokeStagger] = useState(0.3); // stagger offset per ray
-  const [gravityStrength, setGravityStrength] = useState(0.45); // speed variation (0-1)
-  const [spinUpDuration, setSpinUpDuration] = useState(0.3); // seconds to ramp up to full speed
+  const [gravityStrength, setGravityStrength] = useState(0.35); // speed variation (0-1)
+  const [gravityInertia, setGravityInertia] = useState(0.95); // momentum smoothing (0-1)
+  const [spinUpDuration, setSpinUpDuration] = useState(0); // seconds to ramp up to full speed
   const [opacityFadeMin, setOpacityFadeMin] = useState(0.2); // minimum opacity for trail
   const [steppedSpeed, setSteppedSpeed] = useState(8); // steps per second for Apple-style
   // Face spin params - with localStorage persistence
@@ -129,7 +130,7 @@ export default function LoadingAnimationsTestPage() {
   const [faceFadeEnd, setFaceFadeEnd] = useState(3.25);
   // Reverse fade params (face fade-in during morph back)
   const [reverseFadeStart, setReverseFadeStart] = useState(0); // 0-1, when face starts appearing
-  const [reverseFadeEnd, setReverseFadeEnd] = useState(0.45); // 0-1, when face is fully visible
+  const [reverseFadeEnd, setReverseFadeEnd] = useState(0.6); // 0-1, when face is fully visible
   // Bounce-specific params
   const [bounceFrequency, setBounceFrequency] = useState(1.9);
   const [bounceDamping, setBounceDamping] = useState(1.5);
@@ -141,6 +142,13 @@ export default function LoadingAnimationsTestPage() {
   const [outerSpinEnd, setOuterSpinEnd] = useState(4);
   const [outerSpinTotal, setOuterSpinTotal] = useState(360);
   const [outerSpinEasingType, setOuterSpinEasingType] = useState<'in' | 'out' | 'in-out' | 'linear'>('in');
+  // Transition smoothing options
+  const [transitionMatchEntry, setTransitionMatchEntry] = useState(true); // Match spinner angle to outer spin on entry
+  const [transitionSpinDown, setTransitionSpinDown] = useState(true); // Gradually slow spinner before reverse
+  const [transitionSpinDownDuration, setTransitionSpinDownDuration] = useState(0.2); // Spin-down duration in seconds
+  const [transitionPreserveAngle, setTransitionPreserveAngle] = useState(true); // Keep spinner angle on exit, decay to 0
+  const [transitionSinWobble, setTransitionSinWobble] = useState(true); // Use sin() instead of cos() for wobble
+  const [transitionBlendToZero, setTransitionBlendToZero] = useState(false); // Interpolate to 0° before wobble
 
   // Load face spin settings from localStorage on mount
   useEffect(() => {
@@ -167,6 +175,13 @@ export default function LoadingAnimationsTestPage() {
         if (settings.outerSpinEnd !== undefined) setOuterSpinEnd(settings.outerSpinEnd);
         if (settings.outerSpinTotal !== undefined) setOuterSpinTotal(settings.outerSpinTotal);
         if (settings.outerSpinEasingType !== undefined) setOuterSpinEasingType(settings.outerSpinEasingType);
+        // Transition settings
+        if (settings.transitionMatchEntry !== undefined) setTransitionMatchEntry(settings.transitionMatchEntry);
+        if (settings.transitionSpinDown !== undefined) setTransitionSpinDown(settings.transitionSpinDown);
+        if (settings.transitionSpinDownDuration !== undefined) setTransitionSpinDownDuration(settings.transitionSpinDownDuration);
+        if (settings.transitionPreserveAngle !== undefined) setTransitionPreserveAngle(settings.transitionPreserveAngle);
+        if (settings.transitionSinWobble !== undefined) setTransitionSinWobble(settings.transitionSinWobble);
+        if (settings.transitionBlendToZero !== undefined) setTransitionBlendToZero(settings.transitionBlendToZero);
       } catch { /* ignore parse errors */ }
     }
   }, []);
@@ -193,8 +208,15 @@ export default function LoadingAnimationsTestPage() {
       outerSpinEnd,
       outerSpinTotal,
       outerSpinEasingType,
+      // Transition settings
+      transitionMatchEntry,
+      transitionSpinDown,
+      transitionSpinDownDuration,
+      transitionPreserveAngle,
+      transitionSinWobble,
+      transitionBlendToZero,
     }));
-  }, [faceSpinTotal, faceSpinEasing, faceSpinEasingType, faceSpinDirection, faceSpinStart, faceSpinEnd, faceFadeStart, faceFadeEnd, reverseFadeStart, reverseFadeEnd, bounceFrequency, bounceDamping, bounceOvershoot, bounceBaseCurve, outerSpinEnabled, outerSpinStart, outerSpinEnd, outerSpinTotal, outerSpinEasingType]);
+  }, [faceSpinTotal, faceSpinEasing, faceSpinEasingType, faceSpinDirection, faceSpinStart, faceSpinEnd, faceFadeStart, faceFadeEnd, reverseFadeStart, reverseFadeEnd, bounceFrequency, bounceDamping, bounceOvershoot, bounceBaseCurve, outerSpinEnabled, outerSpinStart, outerSpinEnd, outerSpinTotal, outerSpinEasingType, transitionMatchEntry, transitionSpinDown, transitionSpinDownDuration, transitionPreserveAngle, transitionSinWobble, transitionBlendToZero]);
 
   const currentState = ANIMATION_STATES[currentStateIndex];
 
@@ -420,6 +442,7 @@ export default function LoadingAnimationsTestPage() {
                 strokeMinVisible,
                 strokeStagger,
                 gravityStrength,
+                gravityInertia,
                 spinUpDuration,
                 opacityFadeMin,
                 steppedSpeed: steppedSpeed * animSpeed,
@@ -439,6 +462,9 @@ export default function LoadingAnimationsTestPage() {
                 bounceDamping,
                 bounceOvershoot,
                 bounceBaseCurve,
+                transitionPreserveAngle,
+                transitionSinWobble,
+                transitionBlendToZero,
               }}
               outerSpinOptions={{
                 enabled: outerSpinEnabled,
@@ -601,14 +627,16 @@ export default function LoadingAnimationsTestPage() {
 
           {/* Face Spin Controls */}
           <div className="w-full text-[10px] text-black/40 space-y-2 border-t border-black/10 pt-3 overflow-y-auto max-h-[300px]">
-            <div className="text-black/50 font-medium mb-2">Face Spin</div>
+            <div className="text-black/50 font-medium mb-1">Face Spin</div>
+            <div className="text-[9px] text-black/25 mb-3">How the face rotates as it fades out during morph</div>
 
             {/* Total spin */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Total spin</span>
+                <span>Total Rotation</span>
                 <span>{faceSpinTotal}°</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">Total degrees face spins before disappearing</div>
               <input
                 type="range"
                 min="0"
@@ -623,7 +651,7 @@ export default function LoadingAnimationsTestPage() {
             {/* Direction */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Direction</span>
+                <span>Spin Direction</span>
               </div>
               <div className="flex gap-1">
                 <button
@@ -648,8 +676,9 @@ export default function LoadingAnimationsTestPage() {
             {/* Easing type */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Easing type</span>
+                <span>Speed Curve</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">in=slow start, out=slow end, bounce=overshoot</div>
               <div className="flex gap-1 flex-wrap">
                 {(['in', 'out', 'in-out', 'bounce'] as const).map((type) => (
                   <button
@@ -669,9 +698,10 @@ export default function LoadingAnimationsTestPage() {
             {faceSpinEasingType !== 'bounce' && (
               <div>
                 <div className="flex justify-between mb-1">
-                  <span>Easing power</span>
+                  <span>Curve Strength</span>
                   <span>{faceSpinEasing}</span>
                 </div>
+                <div className="text-[9px] text-black/25 mb-1">Higher = more dramatic speed change</div>
                 <input
                   type="range"
                   min="1"
@@ -689,9 +719,10 @@ export default function LoadingAnimationsTestPage() {
               <>
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span>Frequency</span>
+                    <span>Bounce Count</span>
                     <span>{bounceFrequency.toFixed(1)}</span>
                   </div>
+                  <div className="text-[9px] text-black/25 mb-1">Number of oscillations</div>
                   <input
                     type="range"
                     min="0.5"
@@ -704,9 +735,10 @@ export default function LoadingAnimationsTestPage() {
                 </div>
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span>Damping</span>
+                    <span>Decay Rate</span>
                     <span>{bounceDamping.toFixed(1)}</span>
                   </div>
+                  <div className="text-[9px] text-black/25 mb-1">How quickly bounces settle down</div>
                   <input
                     type="range"
                     min="0.5"
@@ -722,6 +754,7 @@ export default function LoadingAnimationsTestPage() {
                     <span>Overshoot</span>
                     <span>{(bounceOvershoot * 100).toFixed(0)}%</span>
                   </div>
+                  <div className="text-[9px] text-black/25 mb-1">How far past target it bounces</div>
                   <input
                     type="range"
                     min="0"
@@ -734,8 +767,9 @@ export default function LoadingAnimationsTestPage() {
                 </div>
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span>Base curve</span>
+                    <span>Base Curve</span>
                   </div>
+                  <div className="text-[9px] text-black/25 mb-1">Underlying speed before bounce overlay</div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => setBounceBaseCurve('in')}
@@ -760,15 +794,17 @@ export default function LoadingAnimationsTestPage() {
 
             {/* Spin timing */}
             <div className="border-t border-black/5 pt-2 mt-2">
-              <div className="text-black/50 font-medium mb-2">Spin Timing</div>
+              <div className="text-black/50 font-medium mb-1">Spin Timing</div>
+              <div className="text-[9px] text-black/25 mb-2">When face rotation happens (p = progress 0-5)</div>
             </div>
 
             {/* Spin start */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Spin start</span>
+                <span>Start Spinning</span>
                 <span>p={faceSpinStart}</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">Progress when rotation begins</div>
               <input
                 type="range"
                 min="0"
@@ -783,9 +819,10 @@ export default function LoadingAnimationsTestPage() {
             {/* Spin end */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Spin end</span>
+                <span>Stop Spinning</span>
                 <span>p={faceSpinEnd}</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">Progress when rotation completes</div>
               <input
                 type="range"
                 min="0.5"
@@ -799,15 +836,17 @@ export default function LoadingAnimationsTestPage() {
 
             {/* Fade timing */}
             <div className="border-t border-black/5 pt-2 mt-2">
-              <div className="text-black/50 font-medium mb-2">Fade Timing</div>
+              <div className="text-black/50 font-medium mb-1">Face Fade Out</div>
+              <div className="text-[9px] text-black/25 mb-2">When face disappears during forward morph</div>
             </div>
 
             {/* Fade start */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Fade start</span>
+                <span>Start Fading</span>
                 <span>p={faceFadeStart}</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">Progress when face starts becoming transparent</div>
               <input
                 type="range"
                 min="0"
@@ -822,9 +861,10 @@ export default function LoadingAnimationsTestPage() {
             {/* Fade end */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Fade end</span>
+                <span>Fully Gone</span>
                 <span>p={faceFadeEnd}</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">Progress when face is completely invisible</div>
               <input
                 type="range"
                 min="0.5"
@@ -838,15 +878,17 @@ export default function LoadingAnimationsTestPage() {
 
             {/* Reverse Fade (fade-in during morph back) */}
             <div className="border-t border-black/5 pt-2 mt-2">
-              <div className="text-black/50 font-medium mb-2">Reverse Fade</div>
+              <div className="text-black/50 font-medium mb-1">Face Fade In</div>
+              <div className="text-[9px] text-black/25 mb-2">When face reappears during reverse morph (% of reverse)</div>
             </div>
 
             {/* Reverse fade start */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Appear at</span>
+                <span>Start Appearing</span>
                 <span>{(reverseFadeStart * 100).toFixed(0)}%</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">% through reverse when face starts showing</div>
               <input
                 type="range"
                 min="0"
@@ -861,9 +903,10 @@ export default function LoadingAnimationsTestPage() {
             {/* Reverse fade end */}
             <div>
               <div className="flex justify-between mb-1">
-                <span>Full at</span>
+                <span>Fully Visible</span>
                 <span>{(reverseFadeEnd * 100).toFixed(0)}%</span>
               </div>
+              <div className="text-[9px] text-black/25 mb-1">% through reverse when face is fully opaque</div>
               <input
                 type="range"
                 min="0.1"
@@ -877,8 +920,8 @@ export default function LoadingAnimationsTestPage() {
 
             {/* Outer Spin Section */}
             <div className="border-t border-black/10 pt-3 mt-3">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-black/50 font-medium">Outer Spin</span>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-black/50 font-medium">Rays/Circle Spin</span>
                 <button
                   onClick={() => setOuterSpinEnabled(!outerSpinEnabled)}
                   className={`px-2 py-0.5 text-[9px] rounded ${
@@ -888,15 +931,17 @@ export default function LoadingAnimationsTestPage() {
                   {outerSpinEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
+              <div className="text-[9px] text-black/25 mb-2">Rotates the outer rays/circle during morph</div>
 
               {outerSpinEnabled && (
                 <>
                   {/* Total degrees */}
                   <div>
                     <div className="flex justify-between mb-1">
-                      <span>Total</span>
+                      <span>Total Rotation</span>
                       <span>{outerSpinTotal}°</span>
                     </div>
+                    <div className="text-[9px] text-black/25 mb-1">Degrees the outer shape rotates</div>
                     <input
                       type="range"
                       min="0"
@@ -911,7 +956,7 @@ export default function LoadingAnimationsTestPage() {
                   {/* Easing */}
                   <div className="mt-2">
                     <div className="flex justify-between mb-1">
-                      <span>Easing</span>
+                      <span>Speed Curve</span>
                     </div>
                     <div className="flex gap-1">
                       {(['linear', 'in', 'out', 'in-out'] as const).map((type) => (
@@ -931,7 +976,7 @@ export default function LoadingAnimationsTestPage() {
                   {/* Spin start */}
                   <div className="mt-2">
                     <div className="flex justify-between mb-1">
-                      <span>Start</span>
+                      <span>Start Spinning</span>
                       <span>p={outerSpinStart}</span>
                     </div>
                     <input
@@ -948,7 +993,7 @@ export default function LoadingAnimationsTestPage() {
                   {/* Spin end */}
                   <div className="mt-2">
                     <div className="flex justify-between mb-1">
-                      <span>End</span>
+                      <span>Stop Spinning</span>
                       <span>p={outerSpinEnd}</span>
                     </div>
                     <input
@@ -963,6 +1008,46 @@ export default function LoadingAnimationsTestPage() {
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Transitions Section */}
+            <div className="border-t border-black/10 pt-3 mt-3">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-black/50 font-medium">Reverse Settle</span>
+              </div>
+              <div className="text-[9px] text-black/25 mb-2">How face settles when morphing back</div>
+
+              {/* Preserve Angle */}
+              <div className="mb-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px]">Remember Spin Angle</span>
+                  <button
+                    onClick={() => setTransitionPreserveAngle(!transitionPreserveAngle)}
+                    className={`px-2 py-0.5 text-[9px] rounded ${
+                      transitionPreserveAngle ? 'bg-black text-white' : 'border border-black/20 hover:bg-black/5'
+                    }`}
+                  >
+                    {transitionPreserveAngle ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                <div className="text-[9px] text-black/25">Face starts at spinner&apos;s exit angle, decays to 0</div>
+              </div>
+
+              {/* Sin Wobble */}
+              <div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px]">Smooth Wobble Start</span>
+                  <button
+                    onClick={() => setTransitionSinWobble(!transitionSinWobble)}
+                    className={`px-2 py-0.5 text-[9px] rounded ${
+                      transitionSinWobble ? 'bg-black text-white' : 'border border-black/20 hover:bg-black/5'
+                    }`}
+                  >
+                    {transitionSinWobble ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                <div className="text-[9px] text-black/25">Wobble eases in (OFF = starts at max bounce)</div>
+              </div>
             </div>
           </div>
         </div>
@@ -984,7 +1069,7 @@ const FACE_FADE_END = ${faceFadeEnd};
 const BOUNCE_FREQUENCY = ${bounceFrequency};
 const BOUNCE_DAMPING = ${bounceDamping};
 const BOUNCE_OVERSHOOT = ${bounceOvershoot};
-const BOUNCE_BASE_CURVE = '${bounceBaseCurve}';
+const BOUNCE_BASE_CURVE: 'in' | 'out' = '${bounceBaseCurve}';
 
 // Outer spin settings
 const OUTER_SPIN_TOTAL = ${outerSpinTotal};
@@ -1123,10 +1208,11 @@ const REVERSE_FADE_END = ${reverseFadeEnd};`;
 
                     {/* Spin Speed */}
                     <div className="mb-6">
-                      <div className="flex justify-between text-xs text-black/40 mb-2">
-                        <span>Spin Speed</span>
+                      <div className="flex justify-between text-xs text-black/40 mb-1">
+                        <span>Rotation Speed</span>
                         <span>{spinSpeed} rot/s</span>
                       </div>
+                      <div className="text-[9px] text-black/25 mb-2">How fast the spinner rotates</div>
                       <input
                         type="range"
                         min="0.25"
@@ -1140,10 +1226,11 @@ const REVERSE_FADE_END = ${reverseFadeEnd};`;
 
                     {/* Spin-up */}
                     <div className="mb-6">
-                      <div className="flex justify-between text-xs text-black/40 mb-2">
-                        <span>Spin-up</span>
+                      <div className="flex justify-between text-xs text-black/40 mb-1">
+                        <span>Acceleration Time</span>
                         <span>{spinUpDuration.toFixed(2)}s</span>
                       </div>
+                      <div className="text-[9px] text-black/25 mb-2">Time to reach full speed from rest</div>
                       <input
                         type="range"
                         min="0"
@@ -1157,68 +1244,76 @@ const REVERSE_FADE_END = ${reverseFadeEnd};`;
 
                     {/* Effects */}
                     <div className="mb-6">
-                      <div className="text-xs text-black/40 mb-2">Effects</div>
+                      <div className="text-xs text-black/40 mb-2">Spin Effects</div>
                       <div className="space-y-1">
                         <button
                           onClick={() => setSpinStrokeDash(!spinStrokeDash)}
-                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                          className={`block w-full text-left px-2 py-1.5 rounded ${
                             spinStrokeDash ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
                           }`}
                         >
-                          {spinStrokeDash ? '✓ ' : ''}Stroke Dash
+                          <span className="text-xs">{spinStrokeDash ? '✓ ' : ''}Arc Pulse</span>
+                          <span className="block text-[9px] text-black/30">Arc length grows and shrinks</span>
                         </button>
                         <button
                           onClick={() => { setSpinGravity(!spinGravity); if (!spinGravity) setSpinElastic(false); }}
-                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                          className={`block w-full text-left px-2 py-1.5 rounded ${
                             spinGravity ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
                           }`}
                         >
-                          {spinGravity ? '✓ ' : ''}Gravity
+                          <span className="text-xs">{spinGravity ? '✓ ' : ''}Gravity</span>
+                          <span className="block text-[9px] text-black/30">Faster at bottom, slower at top</span>
                         </button>
                         <button
                           onClick={() => { setSpinElastic(!spinElastic); if (!spinElastic) setSpinGravity(false); }}
-                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                          className={`block w-full text-left px-2 py-1.5 rounded ${
                             spinElastic ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
                           }`}
                         >
-                          {spinElastic ? '✓ ' : ''}Elastic
+                          <span className="text-xs">{spinElastic ? '✓ ' : ''}Elastic</span>
+                          <span className="block text-[9px] text-black/30">Bouncy spring motion</span>
                         </button>
                         <button
                           onClick={() => setSpinOpacityFade(!spinOpacityFade)}
-                          className={`block w-full text-left px-2 py-1.5 text-xs rounded ${
+                          className={`block w-full text-left px-2 py-1.5 rounded ${
                             spinOpacityFade ? 'bg-black/5 text-black/70' : 'text-black/40 hover:bg-black/[0.02]'
                           }`}
                         >
-                          {spinOpacityFade ? '✓ ' : ''}Opacity Trail
+                          <span className="text-xs">{spinOpacityFade ? '✓ ' : ''}Opacity Trail</span>
+                          <span className="block text-[9px] text-black/30">Rays fade based on position</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Stroke Dash Settings */}
+                    {/* Arc Pulse Settings */}
                     {spinStrokeDash && (
                       <div className="mb-6 pl-3 border-l border-black/10">
+                        <div className="text-[9px] text-black/30 mb-3">Arc Pulse Settings</div>
                         <div className="space-y-4">
                           <div>
                             <div className="flex justify-between text-xs text-black/40 mb-1">
                               <span>Pulse Speed</span>
                               <span>{strokePulseSpeed.toFixed(1)}/s</span>
                             </div>
+                            <div className="text-[9px] text-black/25 mb-1">How fast arc grows/shrinks</div>
                             <input type="range" min="0.5" max="5" step="0.1" value={strokePulseSpeed}
                               onChange={(e) => setStrokePulseSpeed(parseFloat(e.target.value))} className="w-full accent-black/30" />
                           </div>
                           <div>
                             <div className="flex justify-between text-xs text-black/40 mb-1">
-                              <span>Min Visible</span>
+                              <span>Min Arc Length</span>
                               <span>{(strokeMinVisible * 100).toFixed(0)}%</span>
                             </div>
+                            <div className="text-[9px] text-black/25 mb-1">Smallest the arc can shrink to</div>
                             <input type="range" min="0" max="0.9" step="0.05" value={strokeMinVisible}
                               onChange={(e) => setStrokeMinVisible(parseFloat(e.target.value))} className="w-full accent-black/30" />
                           </div>
                           <div>
                             <div className="flex justify-between text-xs text-black/40 mb-1">
-                              <span>Stagger</span>
+                              <span>Ray Offset</span>
                               <span>{strokeStagger.toFixed(2)}</span>
                             </div>
+                            <div className="text-[9px] text-black/25 mb-1">Timing offset between rays</div>
                             <input type="range" min="0" max="0.3" step="0.01" value={strokeStagger}
                               onChange={(e) => setStrokeStagger(parseFloat(e.target.value))} className="w-full accent-black/30" />
                           </div>
@@ -1228,23 +1323,38 @@ const REVERSE_FADE_END = ${reverseFadeEnd};`;
 
                     {/* Gravity Settings */}
                     {spinGravity && (
-                      <div className="mb-6 pl-3 border-l border-black/10">
-                        <div className="flex justify-between text-xs text-black/40 mb-1">
-                          <span>Strength</span>
-                          <span>±{(gravityStrength * 100).toFixed(0)}%</span>
+                      <div className="mb-6 pl-3 border-l border-black/10 space-y-3">
+                        <div className="text-[9px] text-black/30 mb-1">Gravity Settings</div>
+                        <div>
+                          <div className="flex justify-between text-xs text-black/40 mb-1">
+                            <span>Speed Variation</span>
+                            <span>±{(gravityStrength * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="text-[9px] text-black/25 mb-1">How much speed changes top vs bottom</div>
+                          <input type="range" min="0.1" max="1" step="0.05" value={gravityStrength}
+                            onChange={(e) => setGravityStrength(parseFloat(e.target.value))} className="w-full accent-black/30" />
                         </div>
-                        <input type="range" min="0.1" max="1" step="0.05" value={gravityStrength}
-                          onChange={(e) => setGravityStrength(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                        <div>
+                          <div className="flex justify-between text-xs text-black/40 mb-1">
+                            <span>Smoothness</span>
+                            <span>{(gravityInertia * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="text-[9px] text-black/25 mb-1">Higher = smoother speed transitions</div>
+                          <input type="range" min="0" max="0.95" step="0.05" value={gravityInertia}
+                            onChange={(e) => setGravityInertia(parseFloat(e.target.value))} className="w-full accent-black/30" />
+                        </div>
                       </div>
                     )}
 
                     {/* Opacity Trail Settings */}
                     {spinOpacityFade && (
                       <div className="mb-6 pl-3 border-l border-black/10">
+                        <div className="text-[9px] text-black/30 mb-3">Opacity Trail Settings</div>
                         <div className="flex justify-between text-xs text-black/40 mb-1">
-                          <span>Step Speed</span>
+                          <span>Fade Steps</span>
                           <span>{steppedSpeed}/s</span>
                         </div>
+                        <div className="text-[9px] text-black/25 mb-1">Discrete fade updates per second</div>
                         <input type="range" min="2" max="20" step="1" value={steppedSpeed}
                           onChange={(e) => setSteppedSpeed(parseFloat(e.target.value))} className="w-full accent-black/30" />
                       </div>
@@ -1481,6 +1591,7 @@ interface SpinOptions {
   strokeMinVisible?: number; // minimum visible ratio (0-1)
   strokeStagger?: number;    // stagger offset per ray
   gravityStrength?: number;  // speed variation amount (0-1)
+  gravityInertia?: number;   // momentum smoothing (0=instant, 1=max inertia)
   spinUpDuration?: number;   // seconds to ramp up to full speed
   opacityFadeMin?: number;   // minimum opacity for trail (0-1)
   steppedSpeed?: number;     // steps per second for Apple-style rotation
@@ -1503,6 +1614,10 @@ interface FaceSpinOptions {
   bounceDamping?: number;
   bounceOvershoot?: number;
   bounceBaseCurve?: 'in' | 'out';
+  // Transition params
+  transitionPreserveAngle?: boolean;
+  transitionSinWobble?: boolean;
+  transitionBlendToZero?: boolean;
 }
 
 interface OuterSpinOptions {
@@ -1511,6 +1626,15 @@ interface OuterSpinOptions {
   spinEnd?: number;
   totalDegrees?: number;
   easingType?: 'in' | 'out' | 'in-out' | 'linear';
+}
+
+interface TransitionOptions {
+  matchEntry?: boolean;      // Match spinner angle to outer spin on entry
+  spinDown?: boolean;        // Gradually slow spinner before reverse
+  spinDownDuration?: number; // Spin-down duration in seconds
+  preserveAngle?: boolean;   // Keep spinner angle on exit, decay to 0
+  sinWobble?: boolean;       // Use sin() instead of cos() for wobble (starts at 0)
+  blendToZero?: boolean;     // Interpolate to 0° before wobble starts
 }
 
 function GAnimationPreview({
@@ -1541,6 +1665,8 @@ function GAnimationPreview({
   const animationRef = useRef<number | undefined>(undefined);
   const winkAnimRef = useRef<number | undefined>(undefined);
   const angleRef = useRef(0); // Track angle without causing re-renders
+  const velocityRef = useRef(0); // Track angular velocity for momentum effects
+  const exitAngleRef = useRef(0); // Store spinner angle when transitioning to reverse
 
   // Wink animation on hover (only when not loading/playing)
   useEffect(() => {
@@ -1586,12 +1712,14 @@ function GAnimationPreview({
       setSpinAngle(0); // Reset angle when not spinning
       setEffectRamp(0); // Reset effect ramp
       angleRef.current = 0;
+      velocityRef.current = 0; // Reset velocity
       return;
     }
 
     const startTime = performance.now();
     let lastTime = startTime;
     angleRef.current = 0; // Reset on play
+    velocityRef.current = spinSpeed; // Initialize velocity
 
     const animate = (time: number) => {
       const delta = (time - lastTime) / 1000;
@@ -1616,15 +1744,23 @@ function GAnimationPreview({
         const totalSteps = Math.floor(elapsed * effectiveSpeed);
         newAngle = (totalSteps * stepAngle) % 360;
       } else if (spinOptions.gravity) {
-        // 2: Gravity effect - speed varies based on position
-        // Faster when rays point down (like gravity pulling), slower at top
+        // 2: Gravity effect with momentum - smooth speed transitions
         const currentAngle = angleRef.current % 360;
         const radians = (currentAngle * Math.PI) / 180;
         const strength = spinOptions.gravityStrength ?? 0.5;
-        // At 90° (bottom), sin=1 → fastest. At 270° (top), sin=-1 → slowest
+        const inertia = spinOptions.gravityInertia ?? 0.85; // 0 = instant, 1 = infinite momentum
+
+        // Target speed based on position (faster at bottom, slower at top)
         const gravityMultiplier = 1 + strength * Math.sin(radians);
-        const effectiveSpeed = spinSpeed * gravityMultiplier * spinUpMultiplier;
-        newAngle = (angleRef.current + delta * 360 * effectiveSpeed) % 360;
+        const targetSpeed = spinSpeed * gravityMultiplier * spinUpMultiplier;
+
+        // Smooth velocity transition using exponential decay toward target
+        // This creates momentum - velocity changes gradually, not instantly
+        const currentVelocity = velocityRef.current ?? spinSpeed;
+        const newVelocity = currentVelocity + (targetSpeed - currentVelocity) * (1 - inertia);
+        velocityRef.current = newVelocity;
+
+        newAngle = (angleRef.current + delta * 360 * newVelocity) % 360;
       } else if (spinOptions.elastic) {
         // 5: Elastic overshoot - overshoots and settles at 90° intervals
         // Creates a "notchy" feel like it wants to snap to positions
@@ -1671,7 +1807,7 @@ function GAnimationPreview({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying, spinSpeed, spinOptions.gravity, spinOptions.elastic, spinOptions.strokeDash, spinOptions.opacityFade, spinOptions.gravityStrength, spinOptions.strokePulseSpeed, spinOptions.spinUpDuration, spinOptions.steppedSpeed]);
+  }, [isPlaying, spinSpeed, spinOptions.gravity, spinOptions.elastic, spinOptions.strokeDash, spinOptions.opacityFade, spinOptions.gravityStrength, spinOptions.gravityInertia, spinOptions.strokePulseSpeed, spinOptions.spinUpDuration, spinOptions.steppedSpeed]);
 
   // Get state based on progress:
   // FORWARD (0-5):
@@ -1703,7 +1839,6 @@ function GAnimationPreview({
   const topRightOpacity = directMorphT > 0 ? directMorphT : 1;
 
   // Face visibility: visible during forward, spins from start with momentum, fades out
-  const faceAppearThreshold = 0.25; // Face appears when morph is 85% complete
   const faceFadeStart = faceSpinOptions.fadeStart ?? 2; // Start fading
   const faceFadeEnd = faceSpinOptions.fadeEnd ?? 4; // Fully gone
   const faceSpinTotal = faceSpinOptions.totalDegrees ?? 540; // total degrees to spin
@@ -1753,6 +1888,11 @@ function GAnimationPreview({
   // Reverse fade params
   const reverseFadeStartT = faceSpinOptions.reverseFadeStart ?? 0.25;
   const reverseFadeEndT = faceSpinOptions.reverseFadeEnd ?? 0.75;
+
+  // Transition params
+  const transitionPreserveAngle = faceSpinOptions.transitionPreserveAngle ?? true;
+  const transitionSinWobble = faceSpinOptions.transitionSinWobble ?? true;
+  const transitionBlendToZero = faceSpinOptions.transitionBlendToZero ?? false;
 
   const faceVisibility = isReverse
     ? {
@@ -1842,19 +1982,46 @@ function GAnimationPreview({
   // Rotation angle: spinning, momentum settle during reverse, or wink
   let rotationAngle = isPlaying ? spinAngle : 0;
 
-  // Add momentum/overshoot rotation AFTER face appears (last 15% of reverse morph)
-  if (isReverse && directMorphT >= faceAppearThreshold) {
-    // Remap t from 0.85-1.0 to 0-1 for the wobble animation
-    const t = (directMorphT - faceAppearThreshold) / (1 - faceAppearThreshold);
-    const overshootAmount = 40; // degrees of initial forward roll
+  // Store exit angle when entering reverse phase
+  if (isReverse && directMorphT < 0.01) {
+    exitAngleRef.current = spinAngle % 360;
+    // Normalize to -180 to 180 range for smoother transitions
+    if (exitAngleRef.current > 180) exitAngleRef.current -= 360;
+  }
+
+  // Add momentum/overshoot rotation during reverse phase
+  if (isReverse) {
+    const overshootAmount = 40; // degrees of wobble
     const frequency = 1.5; // oscillations
     const damping = 1.5; // decay rate
 
-    // Use cos so it STARTS at max rotation (momentum carrying forward)
-    // then oscillates back and settles to 0
-    const decay = Math.exp(-damping * t);
-    const oscillation = Math.cos(frequency * Math.PI * t);
-    rotationAngle = overshootAmount * decay * oscillation;
+    // Option 3: Preserve angle - start from spinner's exit angle and decay to 0
+    let baseAngle = 0;
+    if (transitionPreserveAngle) {
+      const decayToZero = Math.exp(-3 * directMorphT); // Decay preserved angle to 0
+      baseAngle = exitAngleRef.current * decayToZero;
+    }
+
+    // Option 5: Blend to zero - interpolate from exit angle to 0 before wobble
+    if (transitionBlendToZero && directMorphT < 0.3) {
+      const blendT = directMorphT / 0.3;
+      const easeOut = 1 - Math.pow(1 - blendT, 2);
+      baseAngle = exitAngleRef.current * (1 - easeOut);
+    }
+
+    // Wobble calculation (only after face starts appearing)
+    let wobble = 0;
+    if (directMorphT >= reverseFadeStartT) {
+      const t = (directMorphT - reverseFadeStartT) / (1 - reverseFadeStartT);
+      const decay = Math.exp(-damping * t);
+      // Option 4: Use sin() instead of cos() so wobble starts at 0
+      const oscillation = transitionSinWobble
+        ? Math.sin(frequency * Math.PI * t)
+        : Math.cos(frequency * Math.PI * t);
+      wobble = overshootAmount * decay * oscillation;
+    }
+
+    rotationAngle = baseAngle + wobble;
   }
 
   // Wink rotation when hovering at rest (not playing, not in animation)

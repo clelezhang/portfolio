@@ -194,9 +194,9 @@ export default function TestDicePage() {
       <style jsx global>{`
         .dice-test-page {
           min-height: 100vh;
-          background: #fff;
+          background: var(--lightgray, #FBFBFC);
           padding: 40px 20px;
-          font-family: system-ui, sans-serif;
+          font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         .dice-header {
@@ -205,64 +205,65 @@ export default function TestDicePage() {
         }
 
         .dice-title {
-          font-size: 48px;
-          font-weight: 800;
-          color: #1a1a1a;
+          font-size: 32px;
+          font-weight: 500;
+          color: var(--slate, #2F3557);
           margin-bottom: 8px;
+          letter-spacing: -0.02em;
         }
 
         .dice-subtitle {
-          color: #666;
-          font-size: 18px;
+          color: var(--gray-500, rgba(47, 53, 87, 0.55));
+          font-size: 15px;
         }
 
         .dice-roll-all {
           display: block;
           margin: 0 auto 40px;
-          padding: 12px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          color: white;
-          background: #1a1a1a;
+          padding: 10px 24px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--lightgray, #FBFBFC);
+          background: var(--slate, #2F3557);
           border: none;
-          border-radius: 24px;
+          border-radius: 20px;
           cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
+          transition: transform 0.15s, box-shadow 0.15s;
         }
 
         .dice-roll-all:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(47, 53, 87, 0.2);
         }
 
         .dice-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 24px;
+          gap: 20px;
           max-width: 900px;
           margin: 0 auto;
         }
 
         .dice-card {
-          background: #fafafa;
-          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.6);
+          border: 1px solid var(--gray-100, rgba(47, 53, 87, 0.08));
           border-radius: 16px;
           padding: 24px;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 16px;
-          transition: transform 0.2s, box-shadow 0.2s;
+          transition: transform 0.15s, box-shadow 0.15s;
         }
 
         .dice-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(47, 53, 87, 0.08);
         }
 
         .dice-card--random {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border-color: rgba(251, 191, 36, 0.3);
+          background: linear-gradient(135deg, rgba(255, 248, 230, 0.8) 0%, rgba(255, 243, 210, 0.8) 100%);
+          border-color: rgba(47, 53, 87, 0.1);
         }
 
         .dice-container {
@@ -283,7 +284,7 @@ export default function TestDicePage() {
           min-width: 100px;
           min-height: 100px;
           flex-shrink: 0;
-          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+          filter: drop-shadow(0 4px 12px rgba(47, 53, 87, 0.12));
         }
 
         .dice-info {
@@ -291,15 +292,15 @@ export default function TestDicePage() {
         }
 
         .dice-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1a1a1a;
+          font-size: 15px;
+          font-weight: 500;
+          color: var(--slate, #2F3557);
           margin-bottom: 4px;
         }
 
         .dice-desc {
           font-size: 13px;
-          color: #888;
+          color: var(--gray-500, rgba(47, 53, 87, 0.55));
         }
 
         .dice-checkboxes {
@@ -315,12 +316,12 @@ export default function TestDicePage() {
           align-items: center;
           gap: 4px;
           font-size: 11px;
-          color: #666;
+          color: var(--gray-500, rgba(47, 53, 87, 0.55));
           cursor: pointer;
           padding: 4px 8px;
           border-radius: 12px;
           background: rgba(255, 255, 255, 0.6);
-          transition: background 0.2s;
+          transition: background 0.15s;
         }
 
         .dice-checkbox-label:hover {
@@ -330,7 +331,7 @@ export default function TestDicePage() {
         .dice-checkbox-label input {
           width: 14px;
           height: 14px;
-          accent-color: #1a1a1a;
+          accent-color: var(--slate, #2F3557);
         }
 
         /* ============================================
@@ -391,7 +392,7 @@ export default function TestDicePage() {
           gap: 8px;
           margin-top: 12px;
           padding: 12px;
-          background: #f0f0f0;
+          background: var(--gray-50, rgba(47, 53, 87, 0.05));
           border-radius: 8px;
           font-size: 11px;
         }
@@ -404,27 +405,29 @@ export default function TestDicePage() {
 
         .cube-tuning label > span:first-child {
           width: 50px;
-          color: #666;
+          color: var(--gray-500, rgba(47, 53, 87, 0.55));
         }
 
         .cube-tuning input[type="range"] {
           flex: 1;
           height: 4px;
-          accent-color: #1a1a1a;
+          accent-color: var(--slate, #2F3557);
         }
 
         .cube-tuning select {
           flex: 1;
           padding: 4px;
-          border: 1px solid #ddd;
+          border: 1px solid var(--gray-200, rgba(47, 53, 87, 0.1));
           border-radius: 4px;
           font-size: 11px;
+          background: white;
+          color: var(--slate, #2F3557);
         }
 
         .cube-tuning .tune-value {
           width: 50px;
           text-align: right;
-          color: #888;
+          color: var(--gray-500, rgba(47, 53, 87, 0.55));
           font-size: 10px;
         }
 
@@ -456,8 +459,9 @@ export default function TestDicePage() {
           align-items: center;
           justify-content: center;
           backface-visibility: visible;
-          background: white;
+          background: var(--lightgray, #FBFBFC);
           border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(47, 53, 87, 0.08);
         }
 
         .dice-cube-face img {
