@@ -63,9 +63,9 @@ import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { HeaderActions } from './components/HeaderActions';
 import { DrawIconButton } from './components/DrawIconButton';
 import { CustomCursor } from './components/CustomCursor';
-import { PencilCursor } from './components/icons/PencilCursor';
-import { EraserCursor } from './components/icons/EraserCursor';
-import { AsciiCursor } from './components/icons/AsciiCursor';
+import { ClaudePencilCursor } from './components/icons/ClaudePencilCursor';
+import { ClaudeEraserCursor } from './components/icons/ClaudeEraserCursor';
+import { ClaudeAsciiCursor } from './components/icons/ClaudeAsciiCursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 import { ClaudeIcon } from './components/ClaudeIcon';
@@ -223,7 +223,7 @@ export default function DrawPage() {
   const [animatingAscii, setAnimatingAscii] = useState<AsciiBlock | null>(null);
 
   // Claude's current drawing color (for cursor)
-  const [claudeCurrentColor, setClaudeCurrentColor] = useState<string>('#3b82f6');
+  const [, setClaudeCurrentColor] = useState<string>('#3b82f6');
 
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -963,6 +963,8 @@ export default function DrawPage() {
     deleteComment,
     addReplyToComment,
     handleCommentCancel,
+    saveComment,
+    dismissComment,
   } = useComments({ canvasRef, lastDrawnPoint });
 
   // Save current state to undo stack
@@ -1822,6 +1824,10 @@ export default function DrawPage() {
     if (autoDrawEnabled) {
       triggerAutoDraw();
     }
+    // TEST: Auto-reply from Claude after 500ms
+    setTimeout(() => {
+      addComment('This is a test reply from Claude! 🎨', 'claude', commentInput.x + 50, commentInput.y + 50);
+    }, 500);
   }, [commentText, commentInput, addComment, autoDrawEnabled, triggerAutoDraw]);
 
   // Image upload handler
@@ -1922,7 +1928,7 @@ export default function DrawPage() {
 
   return (
     <BaseUIProvider>
-    <div className="draw-page">
+    <div className={`draw-page ${isPanning ? 'is-panning' : ''}`}>
       {/* Header bar */}
       <header className="draw-header">
         <div className="draw-header-left">
@@ -2016,7 +2022,7 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: isPanning ? 'grabbing' : (tool === 'select' ? 'default' : (CUSTOM_CURSORS_ENABLED ? 'none' : 'crosshair')) }}
+          style={{ cursor: CUSTOM_CURSORS_ENABLED && tool !== 'select' && !isPanning && hoveredCommentIndex === null ? 'none' : undefined }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onMouseDown={(e) => {
@@ -2477,34 +2483,35 @@ export default function DrawPage() {
             ))}
 
             {/* Claude's cursor - rendered inside transform wrapper at canvas coordinates */}
+            {/* Uses pre-made SVGs with "opus" label for Claude's cursor */}
             {CUSTOM_CURSORS_ENABLED && claudeCursorPos && (
               <div
                 className="absolute pointer-events-none"
                 style={{
                   // Position at canvas coordinates
-                  // ASCII cursor is 34x34 with center around (17,17), pencil tip is at (3,3)
-                  left: claudeCursorPos.x - (animatingAscii ? 17 : 3),
-                  top: claudeCursorPos.y - (animatingAscii ? 17 : 3),
-                  zIndex: 100,
-                  filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
+                  // All Claude cursors have hotspot at (3, 3)
+                  left: claudeCursorPos.x - 3,
+                  top: claudeCursorPos.y - 3,
+                  zIndex: 50,
                   // Counter-scale to keep cursor at consistent size regardless of zoom
                   transform: `scale(${1 / zoom})`,
-                  transformOrigin: animatingAscii ? '17px 17px' : '3px 3px',
+                  transformOrigin: '3px 3px',
                 }}
               >
                 {animatingAscii ? (
-                  <AsciiCursor />
+                  <ClaudeAsciiCursor />
                 ) : animatingShape?.shape.type === 'erase' ? (
-                  <EraserCursor />
+                  <ClaudeEraserCursor />
                 ) : (
-                  <PencilCursor color={claudeCurrentColor} />
+                  <ClaudePencilCursor />
                 )}
               </div>
             )}
           </div>
 
           {/* Custom cursor - User */}
-          {CUSTOM_CURSORS_ENABLED && (
+          {/* Hide when hovering over any comment - CSS shows USER.svg instead */}
+          {CUSTOM_CURSORS_ENABLED && hoveredCommentIndex === null && (
             <CustomCursor
               cursorPos={cursorPos}
               isPanning={isPanning}
@@ -2531,19 +2538,24 @@ export default function DrawPage() {
             deleteComment={deleteComment}
             addReplyToComment={addReplyToComment}
             canvasToScreen={canvasToScreen}
-            tool={tool}
             hasCommentInput={commentInput !== null}
             onCloseCommentInput={() => {
               setCommentInput(null);
               setCommentText('');
             }}
-            onUserReply={(_index, text) => {
+            onUserReply={(index, text) => {
               setPendingMessages((prev) => [...prev, text]);
               setHumanHasCommented(true);
               if (autoDrawEnabled) {
                 triggerAutoDraw();
               }
+              // TEST: Auto-reply from Claude after 500ms
+              setTimeout(() => {
+                addReplyToComment(index, 'Claude replying to your message! This should make it temp.', 'claude');
+              }, 500);
             }}
+            saveComment={saveComment}
+            dismissComment={dismissComment}
           />
 
           {/* Comment input */}

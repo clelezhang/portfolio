@@ -1,8 +1,34 @@
-import { memo } from 'react';
-import { Comment, Point, Tool } from '../types';
-import { COMMENT_DOT_SIZE, COMMENT_HIT_AREA_SIZE } from '../constants';
+import { memo, useEffect, useRef, useCallback, useState } from 'react';
+import { Comment, Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
 import { CloseIcon, SubmitArrowIcon } from './icons';
+
+// Checkmark icon for save button
+function CheckmarkIcon() {
+  return (
+    <img
+      src="/draw/checkmark-2-small.svg"
+      alt=""
+      width={12}
+      height={12}
+      draggable={false}
+    />
+  );
+}
+
+// X icon for dismiss button
+function DismissIcon() {
+  return (
+    <img
+      src="/draw/cross-small, crossed small, delete, remove.svg"
+      alt=""
+      width={12}
+      height={12}
+      draggable={false}
+      style={{ filter: 'invert(1)' }}
+    />
+  );
+}
 
 interface CommentSystemProps {
   comments: Comment[];
@@ -21,8 +47,12 @@ interface CommentSystemProps {
   hasCommentInput?: boolean;
   onCloseCommentInput?: () => void;
   onUserReply?: (index: number, text: string) => void;
-  tool: Tool;
+  saveComment?: (index: number) => void;
+  dismissComment?: (index: number) => void;
 }
+
+// Hover delay in milliseconds to prevent jittering
+const HOVER_DELAY = 80;
 
 export const CommentSystem = memo(function CommentSystem({
   comments,
@@ -41,10 +71,45 @@ export const CommentSystem = memo(function CommentSystem({
   hasCommentInput,
   onCloseCommentInput,
   onUserReply,
-  tool,
+  saveComment,
+  dismissComment,
 }: CommentSystemProps) {
-  // Only allow comment interaction in comment/select mode, otherwise let drawing pass through
-  const isInteractive = tool === 'comment' || tool === 'select';
+  // Ref to track hover timer for debouncing
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced hover handlers to prevent jittering
+  const handleMouseEnter = useCallback((index: number) => {
+    // Clear any pending leave timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    // Set hover after delay
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredCommentIndex(index);
+    }, HOVER_DELAY);
+  }, [setHoveredCommentIndex]);
+
+  const handleMouseLeave = useCallback(() => {
+    // Clear any pending enter timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    // Clear hover after delay
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredCommentIndex(null);
+    }, HOVER_DELAY);
+  }, [setHoveredCommentIndex]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -53,83 +118,65 @@ export const CommentSystem = memo(function CommentSystem({
         const isOpen = openCommentIndex === i;
         const isHovered = hoveredCommentIndex === i && !isOpen;
         const isReplying = replyingToIndex === i;
+        const isUserComment = comment.from === 'human';
+        const isTemp = comment.status === 'temp';
+
+        // Determine visual state
+        const visualState = isOpen ? 'open' : isHovered ? 'preview' : 'collapsed';
+
+        // z-index: open > hovered > temp > normal
+        const zIndex = isOpen ? 100 : isHovered ? 50 : isTemp ? 20 : 10;
 
         return (
           <div
             key={i}
-            className="draw-comment-hit-area"
+            className="draw-comment-anchor"
             style={{
-              left: screenPos.x - COMMENT_HIT_AREA_SIZE / 2,
-              pointerEvents: isInteractive ? 'auto' : 'none',
-              top: screenPos.y - COMMENT_HIT_AREA_SIZE / 2,
-              width: COMMENT_HIT_AREA_SIZE,
-              height: COMMENT_HIT_AREA_SIZE,
+              position: 'absolute',
+              left: screenPos.x,
+              top: screenPos.y,
+              zIndex,
+              pointerEvents: 'auto',
             }}
-            onMouseEnter={() => setHoveredCommentIndex(i)}
-            onMouseLeave={() => setHoveredCommentIndex(null)}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenCommentIndex(isOpen ? null : i);
-              setReplyingToIndex(null);
-            }}
+            onMouseEnter={() => handleMouseEnter(i)}
+            onMouseLeave={handleMouseLeave}
           >
-            <div className="absolute inset-0" />
-            {/* Visible dot */}
-            <div
-              className="draw-comment-dot"
-              style={{
-                width: COMMENT_DOT_SIZE,
-                height: COMMENT_DOT_SIZE,
-                top: (COMMENT_HIT_AREA_SIZE - COMMENT_DOT_SIZE) / 2,
-                left: (COMMENT_HIT_AREA_SIZE - COMMENT_DOT_SIZE) / 2,
-                backgroundColor: strokeColor,
-              }}
-            />
-
-            {/* Single popup for both hover and open states */}
-            {(isHovered || isOpen) && (
-              <CommentPopup
-                comment={comment}
-                isOpen={isOpen}
-                top={COMMENT_HIT_AREA_SIZE / 2}
-                left={COMMENT_HIT_AREA_SIZE / 2}
-                onMouseEnter={() => setHoveredCommentIndex(i)}
-                onMouseLeave={(e) => {
-                  if (isOpen) return;
-                  const relatedTarget = e.relatedTarget;
-                  if (!relatedTarget) {
-                    setHoveredCommentIndex(null);
-                    return;
-                  }
-                  const parent = e.currentTarget.parentElement;
-                  if (parent && relatedTarget instanceof Node && parent.contains(relatedTarget)) return;
-                  setHoveredCommentIndex(null);
-                }}
-                onOpen={() => {
-                  if (hasCommentInput && onCloseCommentInput) {
-                    onCloseCommentInput();
-                    return;
-                  }
+            <CommentBubble
+              comment={comment}
+              commentIndex={i}
+              visualState={visualState}
+              isUserComment={isUserComment}
+              isTemp={isTemp}
+              isReplying={isReplying}
+              replyText={replyText}
+              setReplyText={setReplyText}
+              strokeColor={strokeColor}
+              onOpen={() => {
+                if (hasCommentInput && onCloseCommentInput) {
+                  onCloseCommentInput();
+                  return;
+                }
+                // Only open, don't toggle closed
+                if (!isOpen) {
                   setOpenCommentIndex(i);
-                }}
-                onDelete={() => deleteComment(i)}
-                isReplying={isReplying}
-                replyText={replyText}
-                setReplyText={setReplyText}
-                onReplyStart={() => setReplyingToIndex(i)}
-                onReplyCancel={() => {
                   setReplyingToIndex(null);
-                  setReplyText('');
-                }}
-                onReplySubmit={() => {
-                  if (replyText.trim()) {
-                    addReplyToComment(i, replyText.trim(), 'human');
-                    onUserReply?.(i, replyText.trim());
-                  }
-                }}
-                strokeColor={strokeColor}
-              />
-            )}
+                }
+              }}
+              onDelete={() => deleteComment(i)}
+              onReplyStart={() => setReplyingToIndex(i)}
+              onReplyCancel={() => {
+                setReplyingToIndex(null);
+                setReplyText('');
+              }}
+              onReplySubmit={() => {
+                if (replyText.trim()) {
+                  addReplyToComment(i, replyText.trim(), 'human');
+                  onUserReply?.(i, replyText.trim());
+                }
+              }}
+              onSave={saveComment ? () => saveComment(i) : undefined}
+              onDismiss={dismissComment ? () => dismissComment(i) : undefined}
+            />
           </div>
         );
       })}
@@ -137,129 +184,221 @@ export const CommentSystem = memo(function CommentSystem({
   );
 });
 
-interface CommentPopupProps {
+interface CommentBubbleProps {
   comment: Comment;
-  isOpen: boolean;
-  top: number;
-  left: number;
-  onMouseEnter?: () => void;
-  onMouseLeave?: (e: React.MouseEvent) => void;
-  onOpen?: () => void;
-  onDelete?: () => void;
-  isReplying?: boolean;
-  replyText?: string;
-  setReplyText?: (text: string) => void;
-  onReplyStart?: () => void;
-  onReplyCancel?: () => void;
-  onReplySubmit?: () => void;
-  strokeColor?: string;
+  commentIndex: number;
+  visualState: 'collapsed' | 'preview' | 'open';
+  isUserComment: boolean;
+  isTemp: boolean;
+  isReplying: boolean;
+  replyText: string;
+  setReplyText: (text: string) => void;
+  strokeColor: string;
+  onOpen: () => void;
+  onDelete: () => void;
+  onReplyStart: () => void;
+  onReplyCancel: () => void;
+  onReplySubmit: () => void;
+  onSave?: () => void;
+  onDismiss?: () => void;
 }
 
-function CommentPopup({
+function CommentBubble({
   comment,
-  isOpen,
-  top,
-  left,
-  onMouseEnter,
-  onMouseLeave,
-  onOpen,
-  onDelete,
+  commentIndex,
+  visualState,
+  isUserComment,
+  isTemp,
   isReplying,
   replyText,
   setReplyText,
+  strokeColor,
+  onOpen,
+  onDelete,
   onReplyStart,
   onReplyCancel,
   onReplySubmit,
-  strokeColor,
-}: CommentPopupProps) {
+  onSave,
+  onDismiss,
+}: CommentBubbleProps) {
   const handleTextareaResize = useAutoResizeTextarea(80);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // Mark as animated after mount to enable transitions
+  useEffect(() => {
+    const timer = setTimeout(() => setHasAnimated(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Scroll to top when collapsing
+  useEffect(() => {
+    if (visualState === 'collapsed' && bubbleRef.current) {
+      bubbleRef.current.scrollTop = 0;
+    }
+  }, [visualState]);
+
+  // Auto-dismiss timer for temp comments (60s)
+  const handleAutoDismiss = useCallback(() => {
+    if (onDismiss) {
+      onDismiss();
+    }
+  }, [onDismiss]);
+
+  useEffect(() => {
+    if (isTemp && comment.tempStartedAt && onDismiss) {
+      const elapsed = Date.now() - comment.tempStartedAt;
+      const remaining = 60000 - elapsed;
+
+      if (remaining <= 0) {
+        handleAutoDismiss();
+      } else {
+        timerRef.current = setTimeout(handleAutoDismiss, remaining);
+      }
+
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
+    }
+  }, [isTemp, comment.tempStartedAt, onDismiss, handleAutoDismiss, commentIndex]);
+
+  const authorClass = isUserComment ? 'draw-comment-bubble--user' : 'draw-comment-bubble--claude';
+  const stateClass = isTemp ? 'draw-comment-bubble--temp' : 'draw-comment-bubble--saved';
+  const visualStateClass = `draw-comment-bubble--${visualState}`;
+  const animateClass = hasAnimated ? 'draw-comment-bubble--animated' : '';
+
+  const isExpanded = visualState === 'preview' || visualState === 'open';
 
   return (
     <div
-      className={`draw-comment-popup ${isOpen ? 'draw-comment-popup--open' : ''}`}
-      style={{ top, left }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!isOpen && onOpen) {
-          onOpen();
-        }
+      className={`draw-comment-wrapper ${isTemp ? 'draw-comment-wrapper--temp' : ''}`}
+      style={{
+        animationDelay: comment.tempStartedAt ? `-${(Date.now() - comment.tempStartedAt) / 1000}s` : '0s',
       }}
     >
-      {/* Main comment */}
-      <div className="draw-comment-row">
-        <img
-          src={comment.from === 'human' ? '/draw/user.svg' : '/draw/claude.svg'}
-          alt=""
-          className="draw-comment-icon"
-        />
-        <span className="draw-comment-text">{comment.text}</span>
-        {isOpen && onDelete && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="draw-comment-delete"
-            title="Delete comment"
-          >
-            <CloseIcon />
-          </button>
+      <div
+        ref={bubbleRef}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen();
+        }}
+        onWheel={(e) => {
+          // Stop wheel events from bubbling to canvas (prevents panning while scrolling comment)
+          e.stopPropagation();
+        }}
+      >
+        {/* First row: Icon + Content - wrapped to prevent breaking during transitions */}
+        <div className="draw-comment-first-row">
+          {/* Icon - always visible */}
+          <div className="draw-comment-bubble-icon">
+            <img
+              src={comment.from === 'human' ? '/draw/USERICON.svg' : '/draw/claude.svg'}
+              alt=""
+              className="draw-comment-icon-img"
+            />
+          </div>
+
+          {/* Content - scales in on expand */}
+          <div className="draw-comment-bubble-content">
+            {/* Main comment text */}
+            <span className="draw-comment-text">{comment.text}</span>
+
+            {/* Delete button for saved, open state */}
+            {visualState === 'open' && !isTemp && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="draw-comment-delete"
+                title="Delete comment"
+              >
+                <CloseIcon />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Replies - only in expanded states */}
+        {isExpanded && comment.replies?.map((reply, ri) => (
+          <div key={ri} className="draw-comment-row draw-comment-row--reply-item">
+            <img
+              src={reply.from === 'human' ? '/draw/USERICON.svg' : '/draw/claude.svg'}
+              alt=""
+              className="draw-comment-icon"
+            />
+            <span className="draw-comment-text">{reply.text}</span>
+          </div>
+        ))}
+
+        {/* Reply input - only when open and replying */}
+        {visualState === 'open' && isReplying && (
+          <div className="draw-comment-row draw-comment-row--reply">
+            <img src="/draw/USERICON.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
+            <div className="draw-comment-reply-input-wrapper">
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Reply..."
+                className="draw-comment-input draw-comment-input--plain"
+                rows={1}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') onReplyCancel();
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    onReplySubmit();
+                  }
+                }}
+                onInput={handleTextareaResize}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
+                disabled={!replyText?.trim()}
+                className="draw-comment-submit"
+                style={{
+                  backgroundColor: strokeColor,
+                  opacity: replyText?.trim() ? 1 : 0.6,
+                }}
+              >
+                <SubmitArrowIcon />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reply button - only when open and not replying and saved */}
+        {visualState === 'open' && !isReplying && !isTemp && (
+          <div className="draw-comment-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
+            <img src="/draw/USERICON.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
+            <span className="draw-comment-reply-btn-text">Reply...</span>
+          </div>
         )}
       </div>
 
-      {/* Replies */}
-      {comment.replies?.map((reply, ri) => (
-        <div key={ri} className="draw-comment-row">
-          <img
-            src={reply.from === 'human' ? '/draw/user.svg' : '/draw/claude.svg'}
-            alt=""
-            className="draw-comment-icon"
-          />
-          <span className="draw-comment-text">{reply.text}</span>
-        </div>
-      ))}
-
-      {/* Reply input (only when open) */}
-      {isOpen && isReplying && setReplyText && onReplyCancel && onReplySubmit && strokeColor && (
-        <div className="draw-comment-row draw-comment-row--reply">
-          <img src="/draw/user.svg" alt="" draggable={false} className="draw-reply-btn-icon draw-img-no-anim" />
-          <div className="flex-1 relative">
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Reply..."
-              className="draw-comment-input"
-              rows={1}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') onReplyCancel();
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  onReplySubmit();
-                }
-              }}
-              onInput={handleTextareaResize}
-              onClick={(e) => e.stopPropagation()}
-            />
+      {/* Temp state action buttons (save/dismiss) - outside bubble for flex layout */}
+      {isTemp && (onSave || onDismiss) && (
+        <div className="draw-comment-temp-actions">
+          {onSave && (
             <button
-              onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
-              disabled={!replyText?.trim()}
-              className="draw-comment-submit"
-              style={{
-                backgroundColor: strokeColor,
-                opacity: replyText?.trim() ? 1 : 0.6,
-              }}
+              className="draw-comment-temp-btn draw-comment-temp-btn--save"
+              onClick={(e) => { e.stopPropagation(); onSave(); }}
+              title="Save comment"
             >
-              <SubmitArrowIcon />
+              <CheckmarkIcon />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Reply button (only when open and not replying) */}
-      {isOpen && !isReplying && onReplyStart && (
-        <div className="draw-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-          <img src="/draw/user.svg" alt="" draggable={false} className="draw-reply-btn-icon draw-img-no-anim" />
-          <span className="draw-reply-btn-text">Reply...</span>
+          )}
+          {onDismiss && (
+            <button
+              className="draw-comment-temp-btn draw-comment-temp-btn--dismiss"
+              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+              title="Dismiss comment"
+            >
+              <DismissIcon />
+            </button>
+          )}
         </div>
       )}
     </div>

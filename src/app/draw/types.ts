@@ -65,6 +65,8 @@ export interface Comment {
   y: number;
   from: 'human' | 'claude';
   replies?: CommentReply[];
+  status?: 'temp' | 'saved';  // default 'saved' for backwards compat
+  tempStartedAt?: number;     // timestamp for fade timing (when Claude last interacted)
 }
 
 export interface HumanStroke {

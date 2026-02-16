@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import '../draw.css';
 
 // Types for drawing simulation
@@ -9,7 +9,14 @@ type Stroke = {
   id: string;
   points: Point[];
   color: string;
-  type: 'pencil' | 'ascii';
+  strokeWidth: number;
+  isClaudeDrawing: boolean;
+};
+type AsciiChar = {
+  id: string;
+  x: number;
+  y: number;
+  char: string;
   isClaudeDrawing: boolean;
 };
 type Comment = {
@@ -21,7 +28,7 @@ type Comment = {
 };
 
 // ASCII characters for ASCII brush
-const ASCII_CHARS = ['#', '@', '*', '+', '~', '%', '&', '=', '-', '.'];
+const ASCII_CHARS = ['#', '@', '*', '+', '~', '%', '&', '=', '-', '/', '\\', '|', '_', '^'];
 
 // Base cursor definitions (without Opus label)
 const BASE_CURSORS = {
@@ -294,6 +301,348 @@ function ClickableButtons({ cursorPointer }: { cursorPointer: string }) {
       >
         Reset
       </button>
+    </div>
+  );
+}
+
+// Functional Drawing Canvas
+function DrawingCanvas({
+  tool,
+  cursorStyle,
+  isClaudeSide,
+}: {
+  tool: 'pencil' | 'eraser' | 'ascii' | 'comment';
+  cursorStyle: string;
+  isClaudeSide: boolean;
+}) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [asciiChars, setAsciiChars] = useState<AsciiChar[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
+  const [, setEditingComment] = useState<string | null>(null);
+  const [commentInput, setCommentInput] = useState('');
+  const [pendingCommentPos, setPendingCommentPos] = useState<Point | null>(null);
+
+  const getRelativePos = (e: React.MouseEvent): Point => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const pos = getRelativePos(e);
+
+    if (tool === 'pencil') {
+      setIsDrawing(true);
+      setCurrentStroke([pos]);
+    } else if (tool === 'eraser') {
+      setIsDrawing(true);
+      eraseAt(pos);
+    } else if (tool === 'ascii') {
+      const char = ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
+      setAsciiChars(prev => [...prev, {
+        id: `ascii-${Date.now()}`,
+        x: pos.x,
+        y: pos.y,
+        char,
+        isClaudeDrawing: isClaudeSide,
+      }]);
+    } else if (tool === 'comment') {
+      setPendingCommentPos(pos);
+      setCommentInput('');
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawing) return;
+    const pos = getRelativePos(e);
+
+    if (tool === 'pencil') {
+      setCurrentStroke(prev => [...prev, pos]);
+    } else if (tool === 'eraser') {
+      eraseAt(pos);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (tool === 'pencil' && currentStroke.length > 1) {
+      setStrokes(prev => [...prev, {
+        id: `stroke-${Date.now()}`,
+        points: currentStroke,
+        color: isClaudeSide ? '#F3381A' : '#2F3557',
+        strokeWidth: 3,
+        isClaudeDrawing: isClaudeSide,
+      }]);
+    }
+    setIsDrawing(false);
+    setCurrentStroke([]);
+  };
+
+  const eraseAt = (pos: Point) => {
+    const eraseRadius = 15;
+    // Erase strokes
+    setStrokes(prev => prev.filter(stroke => {
+      return !stroke.points.some(p =>
+        Math.hypot(p.x - pos.x, p.y - pos.y) < eraseRadius
+      );
+    }));
+    // Erase ASCII
+    setAsciiChars(prev => prev.filter(char =>
+      Math.hypot(char.x - pos.x, char.y - pos.y) >= eraseRadius
+    ));
+    // Erase comments
+    setComments(prev => prev.filter(comment =>
+      Math.hypot(comment.x - pos.x, comment.y - pos.y) >= eraseRadius + 20
+    ));
+  };
+
+  const submitComment = () => {
+    if (pendingCommentPos && commentInput.trim()) {
+      setComments(prev => [...prev, {
+        id: `comment-${Date.now()}`,
+        x: pendingCommentPos.x,
+        y: pendingCommentPos.y,
+        text: commentInput.trim(),
+        isClaudeComment: isClaudeSide,
+      }]);
+    }
+    setPendingCommentPos(null);
+    setCommentInput('');
+    setEditingComment(null);
+  };
+
+  const pointsToPath = (points: Point[]): string => {
+    if (points.length < 2) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].x} ${points[i].y}`;
+    }
+    return d;
+  };
+
+  const clearAll = () => {
+    setStrokes([]);
+    setAsciiChars([]);
+    setComments([]);
+  };
+
+  return (
+    <div style={{ position: 'relative', height: '100%' }}>
+      {/* Clear button */}
+      <button
+        onClick={clearAll}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          padding: '4px 8px',
+          fontSize: 10,
+          background: 'white',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: 4,
+          cursor: 'pointer',
+          zIndex: 10,
+        }}
+      >
+        Clear
+      </button>
+
+      {/* Drawing area */}
+      <div
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{
+          width: '100%',
+          height: '100%',
+          cursor: cursorStyle,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* SVG layer for strokes */}
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          }}
+        >
+          {strokes.map(stroke => (
+            <path
+              key={stroke.id}
+              d={pointsToPath(stroke.points)}
+              stroke={stroke.color}
+              strokeWidth={stroke.strokeWidth}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+          {currentStroke.length > 1 && (
+            <path
+              d={pointsToPath(currentStroke)}
+              stroke={isClaudeSide ? '#F3381A' : '#2F3557'}
+              strokeWidth={3}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.7}
+            />
+          )}
+        </svg>
+
+        {/* ASCII characters */}
+        {asciiChars.map(char => (
+          <div
+            key={char.id}
+            style={{
+              position: 'absolute',
+              left: char.x,
+              top: char.y,
+              transform: 'translate(-50%, -50%)',
+              fontFamily: 'monospace',
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: char.isClaudeDrawing ? '#F3381A' : '#2F3557',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          >
+            {char.char}
+          </div>
+        ))}
+
+        {/* Comments */}
+        {comments.map(comment => (
+          <div
+            key={comment.id}
+            style={{
+              position: 'absolute',
+              left: comment.x,
+              top: comment.y,
+              transform: 'translate(-10px, -100%)',
+              background: comment.isClaudeComment ? '#FFF5F3' : 'white',
+              border: `1px solid ${comment.isClaudeComment ? 'rgba(243, 56, 26, 0.3)' : 'rgba(47, 53, 87, 0.15)'}`,
+              borderRadius: 8,
+              padding: '6px 10px',
+              fontSize: 11,
+              color: comment.isClaudeComment ? '#F3381A' : '#2F3557',
+              maxWidth: 150,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              pointerEvents: 'none',
+            }}
+          >
+            {comment.text}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: -6,
+                left: 10,
+                width: 0,
+                height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: `6px solid ${comment.isClaudeComment ? '#FFF5F3' : 'white'}`,
+              }}
+            />
+          </div>
+        ))}
+
+        {/* Comment input popup */}
+        {pendingCommentPos && (
+          <div
+            style={{
+              position: 'absolute',
+              left: pendingCommentPos.x,
+              top: pendingCommentPos.y,
+              transform: 'translate(-10px, -100%)',
+              background: 'white',
+              border: '2px solid #2F3557',
+              borderRadius: 8,
+              padding: 8,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+              zIndex: 20,
+            }}
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            <input
+              type="text"
+              value={commentInput}
+              onChange={e => setCommentInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') submitComment();
+                if (e.key === 'Escape') setPendingCommentPos(null);
+              }}
+              placeholder="Add comment..."
+              autoFocus
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: 12,
+                width: 120,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+              <button
+                onClick={submitComment}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: 10,
+                  background: '#2F3557',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                Add
+              </button>
+              <button
+                onClick={() => setPendingCommentPos(null)}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: 10,
+                  background: '#eee',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tool indicator */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            padding: '4px 8px',
+            background: isClaudeSide ? 'rgba(243, 56, 26, 0.1)' : 'rgba(47, 53, 87, 0.05)',
+            borderRadius: 4,
+            fontSize: 10,
+            color: isClaudeSide ? '#F3381A' : '#666',
+            pointerEvents: 'none',
+          }}
+        >
+          {tool.charAt(0).toUpperCase() + tool.slice(1)} tool active
+        </div>
+      </div>
     </div>
   );
 }
@@ -701,62 +1050,39 @@ export default function CursorTestPage() {
                   height: 400,
                   background: 'repeating-linear-gradient(0deg, transparent, transparent 19px, var(--gray-100, rgba(47, 53, 87, 0.05)) 19px, var(--gray-100, rgba(47, 53, 87, 0.05)) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, var(--gray-100, rgba(47, 53, 87, 0.05)) 19px, var(--gray-100, rgba(47, 53, 87, 0.05)) 20px)',
                   position: 'relative',
+                  display: 'flex',
                 }}
               >
-                {/* User drawing area */}
+                {/* User drawing area - functional */}
                 <div
                   style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    width: '50%',
+                    flex: 1,
                     height: '100%',
-                    cursor: getCursorStyle(selectedCursor),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     borderRight: '2px dashed var(--gray-200, rgba(47, 53, 87, 0.1))',
+                    position: 'relative',
                   }}
                 >
-                  <div style={{
-                    padding: '8px 16px',
-                    background: 'white',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: 'var(--gray-500, rgba(47, 53, 87, 0.55))',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    pointerEvents: 'none',
-                  }}>
-                    User: {BASE_CURSORS[selectedCursor].label}
-                  </div>
+                  <DrawingCanvas
+                    tool={(['pencil', 'eraser', 'ascii', 'comment'].includes(selectedCursor) ? selectedCursor : 'pencil') as 'pencil' | 'eraser' | 'ascii' | 'comment'}
+                    cursorStyle={getCursorStyle(selectedCursor)}
+                    isClaudeSide={false}
+                  />
                 </div>
 
-                {/* Claude drawing area */}
+                {/* Claude drawing area - functional */}
                 <div
                   style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    width: '50%',
+                    flex: 1,
                     height: '100%',
-                    cursor: getOpusCursorStyle(selectedClaudeTool),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     background: 'rgba(243, 56, 26, 0.02)',
+                    position: 'relative',
                   }}
                 >
-                  <div style={{
-                    padding: '8px 16px',
-                    background: 'white',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: 'rgba(243, 56, 26, 0.7)',
-                    boxShadow: '0 2px 8px rgba(243, 56, 26, 0.1)',
-                    pointerEvents: 'none',
-                  }}>
-                    Claude: {OPUS_CURSORS[selectedClaudeTool].label} + opus
-                  </div>
+                  <DrawingCanvas
+                    tool={selectedClaudeTool as 'pencil' | 'eraser' | 'ascii' | 'comment'}
+                    cursorStyle={getOpusCursorStyle(selectedClaudeTool)}
+                    isClaudeSide={true}
+                  />
                 </div>
               </div>
 

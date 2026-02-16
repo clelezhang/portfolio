@@ -31,7 +31,7 @@
   --draw-hit-area: 36px;
 
   /* Typography */
-  --draw-font: system-ui, sans-serif;
+  --draw-font: var(--font-untitled-sans), system-ui, sans-serif;
   --draw-letter-spacing: -0.24px;
 
   /* Borders */
@@ -143,111 +143,441 @@
 
 
 /* -----------------------------------------------------------------------------
-   Cursor
+   Cursor - Custom cursor system
+
+   Architecture:
+   - CSS handles: default (USER), pointer, grab/grabbing cursors
+   - React CustomCursor handles: tool cursors (pencil, eraser, ascii, comment)
+   - Native cursor hidden on canvas when tool active, CustomCursor div shows instead
    ----------------------------------------------------------------------------- */
+
+/* CSS Custom Properties for cursor URLs - single source of truth */
+.draw-page {
+  --cursor-user: url('/draw/CURSOR/USER.svg') 3 3, auto;
+  --cursor-pointer: url('/draw/CURSOR/POINTER.svg') 10 2, pointer;
+  --cursor-grab: url('/draw/CURSOR/HAND.svg') 11 5, grab;
+  --cursor-grabbing: url('/draw/CURSOR/GRAB.svg') 11 10, grabbing;
+}
+
+/* CustomCursor component container - positioned div for tool cursors */
 .draw-cursor {
   position: absolute;
   pointer-events: none;
   z-index: 50;
 }
 
+/* Default cursor for entire draw page */
+.draw-page {
+  cursor: var(--cursor-user);
+}
+
+/* Interactive elements use pointer cursor */
+.draw-page button,
+.draw-page [role="button"],
+.draw-page a,
+.draw-page label,
+.draw-page .cursor-pointer {
+  cursor: var(--cursor-pointer);
+}
+
+/* Grab states */
+.draw-page .cursor-grab,
+.draw-page [data-cursor="grab"] {
+  cursor: var(--cursor-grab);
+}
+
+.draw-page .cursor-grabbing,
+.draw-page [data-cursor="grabbing"],
+.draw-page.is-panning {
+  cursor: var(--cursor-grabbing);
+}
+
 /* -----------------------------------------------------------------------------
-   Comments
+   Comments - Morphing Bubble System
    ----------------------------------------------------------------------------- */
-.draw-comment-hit-area {
-  position: absolute;
+
+/* Anchor for positioning */
+.draw-comment-anchor {
   z-index: 30;
 }
 
-.draw-comment-dot {
-  position: absolute;
-  border-radius: 50%;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05), 0 1px 1px 1px rgba(0, 0, 0, 0.05);
-  border: 1.5px solid white;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.draw-comment-popup {
-  position: absolute;
+/* Wrapper for fade animation and flex layout */
+.draw-comment-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: var(--draw-comment-padding);
-  background-color: var(--draw-bg-canvas);
-  border: 1px solid var(--draw-border);
-  border-radius: var(--draw-radius-sm) var(--draw-radius-md) var(--draw-radius-md) var(--draw-radius-md);
-  box-shadow: 1px 2px 8px var(--draw-shadow);
-  width: max-content;
-  max-width: var(--draw-comment-width);
+  align-items: flex-start;
+  cursor: var(--cursor-user) !important;
+}
+
+/* Apply fade animation only to the bubble, not the action buttons */
+.draw-comment-wrapper--temp .draw-comment-bubble {
+  animation: commentFadeOut 60s linear forwards;
+}
+
+.draw-comment-wrapper--temp:hover .draw-comment-bubble {
+  animation-play-state: paused;
+}
+
+/* =============================================================================
+   Main Bubble - Morphs Between States
+   ============================================================================= */
+.draw-comment-bubble {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid;
+  cursor: pointer;
   transform-origin: top left;
-  animation: commentScaleIn 0.15s ease-out forwards;
-  z-index: 40;
-  transition: width 0.2s ease-out, max-width 0.2s ease-out;
+  border-radius: 4px 18px 18px 18px;
 }
 
-.draw-comment-popup--open {
-  width: var(--draw-comment-width);
-  max-width: var(--draw-comment-width);
+/* Enable transitions only after mount (prevents initial animation) */
+.draw-comment-bubble.draw-comment-bubble--animated {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.draw-comment-popup--input {
-  border-radius: 4px var(--draw-radius-md) var(--draw-radius-md) var(--draw-radius-md);
-  animation: commentBounceIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+/* -----------------------------------------------------------------------------
+   Visual States: Collapsed → Preview → Open
+   Collapsed and Preview look identical - only text visibility differs
+   ----------------------------------------------------------------------------- */
+
+/* COLLAPSED: Icon only - 42x42 */
+.draw-comment-bubble--collapsed {
+  width: 42px;
+  max-height: 42px;
+  overflow: hidden;
+}
+
+.draw-comment-bubble--collapsed .draw-comment-bubble-content {
+  opacity: 0;
+  width: 0;
+}
+
+.draw-comment-bubble--collapsed .draw-comment-first-row {
+  width: auto;
+}
+
+.draw-comment-bubble--collapsed .draw-comment-row {
+  display: none;
+}
+
+/* PREVIEW: Text visible, grows taller if text wraps */
+.draw-comment-bubble--preview {
+  width: 180px;
+  max-height: 120px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.draw-comment-bubble--preview.draw-comment-bubble--user:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.draw-comment-bubble--preview.draw-comment-bubble--claude:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.draw-comment-bubble--preview .draw-comment-bubble-content {
+  opacity: 1;
+  width: auto;
+  max-width: 130px;
+}
+
+.draw-comment-bubble--preview .draw-comment-first-row {
+  width: 100%;
+}
+
+/* OPEN: Full content - 260px wide, max 300px tall */
+.draw-comment-bubble--open {
+  width: 260px;
+  max-height: 300px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.draw-comment-bubble--open.draw-comment-bubble--user:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.draw-comment-bubble--open.draw-comment-bubble--claude:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Custom scrollbar for webkit browsers (Chrome, Safari) */
+.draw-comment-bubble::-webkit-scrollbar {
+  width: 6px;
+}
+
+.draw-comment-bubble::-webkit-scrollbar-track {
+  background: transparent;
+  /* Use transparent border to create padding - keeps thumb away from rounded corners */
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
+  background-clip: content-box;
+}
+
+.draw-comment-bubble::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  /* Also add border to the thumb itself for extra padding */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.draw-comment-bubble:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.4);
+}
+
+/* User comments: lighter scrollbar thumb */
+.draw-comment-bubble--user:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Claude comments: darker scrollbar thumb */
+.draw-comment-bubble--claude:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.draw-comment-bubble--open .draw-comment-bubble-content {
+  flex: 1;
+  min-width: 0;
+  opacity: 1;
+  width: auto;
+  max-width: 220px;
+}
+
+.draw-comment-bubble--open .draw-comment-first-row {
+  width: 100%;
+}
+
+/* First row container - keeps icon and content together, prevents wrap */
+.draw-comment-first-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Icon inside bubble */
+.draw-comment-bubble-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.draw-comment-icon-img {
+  width: 24px;
+  height: 24px;
+}
+
+/* User icon hover animation (wobble) */
+.draw-comment-bubble--user .draw-comment-icon-img:hover {
+  filter: brightness(0) invert(1) url(#wobbleFilter);
+}
+
+/* Claude icon - no hover animation */
+.draw-comment-bubble--claude .draw-comment-icon-img {
+  /* No hover effect */
+}
+
+/* Content wrapper */
+.draw-comment-bubble-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* -----------------------------------------------------------------------------
+   Author Styling: User (BLACK) vs Claude (WHITE)
+   ----------------------------------------------------------------------------- */
+
+/* USER comments - BLACK background */
+.draw-comment-bubble--user {
+  background-color: #000;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.draw-comment-bubble--user .draw-comment-text {
+  color: #fff;
+}
+
+.draw-comment-bubble--user .draw-comment-icon-img,
+.draw-comment-bubble--user .draw-comment-icon {
+  filter: brightness(0) invert(1);
+}
+
+.draw-comment-bubble--user .draw-comment-reply-btn-text {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-comment-bubble--user .draw-comment-input {
+  color: #fff;
+  background: transparent;
+}
+
+.draw-comment-bubble--user .draw-comment-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-comment-bubble--user .draw-comment-submit {
+  background-color: #fff !important;
+}
+
+.draw-comment-bubble--user .draw-comment-submit svg {
+  color: #000;
+}
+
+.draw-comment-bubble--user .draw-comment-delete {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-comment-bubble--user .draw-comment-delete:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* CLAUDE comments - WHITE background */
+.draw-comment-bubble--claude {
+  background-color: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.draw-comment-bubble--claude .draw-comment-text {
+  color: #000;
+}
+
+.draw-comment-bubble--claude .draw-comment-reply-btn-text {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.draw-comment-bubble--claude .draw-comment-input {
+  color: #000;
+  background: transparent;
+}
+
+.draw-comment-bubble--claude .draw-comment-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.draw-comment-bubble--claude .draw-comment-delete {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.draw-comment-bubble--claude .draw-comment-delete:hover {
+  color: #000;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* -----------------------------------------------------------------------------
+   State Styling: Temp (dashed) vs Saved (solid)
+   ----------------------------------------------------------------------------- */
+
+/* TEMP state - dashed border */
+.draw-comment-bubble--temp {
+  border-style: dashed;
+  border-width: 1.5px;
+}
+
+.draw-comment-bubble--temp.draw-comment-bubble--user {
+  box-shadow: 0 0 0 1px #000;
+}
+
+.draw-comment-bubble--temp.draw-comment-bubble--claude {
+  box-shadow: 0 0 0 1px #fff, 1px 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* SAVED state - solid border */
+.draw-comment-bubble--saved {
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* -----------------------------------------------------------------------------
+   Inner Elements
+   ----------------------------------------------------------------------------- */
+
+.draw-comment-text {
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: -0.24px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 .draw-comment-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.draw-comment-row--reply {
-  min-height: 32px;
-}
-
-.draw-comment-row--reply .draw-comment-input {
-  padding-top: 3px;
+  gap: 8px;
+  width: 100%;
+  flex-basis: 100%;
+  min-height: 24px;
 }
 
 .draw-comment-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  margin-top: 0.125rem;
 }
 
-.draw-comment-text {
-  font-family: var(--draw-font);
-  font-size: 0.875rem;
-  color: var(--draw-text-primary);
-  letter-spacing: var(--draw-letter-spacing);
-  white-space: pre-wrap;
-  word-break: break-word;
-  flex: 1;
+/* User icon hover animation in replies */
+.draw-comment-bubble--user .draw-comment-icon:hover {
+  filter: brightness(0) invert(1) url(#wobbleFilter);
 }
 
 .draw-comment-delete {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background-color 0.2s;
+  margin-left: auto;
+  cursor: pointer;
+  transition: background-color 0.1s, color 0.1s, opacity 0.15s;
+  opacity: 0;
+  animation: fadeIn 0.15s ease-out forwards;
 }
 
-.draw-comment-delete:hover {
-  background-color: var(--draw-hover-bg);
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* Reply input wrapper */
+.draw-comment-reply-input-wrapper {
+  flex: 1;
+  position: relative;
 }
 
 .draw-comment-input {
   width: 100%;
-  font-family: var(--draw-font);
-  font-size: 0.875rem;
-  color: var(--draw-text-primary);
-  letter-spacing: var(--draw-letter-spacing);
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.24px;
   border-radius: 0.5rem;
   outline: none;
   resize: none;
@@ -259,58 +589,217 @@
 .draw-comment-input--plain {
   border: none;
   background: transparent;
+  padding: 0;
   padding-right: 2rem;
   line-height: 20px;
 }
 
 .draw-comment-submit {
   position: absolute;
-  right: 0.375rem;
-  top: 0.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
+  right: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: opacity 0.2s;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
-.draw-comment-submit--top {
-  right: 0;
-  top: 0;
+.draw-comment-submit:hover {
+  transform: scale(1.1);
 }
 
-.draw-reply-btn {
+/* Reply button */
+.draw-comment-reply-btn {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 8px;
   cursor: pointer;
-  min-height: 32px;
+  min-height: 24px;
+  width: 100%;
+  flex-basis: 100%;
 }
 
-.draw-reply-btn-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  min-width: 1.25rem;
-  min-height: 1.25rem;
+.draw-comment-reply-btn-text {
+  font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.24px;
+  line-height: 20px;
+}
+
+/* -----------------------------------------------------------------------------
+   Temp Action Buttons (Save/Dismiss)
+   ----------------------------------------------------------------------------- */
+
+.draw-comment-temp-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 8px;
   flex-shrink: 0;
-  margin-top: 0.25rem;
+  animation: tempActionsSlideIn 0.15s ease-out forwards;
 }
 
-.draw-reply-btn-text {
-  font-family: var(--draw-font);
-  font-size: 0.875rem;
-  color: var(--draw-text-secondary);
-  letter-spacing: var(--draw-letter-spacing);
-  padding-top: 2px;
+@keyframes tempActionsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.draw-comment-backdrop {
-  position: absolute;
+.draw-comment-temp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 24px;
+  padding: 4px;
+  cursor: pointer;
+  transition: opacity 0.1s, transform 0.1s;
+}
+
+.draw-comment-temp-btn:hover {
+  transform: scale(1.1);
+}
+
+.draw-comment-temp-btn--save {
+  background: linear-gradient(90deg, rgba(16, 16, 16, 0.08) 0%, rgba(16, 16, 16, 0.08) 100%),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%);
+  backdrop-filter: blur(12px);
+}
+
+.draw-comment-temp-btn--dismiss {
+  background-color: #000;
+}
+
+.draw-comment-temp-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.draw-comment-temp-btn--save svg {
+  color: #000;
+}
+
+.draw-comment-temp-btn--dismiss svg {
+  color: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   Fade Animation for Temp Comments
+   ----------------------------------------------------------------------------- */
+
+@keyframes commentFadeOut {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  25% {
+    opacity: 0.95;
+    filter: blur(0px);
+  }
+  50% {
+    opacity: 0.85;
+    filter: blur(0.25px);
+  }
+  75% {
+    opacity: 0.75;
+    filter: blur(0.5px);
+  }
+  92% {
+    opacity: 0.4;
+    filter: blur(0.75px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(1px);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Comment Input (New Comment Form)
+   ----------------------------------------------------------------------------- */
+
+.draw-comment-input-backdrop {
+  position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 35;
+}
+
+.draw-comment-input-form {
+  animation: commentInputAppear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes commentInputAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.draw-comment-input-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  background-color: #000;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px 18px 18px 18px;
+  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.draw-comment-input-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
+
+.draw-comment-input-icon:hover {
+  filter: brightness(0) invert(1) url(#wobbleFilter);
+}
+
+.draw-comment-input-field-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.draw-comment-input-bubble .draw-comment-input {
+  color: #fff;
+  background: transparent;
+}
+
+.draw-comment-input-bubble .draw-comment-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.draw-comment-input-bubble .draw-comment-submit {
+  background-color: #fff !important;
+}
+
+.draw-comment-input-bubble .draw-comment-submit svg {
+  color: #000;
+}
+
+/* Utility: disable image animations */
+.draw-img-no-anim {
+  animation: none !important;
 }
 
 /* -----------------------------------------------------------------------------
@@ -495,19 +984,6 @@
 
 .draw-comment-btn:hover img {
   filter: url(#wobbleFilter);
-}
-
-.draw-comment-text {
-  font-family: var(--font-caveat), cursive;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1;
-}
-
-.draw-comment-icon {
-  width: 24px;
-  height: 24px;
 }
 
 /* Header icon buttons */
@@ -703,7 +1179,7 @@
    Wiggle Filter Effects
    ----------------------------------------------------------------------------- */
 .draw-comment-icon:hover,
-.draw-reply-btn-icon:hover,
+.draw-comment-icon-img:hover,
 .draw-user-icon:hover,
 .draw-stroke-icon:hover {
   filter: url(#wobbleFilter);

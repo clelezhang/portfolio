@@ -7,7 +7,7 @@ import { ToolbarDiceCube } from './ToolbarDiceCube';
 import { ToolbarPencilIcon } from './icons/ToolbarPencilIcon';
 
 // Toggle to disable tooltips globally (set to false to disable)
-const TOOLTIPS_ENABLED = true;
+const TOOLTIPS_ENABLED = false;
 
 // Wrapper that conditionally renders tooltip
 function MaybeTooltip({ content, placement, popperOptions, children }: {

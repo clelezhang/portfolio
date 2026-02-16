@@ -25,6 +25,8 @@ interface UseCommentsReturn {
   deleteComment: (index: number) => void;
   addReplyToComment: (index: number, text: string, from: 'human' | 'claude') => void;
   handleCommentCancel: () => void;
+  saveComment: (index: number) => void;
+  dismissComment: (index: number) => void;
 }
 
 export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): UseCommentsReturn {
@@ -56,8 +58,18 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
       }
     }
 
+    // Claude comments start in temp state; user comments start saved
+    const newComment: Comment = {
+      text,
+      x: commentX!,
+      y: commentY!,
+      from,
+      status: from === 'claude' ? 'temp' : 'saved',
+      tempStartedAt: from === 'claude' ? Date.now() : undefined,
+    };
+
     setComments((prev) => {
-      const newComments = [...prev, { text, x: commentX!, y: commentY!, from }];
+      const newComments = [...prev, newComment];
       // Auto-open Claude's comments
       if (from === 'claude') {
         setOpenCommentIndex(newComments.length - 1);
@@ -75,9 +87,25 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
   const addReplyToComment = useCallback((index: number, text: string, from: 'human' | 'claude') => {
     setComments((prev) => prev.map((comment, i) => {
       if (i === index) {
+        // Claude reply → make temp; User reply to temp → auto-save
+        let newStatus = comment.status;
+        let newTempStartedAt = comment.tempStartedAt;
+
+        if (from === 'claude') {
+          // Claude replying puts comment in temp state
+          newStatus = 'temp';
+          newTempStartedAt = Date.now();
+        } else if (from === 'human' && comment.status === 'temp') {
+          // User replying to temp comment auto-saves it
+          newStatus = 'saved';
+          newTempStartedAt = undefined;
+        }
+
         return {
           ...comment,
           replies: [...(comment.replies || []), { text, from }],
+          status: newStatus,
+          tempStartedAt: newTempStartedAt,
         };
       }
       return comment;
@@ -89,6 +117,25 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
   const handleCommentCancel = useCallback(() => {
     setCommentInput(null);
     setCommentText('');
+  }, []);
+
+  const saveComment = useCallback((index: number) => {
+    setComments((prev) => prev.map((comment, i) => {
+      if (i === index && comment.status === 'temp') {
+        return {
+          ...comment,
+          status: 'saved',
+          tempStartedAt: undefined,
+        };
+      }
+      return comment;
+    }));
+  }, []);
+
+  const dismissComment = useCallback((index: number) => {
+    setComments((prev) => prev.filter((_, i) => i !== index));
+    setOpenCommentIndex(null);
+    setReplyingToIndex(null);
   }, []);
 
   return {
@@ -110,5 +157,7 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
     deleteComment,
     addReplyToComment,
     handleCommentCancel,
+    saveComment,
+    dismissComment,
   };
 }

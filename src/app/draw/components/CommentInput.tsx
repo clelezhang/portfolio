@@ -26,7 +26,7 @@ export function CommentInput({
     <>
       {/* Backdrop */}
       <div
-        className="draw-comment-backdrop"
+        className="draw-comment-input-backdrop"
         onClick={(e) => {
           e.stopPropagation();
           onCancel();
@@ -34,44 +34,52 @@ export function CommentInput({
       />
       <form
         onSubmit={onSubmit}
-        className="draw-comment-popup draw-comment-popup--open draw-comment-popup--input"
+        className="draw-comment-input-form"
         style={{
+          position: 'absolute',
           left: screenPosition.x,
           top: screenPosition.y,
           zIndex: 40,
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative">
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Add a comment"
-            className="draw-comment-input draw-comment-input--plain"
-            rows={1}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onCancel();
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (commentText.trim()) {
-                  onSubmit(e as unknown as React.FormEvent);
-                }
-              }
-            }}
-            onInput={handleTextareaResize}
+        <div className="draw-comment-input-bubble">
+          <img
+            src="/draw/USERICON.svg"
+            alt=""
+            className="draw-comment-input-icon"
           />
-          <button
-            type="submit"
-            disabled={!commentText.trim()}
-            className="draw-comment-submit draw-comment-submit--top"
-            style={{
-              backgroundColor: strokeColor,
-              opacity: commentText.trim() ? 1 : 0.6,
-            }}
-          >
-            <SubmitArrowIcon />
-          </button>
+          <div className="draw-comment-input-field-wrapper">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add a comment"
+              className="draw-comment-input draw-comment-input--plain"
+              rows={1}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') onCancel();
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (commentText.trim()) {
+                    onSubmit(e as unknown as React.FormEvent);
+                  }
+                }
+              }}
+              onInput={handleTextareaResize}
+            />
+            <button
+              type="submit"
+              disabled={!commentText.trim()}
+              className="draw-comment-submit"
+              style={{
+                backgroundColor: strokeColor,
+                opacity: commentText.trim() ? 1 : 0.6,
+              }}
+            >
+              <SubmitArrowIcon />
+            </button>
+          </div>
         </div>
       </form>
     </>

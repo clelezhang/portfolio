@@ -3,7 +3,7 @@ import { StatefulTooltip, PLACEMENT } from 'baseui/tooltip';
 import { TOOLTIP_OVERRIDES } from '../constants';
 
 // Toggle to disable tooltips globally (set to false to disable)
-const TOOLTIPS_ENABLED = true;
+const TOOLTIPS_ENABLED = false;
 
 interface DrawIconButtonProps {
   icon: string;
