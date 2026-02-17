@@ -82,7 +82,6 @@ export default function DrawPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastDrawnPoint = useRef<Point | null>(null);
   const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
-  const turbulenceBtnRef = useRef<SVGFETurbulenceElement>(null);
 
   // Safari detection (client-side only to avoid hydration mismatch)
   const [isSafari, setIsSafari] = useState(false);
@@ -552,20 +551,18 @@ export default function DrawPage() {
   }, []);
 
   // Wiggle animation - uses direct DOM manipulation to avoid React re-renders
-  // Animates wobbleFilter seed which affects:
-  //   Chrome: canvas + buttons (canvas uses wobbleFilter)
-  //   Safari: buttons only (canvas uses separate wobbleFilterGrid/wobbleFilterStroke)
+  // Safari: no wiggle animation (just static distortion for performance)
+  // Chrome: full wiggle animation
   useEffect(() => {
-    if (distortionAmount === 0 || !isTabVisible) return;
+    if (isSafari || distortionAmount === 0 || !isTabVisible) return;
 
     let seed = 1;
     const interval = setInterval(() => {
       seed = (seed % 100) + 1;
       turbulenceRef.current?.setAttribute('seed', String(seed));
-      turbulenceBtnRef.current?.setAttribute('seed', String(seed));
     }, wiggleSpeed);
     return () => clearInterval(interval);
-  }, [distortionAmount, wiggleSpeed, isTabVisible]);
+  }, [distortionAmount, wiggleSpeed, isTabVisible, isSafari]);
 
   // Set random initial brush color on mount (client-side only to avoid hydration mismatch)
   useEffect(() => {
@@ -1418,25 +1415,6 @@ export default function DrawPage() {
               yChannelSelector="G"
             />
           </filter>
-          {/* Button filter - always uses Chrome-like settings (higher detail, lower scale)
-              so buttons don't get the Safari canvas overrides (3.5x scale, lower octaves) */}
-          <filter id="wobbleFilterBtn" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
-            <feTurbulence
-              ref={turbulenceBtnRef}
-              type="turbulence"
-              baseFrequency="0.03"
-              numOctaves={2}
-              seed="1"
-              result="noise"
-            />
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="noise"
-              scale={distortionAmount}
-              xChannelSelector="R"
-              yChannelSelector="G"
-            />
-          </filter>
         </defs>
       </svg>
 
@@ -1446,7 +1424,7 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: CUSTOM_CURSORS_ENABLED && tool !== 'select' && !isPanning && hoveredCommentIndex === null ? 'none' : undefined }}
+          style={{ cursor: CUSTOM_CURSORS_ENABLED && tool !== 'select' && !isPanning && hoveredCommentIndex === null && !isHoveringCommentInput ? 'none' : undefined }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onMouseDown={(e) => {
