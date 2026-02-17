@@ -1,5 +1,4 @@
-export { PencilToolIcon } from './PencilToolIcon';
-export { PencilCursor } from './PencilCursor';
-export { CommentCursor } from './CommentCursor';
-export { CloseIcon } from './CloseIcon';
-export { SubmitArrowIcon } from './SubmitArrowIcon';
+export { PencilCursor } from './pencil-cursor';
+export { CommentCursor } from './comment-cursor';
+export { CloseIcon } from './close-icon';
+export { SubmitArrowIcon } from './submit-arrow-icon';

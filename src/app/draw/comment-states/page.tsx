@@ -1,9 +1,9 @@
 'use client';
 import '../draw.css';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { CommentBubble } from '../components/CommentSystem';
 import { SubmitArrowIcon } from '../components/icons';
-import type { Comment } from '../types';
+import type { Comment, Point, HumanStroke } from '../types';
 
 // ─── Sample data ────────────────────────────────────────────────────────────
 
@@ -28,6 +28,11 @@ function makeComment(
     tempStartedAt: status === 'temp' ? Date.now() : undefined,
   };
 }
+
+// ─── Drawing constants ──────────────────────────────────────────────────────
+
+const STROKE_COLOR = '#25667F';
+const STROKE_WIDTH = 6;
 
 // ─── Bubble wrapper with local reply state ───────────────────────────────────
 
@@ -123,125 +128,216 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function CommentStatesPage() {
+  const lastPoint = useRef<Point | null>(null);
+
+  // Drawing state
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [strokes, setStrokes] = useState<HumanStroke[]>([]);
+  const [currentStroke, setCurrentStroke] = useState<HumanStroke | null>(null);
+
+  // ─── Drawing handlers ────────────────────────────────────────────────
+
+  const getPoint = useCallback((e: React.MouseEvent): Point => {
+    return { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const startDrawing = useCallback((e: React.MouseEvent) => {
+    setIsDrawing(true);
+    const point = getPoint(e);
+    lastPoint.current = point;
+    setCurrentStroke({
+      d: `M ${point.x} ${point.y}`,
+      color: STROKE_COLOR,
+      strokeWidth: STROKE_WIDTH,
+    });
+  }, [getPoint]);
+
+  const draw = useCallback((e: React.MouseEvent) => {
+    if (!isDrawing || !lastPoint.current) return;
+    const point = getPoint(e);
+    setCurrentStroke(prev => prev ? {
+      ...prev,
+      d: `${prev.d} L ${point.x} ${point.y}`,
+    } : null);
+    lastPoint.current = point;
+  }, [isDrawing, getPoint]);
+
+  const stopDrawing = useCallback(() => {
+    if (currentStroke && currentStroke.d.includes('L')) {
+      setStrokes(prev => [...prev, currentStroke]);
+    }
+    setCurrentStroke(null);
+    setIsDrawing(false);
+    lastPoint.current = null;
+  }, [currentStroke]);
+
   return (
-    <div className="draw-canvas-dots" style={{ backgroundColor: 'var(--draw-bg-canvas)', minHeight: '100vh', padding: '56px 64px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 400, color: 'var(--draw-text-primary)', letterSpacing: '0.04em', marginBottom: 56, opacity: 0.4 }}>
-        /draw/comment-states — all comment bubble states
-      </h1>
+    <div style={{ position: 'fixed', inset: 0 }}>
+      {/* Grid background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundColor: 'var(--draw-bg-canvas)',
+          backgroundImage: `
+            linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+            linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
+          `,
+          backgroundSize: '32px 32px',
+        }}
+      />
 
-      <Section label="Collapsed">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="collapsed" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="collapsed" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="collapsed" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="collapsed" />
-        </Tile>
-      </Section>
+      {/* SVG drawing layer (fixed so strokes stay in viewport position) */}
+      <svg className="fixed inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 1 }}>
+        {strokes.map((stroke, i) => (
+          <path
+            key={i}
+            d={stroke.d}
+            stroke={stroke.color}
+            strokeWidth={stroke.strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+        {currentStroke && (
+          <path
+            d={currentStroke.d}
+            stroke={currentStroke.color}
+            strokeWidth={currentStroke.strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
 
-      <Section label="Preview — short text">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="preview" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="preview" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="preview" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="preview" />
-        </Tile>
-      </Section>
+      {/* Scrollable content with comment states — drawing handlers here so scroll works */}
+      <div
+        className="absolute inset-0"
+        style={{ overflowY: 'auto', padding: '56px 64px', fontFamily: 'sans-serif', position: 'relative', zIndex: 2, cursor: 'crosshair' }}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={() => { if (isDrawing) stopDrawing(); }}
+      >
+        <h1 style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 400, color: 'var(--draw-text-primary)', letterSpacing: '0.04em', marginBottom: 56, opacity: 0.4 }}>
+          /draw/comment-states — all comment bubble states (pencil mode active)
+        </h1>
 
-      <Section label="Preview — long text (3-line clamp)">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(LONG, 'human')} visualState="preview" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(LONG, 'claude')} visualState="preview" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(LONG, 'human', 'temp')} visualState="preview" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(LONG, 'claude', 'temp')} visualState="preview" />
-        </Tile>
-      </Section>
+        <Section label="Collapsed">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="collapsed" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="collapsed" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="collapsed" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="collapsed" />
+          </Tile>
+        </Section>
 
-      <Section label="Open — no replies">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(MEDIUM, 'human')} visualState="open" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(MEDIUM, 'claude')} visualState="open" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(MEDIUM, 'human', 'temp')} visualState="open" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(MEDIUM, 'claude', 'temp')} visualState="open" />
-        </Tile>
-      </Section>
+        <Section label="Preview — short text">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="preview" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="preview" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="preview" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="preview" />
+          </Tile>
+        </Section>
 
-      <Section label="Open — with replies">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human', 'saved', REPLIES)} visualState="open" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'saved', REPLIES)} visualState="open" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp', REPLIES)} visualState="open" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp', REPLIES)} visualState="open" />
-        </Tile>
-      </Section>
+        <Section label="Preview — long text (3-line clamp)">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(LONG, 'human')} visualState="preview" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(LONG, 'claude')} visualState="preview" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(LONG, 'human', 'temp')} visualState="preview" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(LONG, 'claude', 'temp')} visualState="preview" />
+          </Tile>
+        </Section>
 
-      <Section label="Open — reply input active">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="open" isReplying />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="open" isReplying />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="open" isReplying />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="open" isReplying />
-        </Tile>
-      </Section>
+        <Section label="Open — no replies">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(MEDIUM, 'human')} visualState="open" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(MEDIUM, 'claude')} visualState="open" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(MEDIUM, 'human', 'temp')} visualState="open" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(MEDIUM, 'claude', 'temp')} visualState="open" />
+          </Tile>
+        </Section>
 
-      <Section label="Open — long text (scrollable)">
-        <Tile label="user · saved">
-          <ShowcaseBubble comment={makeComment(LONG, 'human')} visualState="open" />
-        </Tile>
-        <Tile label="claude · saved">
-          <ShowcaseBubble comment={makeComment(LONG, 'claude')} visualState="open" />
-        </Tile>
-        <Tile label="user · temp">
-          <ShowcaseBubble comment={makeComment(LONG, 'human', 'temp')} visualState="open" />
-        </Tile>
-        <Tile label="claude · temp">
-          <ShowcaseBubble comment={makeComment(LONG, 'claude', 'temp')} visualState="open" />
-        </Tile>
-      </Section>
+        <Section label="Open — with replies">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human', 'saved', REPLIES)} visualState="open" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'saved', REPLIES)} visualState="open" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp', REPLIES)} visualState="open" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp', REPLIES)} visualState="open" />
+          </Tile>
+        </Section>
 
-      <Section label="Comment Input">
-        <Tile label="empty">
-          <ShowcaseCommentInput />
-        </Tile>
-        <Tile label="with text">
-          <ShowcaseCommentInput prefilled />
-        </Tile>
-      </Section>
+        <Section label="Open — reply input active">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human')} visualState="open" isReplying />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude')} visualState="open" isReplying />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'human', 'temp')} visualState="open" isReplying />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(SHORT, 'claude', 'temp')} visualState="open" isReplying />
+          </Tile>
+        </Section>
+
+        <Section label="Open — long text (scrollable)">
+          <Tile label="user · saved">
+            <ShowcaseBubble comment={makeComment(LONG, 'human')} visualState="open" />
+          </Tile>
+          <Tile label="claude · saved">
+            <ShowcaseBubble comment={makeComment(LONG, 'claude')} visualState="open" />
+          </Tile>
+          <Tile label="user · temp">
+            <ShowcaseBubble comment={makeComment(LONG, 'human', 'temp')} visualState="open" />
+          </Tile>
+          <Tile label="claude · temp">
+            <ShowcaseBubble comment={makeComment(LONG, 'claude', 'temp')} visualState="open" />
+          </Tile>
+        </Section>
+
+        <Section label="Comment Input">
+          <Tile label="empty">
+            <ShowcaseCommentInput />
+          </Tile>
+          <Tile label="with text">
+            <ShowcaseCommentInput prefilled />
+          </Tile>
+        </Section>
+      </div>
     </div>
   );
 }

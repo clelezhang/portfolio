@@ -4,7 +4,7 @@ import { Tool } from '../types';
 import { COLOR_PALETTES, TOOLTIP_OVERRIDES } from '../constants';
 import { DrawIconButton } from './DrawIconButton';
 import { ToolbarDiceCube } from './ToolbarDiceCube';
-import { ToolbarPencilIcon } from './icons/ToolbarPencilIcon';
+import { ToolbarPencilIcon } from './icons/toolbar-pencil-icon';
 
 // Toggle to disable tooltips globally (set to false to disable)
 const TOOLTIPS_ENABLED = false;

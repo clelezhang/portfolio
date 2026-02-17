@@ -1,10 +1,10 @@
 import { memo } from 'react';
-import { PencilCursor } from './icons/PencilCursor';
-import { CommentCursor } from './icons/CommentCursor';
-import { UserCursor } from './icons/UserCursor';
-import { PointerCursor } from './icons/PointerCursor';
-import { GrabCursor } from './icons/GrabCursor';
-import { GrabbingCursor } from './icons/GrabbingCursor';
+import { PencilCursor } from './icons/pencil-cursor';
+import { CommentCursor } from './icons/comment-cursor';
+import { UserCursor } from './icons/user-cursor';
+import { PointerCursor } from './icons/pointer-cursor';
+import { GrabCursor } from './icons/grab-cursor';
+import { GrabbingCursor } from './icons/grabbing-cursor';
 
 export type CursorMode =
   | 'user'

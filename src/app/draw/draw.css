@@ -177,6 +177,7 @@
 .draw-comment-wrapper {
   display: flex;
   align-items: flex-start;
+  position: relative;
 }
 
 /* Comment cursor handled by React CustomCursor — native cursor already hidden via .draw-page * */
@@ -224,16 +225,16 @@
   overflow: hidden;
 }
 
-.draw-comment-bubble--collapsed .draw-comment-bubble-content {
+.draw-comment-bubble--collapsed .draw-comment-row--main {
+  width: auto;
+}
+
+.draw-comment-bubble--collapsed .draw-comment-row--main .draw-comment-row-body {
   opacity: 0;
   width: 0;
 }
 
-.draw-comment-bubble--collapsed .draw-comment-first-row {
-  width: auto;
-}
-
-.draw-comment-bubble--collapsed .draw-comment-row {
+.draw-comment-bubble--collapsed .draw-comment-row:not(.draw-comment-row--main) {
   display: none;
 }
 
@@ -252,14 +253,10 @@
   white-space: normal;
 }
 
-.draw-comment-bubble--preview .draw-comment-bubble-content {
+.draw-comment-bubble--preview .draw-comment-row--main .draw-comment-row-body {
   opacity: 1;
   width: auto;
   max-width: 130px;
-}
-
-.draw-comment-bubble--preview .draw-comment-first-row {
-  width: 100%;
 }
 
 /* OPEN: Full content - 260px wide, max 300px tall */
@@ -316,60 +313,54 @@
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-.draw-comment-bubble--open .draw-comment-bubble-content {
+.draw-comment-bubble--open .draw-comment-row--main .draw-comment-row-body {
   flex: 1;
   min-width: 0;
   opacity: 1;
   width: auto;
   max-width: 220px;
+  padding-right: 24px;
 }
 
-.draw-comment-bubble--open .draw-comment-first-row {
-  width: 100%;
-}
+/* -----------------------------------------------------------------------------
+   Unified Row & Icon
+   ----------------------------------------------------------------------------- */
 
-/* First row container - keeps icon and content together, prevents wrap */
-.draw-comment-first-row {
+/* Base row — shared by main, reply, reply-input, reply-btn */
+.draw-comment-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-start;
   gap: 8px;
   width: 100%;
+  flex-basis: 100%;
   min-width: 0;
+  min-height: 24px;
 }
 
-/* Icon inside bubble */
-.draw-comment-bubble-icon {
+/* Unified icon */
+.draw-comment-row-icon {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.draw-comment-icon-img {
-  width: 24px;
-  height: 24px;
-}
-
-/* User icon hover animation (wobble) */
-.draw-comment-bubble--user .draw-comment-icon-img:hover {
+/* User icon hover wobble */
+.draw-comment-bubble--user .draw-comment-row-icon:hover {
   filter: invert(1) url(#wobbleFilterBtn);
-
 }
 
-/* Claude icon - no hover animation */
-.draw-comment-bubble--claude .draw-comment-icon-img {
-  /* No hover effect */
-}
-
-/* Content wrapper */
-.draw-comment-bubble-content {
+/* Unified row body */
+.draw-comment-row-body {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  flex: 1;
   min-width: 0;
+}
+
+/* Main row body — transitions for collapse/expand */
+.draw-comment-row--main .draw-comment-row-body {
   overflow: hidden;
   transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -378,33 +369,20 @@
    Author Styling: User (BLACK) vs Claude (WHITE)
    ----------------------------------------------------------------------------- */
 
-/* USER comments - BLACK background */
+/* USER comments - BLACK background, white text */
 .draw-comment-bubble--user {
   background-color: #000;
   border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.draw-comment-bubble--user .draw-comment-text {
   color: #fff;
 }
 
-.draw-comment-bubble--user .draw-comment-icon-img,
-.draw-comment-bubble--user .draw-comment-icon {
+.draw-comment-bubble--user .draw-comment-row-icon {
   filter: invert(1);
 }
 
-.draw-comment-bubble--user .draw-comment-reply-btn-text {
-  color: rgba(255, 255, 255, 0.5);
-}
-
 .draw-comment-bubble--user .draw-comment-input {
-  color: #fff;
   background: transparent;
-}
-
-.draw-comment-bubble--user .draw-comment-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
 }
 
 .draw-comment-bubble--user .draw-comment-submit {
@@ -412,45 +390,23 @@
   color: #000;
 }
 
-.draw-comment-bubble--user .draw-comment-delete {
-  color: rgba(255, 255, 255, 0.5);
-}
-
 .draw-comment-bubble--user .draw-comment-delete:hover {
-  color: #fff;
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* CLAUDE comments - WHITE background */
+/* CLAUDE comments - WHITE background, black text */
 .draw-comment-bubble--claude {
   background-color: #fff;
   border-color: rgba(0, 0, 0, 0.1);
   box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.draw-comment-bubble--claude .draw-comment-text {
   color: #000;
-}
-
-.draw-comment-bubble--claude .draw-comment-reply-btn-text {
-  color: rgba(0, 0, 0, 0.5);
 }
 
 .draw-comment-bubble--claude .draw-comment-input {
-  color: #000;
   background: transparent;
 }
 
-.draw-comment-bubble--claude .draw-comment-input::placeholder {
-  color: rgba(0, 0, 0, 0.5);
-}
-
-.draw-comment-bubble--claude .draw-comment-delete {
-  color: rgba(0, 0, 0, 0.4);
-}
-
 .draw-comment-bubble--claude .draw-comment-delete:hover {
-  color: #000;
   background-color: rgba(0, 0, 0, 0.05);
 }
 
@@ -458,20 +414,17 @@
    State Styling: Temp (dashed) vs Saved (solid)
    ----------------------------------------------------------------------------- */
 
-/* TEMP state - inset dashed outline (border stays solid/transparent for layout) */
+/* TEMP state - dashed border (same box model as saved, just line style differs) */
 .draw-comment-bubble--temp {
-  border-color: transparent;
-  outline-style: dashed;
-  outline-width: 1.5px;
-  outline-offset: -3px;
+  border-style: dashed;
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--user {
-  outline-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--claude {
-  outline-color: rgba(0, 0, 0, 0.25);
+  border-color: rgba(0, 0, 0, 0.25);
 }
 
 /* SAVED state - solid border */
@@ -496,49 +449,43 @@
   min-width: 0;
 }
 
-.draw-comment-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  flex-basis: 100%;
-  min-height: 24px;
-}
-
-.draw-comment-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-/* User icon hover animation in replies */
-.draw-comment-bubble--user .draw-comment-icon:hover {
-  filter: invert(1) url(#wobbleFilterBtn);
-
+/* Muted elements — inherit color, reduce opacity */
+.draw-comment-reply-btn-text,
+.draw-comment-input::placeholder {
+  opacity: 0.5;
 }
 
 .draw-comment-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
   width: 24px;
   height: 24px;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  margin-left: auto;
   cursor: pointer;
-  transition: background-color 0.1s, color 0.1s, opacity 0.15s;
+  transition: background-color 0.1s, opacity 0.15s;
   opacity: 0;
   animation: fadeIn 0.15s ease-out forwards;
+}
+
+.draw-comment-delete .draw-icon-mask {
+  opacity: 0.5;
+}
+
+.draw-comment-delete:hover .draw-icon-mask {
+  opacity: 1;
 }
 
 @keyframes fadeIn {
   to { opacity: 1; }
 }
 
-/* Reply input wrapper */
-.draw-comment-reply-input-wrapper {
-  flex: 1;
+/* Reply input body needs position for submit button */
+.draw-comment-row--reply-input .draw-comment-row-body {
   position: relative;
 }
 
@@ -548,6 +495,7 @@
   font-size: 12px;
   font-weight: 400;
   letter-spacing: -0.24px;
+  color: inherit;
   border-radius: 0.5rem;
   outline: none;
   resize: none;
@@ -593,6 +541,7 @@
   mask-image: url('/draw/checkmark.svg');
 }
 
+/* Submit button */
 .draw-comment-submit {
   position: absolute;
   right: 0;
@@ -611,39 +560,26 @@
 
 .draw-comment-submit--empty {
   background-color: transparent !important;
-  color: rgba(0, 0, 0, 0.3);
-}
-
-.draw-comment-bubble--user .draw-comment-submit--empty {
-  background-color: transparent !important;
-  color: rgba(255, 255, 255, 0.3);
+  opacity: 0.3;
 }
 
 .draw-comment-submit:hover {
   transform: scale(1.1);
 }
 
-/* Reply button */
-.draw-comment-reply-btn {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+/* Reply button row */
+.draw-comment-row--reply-btn {
   cursor: pointer;
-  min-height: 24px;
-  width: 100%;
-  flex-basis: 100%;
 }
 
-.draw-comment-reply-btn-inner {
-  display: flex;
+.draw-comment-row--reply-btn .draw-comment-row-body {
   align-items: center;
-  flex: 1;
-  min-width: 0;
 }
 
-.draw-comment-reply-btn-inner .draw-icon-mask {
+.draw-comment-row--reply-btn .draw-icon-mask {
   flex-shrink: 0;
   margin-left: auto;
+  opacity: 0.3;
 }
 
 .draw-comment-reply-btn-text {
@@ -652,15 +588,6 @@
   font-weight: 400;
   letter-spacing: -0.24px;
   line-height: 20px;
-}
-
-/* Reply button arrow color */
-.draw-comment-bubble--user .draw-comment-reply-btn-inner .draw-icon-mask {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.draw-comment-bubble--claude .draw-comment-reply-btn-inner .draw-icon-mask {
-  color: rgba(0, 0, 0, 0.3);
 }
 
 /* -----------------------------------------------------------------------------
@@ -785,6 +712,7 @@
   gap: 8px;
   padding: 8px;
   background-color: #000;
+  color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px 21px 21px 21px;
   box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
@@ -796,12 +724,11 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  filter: brightness(0) invert(1);
+  filter: invert(1);
 }
 
 .draw-comment-input-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
-
+  filter: invert(1) url(#wobbleFilterBtn);
 }
 
 .draw-comment-input-field-wrapper {
@@ -810,12 +737,7 @@
 }
 
 .draw-comment-input-bubble .draw-comment-input {
-  color: #fff;
   background: transparent;
-}
-
-.draw-comment-input-bubble .draw-comment-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
 }
 
 .draw-comment-input-bubble .draw-comment-submit {
@@ -825,7 +747,7 @@
 
 .draw-comment-input-bubble .draw-comment-submit--empty {
   background-color: transparent !important;
-  color: rgba(255, 255, 255, 0.3);
+  opacity: 0.3;
 }
 
 /* Utility: disable image animations */
@@ -1210,8 +1132,7 @@
 /* -----------------------------------------------------------------------------
    Wiggle Filter Effects
    ----------------------------------------------------------------------------- */
-.draw-comment-icon:hover,
-.draw-comment-icon-img:hover,
+.draw-comment-row-icon:hover,
 .draw-user-icon:hover,
 .draw-stroke-icon:hover {
   filter: url(#wobbleFilterBtn);

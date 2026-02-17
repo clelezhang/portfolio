@@ -302,8 +302,6 @@ export function CommentBubble({
   const visualStateClass = `draw-comment-bubble--${visualState}`;
   const animateClass = hasAnimated ? 'draw-comment-bubble--animated' : '';
 
-  const isExpanded = visualState === 'preview' || visualState === 'open';
-
   return (
     <div
       className={`draw-comment-wrapper ${isTemp ? 'draw-comment-wrapper--temp' : ''}`}
@@ -319,52 +317,37 @@ export function CommentBubble({
           onOpen();
         }}
       >
-        {/* First row: Icon + Content - wrapped to prevent breaking during transitions */}
-        <div className="draw-comment-first-row">
-          {/* Icon - always visible */}
-          <div className="draw-comment-bubble-icon">
-            <img
-              src={comment.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
-              alt=""
-              className="draw-comment-icon-img"
-            />
-          </div>
-
-          {/* Content - scales in on expand */}
-          <div className="draw-comment-bubble-content">
-            {/* Main comment text */}
+        {/* Main row */}
+        <div className="draw-comment-row draw-comment-row--main">
+          <img
+            src={comment.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
+            alt=""
+            className="draw-comment-row-icon"
+          />
+          <div className="draw-comment-row-body">
             <span className="draw-comment-text">{comment.text}</span>
-
-            {/* Delete button for saved, open state */}
-            {visualState === 'open' && !isTemp && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="draw-comment-delete"
-                title="Delete comment"
-              >
-                <CloseIcon />
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Replies - only in expanded states */}
-        {isExpanded && comment.replies?.map((reply, ri) => (
-          <div key={ri} className="draw-comment-row draw-comment-row--reply-item">
+        {/* Reply items — only in open state */}
+        {visualState === 'open' && comment.replies?.map((reply, ri) => (
+          <div key={ri} className="draw-comment-row draw-comment-row--reply">
             <img
               src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
               alt=""
-              className="draw-comment-icon"
+              className="draw-comment-row-icon"
             />
-            <span className="draw-comment-text">{reply.text}</span>
+            <div className="draw-comment-row-body">
+              <span className="draw-comment-text">{reply.text}</span>
+            </div>
           </div>
         ))}
 
-        {/* Reply input - only when open and replying */}
+        {/* Reply input */}
         {visualState === 'open' && isReplying && (
-          <div className="draw-comment-row draw-comment-row--reply">
-            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
-            <div className="draw-comment-reply-input-wrapper">
+          <div className="draw-comment-row draw-comment-row--reply-input">
+            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+            <div className="draw-comment-row-body">
               <textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -394,17 +377,28 @@ export function CommentBubble({
           </div>
         )}
 
-        {/* Reply button - when open and not already replying */}
+        {/* Reply button */}
         {visualState === 'open' && !isReplying && (
-          <div className="draw-comment-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
-            <div className="draw-comment-reply-btn-inner">
+          <div className="draw-comment-row draw-comment-row--reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
+            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+            <div className="draw-comment-row-body">
               <span className="draw-comment-reply-btn-text">Reply...</span>
               <SubmitArrowIcon />
             </div>
           </div>
         )}
       </div>
+
+      {/* Delete button - positioned outside scrollable bubble so it stays fixed */}
+      {visualState === 'open' && !isTemp && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="draw-comment-delete"
+          title="Delete comment"
+        >
+          <CloseIcon />
+        </button>
+      )}
 
       {/* Temp state action buttons (save/dismiss) - outside bubble for flex layout */}
       {isTemp && (onSave || onDismiss) && (
