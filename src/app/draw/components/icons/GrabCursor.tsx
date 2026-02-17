@@ -1,4 +1,4 @@
-// Grab cursor (open hand) - matches /draw/CURSOR/HAND.svg
+// Grab cursor (open hand) - matches /draw/cursors/hand.svg
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function GrabCursor() {
   return (

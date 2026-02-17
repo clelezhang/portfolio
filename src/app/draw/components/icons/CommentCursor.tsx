@@ -1,4 +1,4 @@
-// Comment cursor - matches /draw/CURSOR/COMMENT.svg
+// Comment cursor - matches /draw/cursors/comment.svg
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function CommentCursor() {
   return (

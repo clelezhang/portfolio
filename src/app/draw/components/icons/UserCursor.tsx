@@ -1,4 +1,4 @@
-// User cursor - matches /draw/CURSOR/USER.svg
+// User cursor - matches /draw/cursors/user.svg
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function UserCursor() {
   return (

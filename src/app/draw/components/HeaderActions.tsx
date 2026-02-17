@@ -10,9 +10,9 @@ interface HeaderActionsProps {
 export function HeaderActions({ onClear, onSave }: HeaderActionsProps) {
   return (
     <div className="draw-header-actions">
-      <DrawIconButton icon="TCLEAR" onClick={onClear} tooltip="Clear" tooltipPlacement="bottom" />
+      <DrawIconButton icon="tool-clear" onClick={onClear} tooltip="Clear" tooltipPlacement="bottom" />
       <div className="draw-header-actions-divider" />
-      <DrawIconButton icon="TSAVE" onClick={onSave} tooltip="Download" tooltipPlacement="bottom" />
+      <DrawIconButton icon="tool-save" onClick={onSave} tooltip="Download" tooltipPlacement="bottom" />
     </div>
   );
 }

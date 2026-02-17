@@ -359,9 +359,9 @@ import { Tool } from '../types';
 type AnimationType = 'slide' | 'chaos' | 'glitch' | 'tumble' | 'scatter' | 'spin' | 'bounce' | 'slot' | 'modulo' | 'threephase' | 'spring' | 'random' | 'stepped' | 'blur';
 
 const STROKE_SIZES = [
-  { size: 2, label: 'Thin', icon: 'TSM' },
-  { size: 6, label: 'Medium', icon: 'TMD' },
-  { size: 12, label: 'Thick', icon: 'TLG' },
+  { size: 2, label: 'Thin', icon: 'tool-sm' },
+  { size: 6, label: 'Medium', icon: 'tool-md' },
+  { size: 12, label: 'Thick', icon: 'tool-lg' },
 ] as const;
 
 const toolsPopperOptions = {
@@ -997,7 +997,7 @@ function FullToolbarTest({
                 onClick={() => setTool('comment')}
                 className={`draw-comment-btn ${tool === 'comment' ? 'draw-comment-btn--active' : ''}`}
               >
-                <img src="/draw/TCOMMENT.svg" alt="" />
+                <img src="/draw/tool-comment.svg" alt="" />
               </button>
             </StatefulTooltip>
           </div>
@@ -1007,9 +1007,9 @@ function FullToolbarTest({
             {/* Drawing tools */}
             <div className="draw-tools-container">
               {[
-                { id: 'pencil', label: 'Pencil', icon: 'TPENCIL', isSelected: tool === 'draw' && !asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(false); } },
-                { id: 'ascii', label: 'ASCII art', icon: 'TASCII', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
-                { id: 'eraser', label: 'Eraser', icon: 'TERASER', isSelected: tool === 'erase', onClick: () => setTool('erase') },
+                { id: 'pencil', label: 'Pencil', icon: 'tool-pencil', isSelected: tool === 'draw' && !asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(false); } },
+                { id: 'ascii', label: 'ASCII art', icon: 'tool-ascii', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
+                { id: 'eraser', label: 'Eraser', icon: 'tool-eraser', isSelected: tool === 'erase', onClick: () => setTool('erase') },
               ].map(({ id, label, icon, isSelected, onClick }) => (
                 <StatefulTooltip key={id} content={label} placement={PLACEMENT.top} showArrow onMouseEnterDelay={400} overrides={TOOLTIP_OVERRIDES} popperOptions={toolsPopperOptions}>
                   <button onClick={onClick} className="draw-tool-btn">

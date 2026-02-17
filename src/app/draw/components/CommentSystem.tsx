@@ -5,29 +5,12 @@ import { CloseIcon, SubmitArrowIcon } from './icons';
 
 // Checkmark icon for save button
 function CheckmarkIcon() {
-  return (
-    <img
-      src="/draw/checkmark-2-small.svg"
-      alt=""
-      width={12}
-      height={12}
-      draggable={false}
-    />
-  );
+  return <span className="draw-icon-mask draw-icon-checkmark" />;
 }
 
 // X icon for dismiss button
 function DismissIcon() {
-  return (
-    <img
-      src="/draw/cross-small, crossed small, delete, remove.svg"
-      alt=""
-      width={12}
-      height={12}
-      draggable={false}
-      style={{ filter: 'invert(1)' }}
-    />
-  );
+  return <span className="draw-icon-mask draw-icon-close" />;
 }
 
 interface CommentSystemProps {
@@ -341,7 +324,7 @@ export function CommentBubble({
           {/* Icon - always visible */}
           <div className="draw-comment-bubble-icon">
             <img
-              src={comment.from === 'human' ? '/draw/USERICON.svg' : '/draw/claude.svg'}
+              src={comment.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
               alt=""
               className="draw-comment-icon-img"
             />
@@ -369,7 +352,7 @@ export function CommentBubble({
         {isExpanded && comment.replies?.map((reply, ri) => (
           <div key={ri} className="draw-comment-row draw-comment-row--reply-item">
             <img
-              src={reply.from === 'human' ? '/draw/USERICON.svg' : '/draw/claude.svg'}
+              src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
               alt=""
               className="draw-comment-icon"
             />
@@ -380,7 +363,7 @@ export function CommentBubble({
         {/* Reply input - only when open and replying */}
         {visualState === 'open' && isReplying && (
           <div className="draw-comment-row draw-comment-row--reply">
-            <img src="/draw/USERICON.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
+            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
             <div className="draw-comment-reply-input-wrapper">
               <textarea
                 value={replyText}
@@ -414,8 +397,11 @@ export function CommentBubble({
         {/* Reply button - when open and not already replying */}
         {visualState === 'open' && !isReplying && (
           <div className="draw-comment-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-            <img src="/draw/USERICON.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
-            <span className="draw-comment-reply-btn-text">Reply...</span>
+            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
+            <div className="draw-comment-reply-btn-inner">
+              <span className="draw-comment-reply-btn-text">Reply...</span>
+              <SubmitArrowIcon />
+            </div>
           </div>
         )}
       </div>

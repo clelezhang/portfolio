@@ -1,4 +1,4 @@
-// Pointer cursor - matches /draw/CURSOR/POINTER.svg
+// Pointer cursor - matches /draw/cursors/pointer.svg
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function PointerCursor() {
   return (

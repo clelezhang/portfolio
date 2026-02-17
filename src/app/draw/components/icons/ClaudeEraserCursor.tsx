@@ -3,7 +3,7 @@
 export function ClaudeEraserCursor() {
   return (
     <img
-      src="/draw/CURSOR/CLAUDEERASE.svg"
+      src="/draw/cursors/claude-erase.svg"
       alt="Claude eraser cursor"
       width={65}
       height={34}

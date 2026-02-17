@@ -60,22 +60,22 @@ function DiceCube({ isAnimating, finalFace, duration, spins, easing }: {
           '--spin-y': `${spinMultiplier * 0.7}deg`,
         } as React.CSSProperties}>
         <div className="dice-cube-face dice-cube-front">
-          <img src="/draw/dice1.svg" alt="1" />
+          <img src="/draw/dice-1.svg" alt="1" />
         </div>
         <div className="dice-cube-face dice-cube-back">
-          <img src="/draw/dice2.svg" alt="2" />
+          <img src="/draw/dice-2.svg" alt="2" />
         </div>
         <div className="dice-cube-face dice-cube-right">
-          <img src="/draw/dice3.svg" alt="3" />
+          <img src="/draw/dice-3.svg" alt="3" />
         </div>
         <div className="dice-cube-face dice-cube-left">
-          <img src="/draw/dice4.svg" alt="4" />
+          <img src="/draw/dice-4.svg" alt="4" />
         </div>
         <div className="dice-cube-face dice-cube-top">
-          <img src="/draw/dice5.svg" alt="5" />
+          <img src="/draw/dice-5.svg" alt="5" />
         </div>
         <div className="dice-cube-face dice-cube-bottom">
-          <img src="/draw/dice6.svg" alt="6" />
+          <img src="/draw/dice-6.svg" alt="6" />
         </div>
       </div>
     </div>
@@ -562,7 +562,7 @@ export default function TestDicePage() {
             ) : (
               <div className="dice-container" onClick={() => handleDiceClick(index)}>
                 <img
-                  src={`/draw/dice${diceStates[index] + 1}.svg`}
+                  src={`/draw/dice-${diceStates[index] + 1}.svg`}
                   alt={`Dice ${diceStates[index] + 1}`}
                   className={`dice-img ${animatingIds.has(index) ? anim.className : ''}`}
                 />
@@ -579,7 +579,7 @@ export default function TestDicePage() {
         <div className="dice-card dice-card--random">
           <div className="dice-container" onClick={handleRandomMixClick}>
             <img
-              src={`/draw/dice${diceStates[RANDOM_INDEX] + 1}.svg`}
+              src={`/draw/dice-${diceStates[RANDOM_INDEX] + 1}.svg`}
               alt={`Dice ${diceStates[RANDOM_INDEX] + 1}`}
               className={`dice-img ${animatingIds.has(RANDOM_INDEX) && currentAnimClass ? currentAnimClass : ''}`}
             />

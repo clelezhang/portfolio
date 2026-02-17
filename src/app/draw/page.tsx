@@ -1386,7 +1386,7 @@ export default function DrawPage() {
         <div className="draw-header-right">
           {/* User icon */}
           <DrawIconButton
-            icon="USERICON"
+            icon="user-icon"
             onClick={() => {}}
             tooltip="User"
             tooltipPlacement="bottom"

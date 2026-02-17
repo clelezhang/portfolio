@@ -49,7 +49,7 @@ export function CommentInput({
       >
         <div className="draw-comment-input-bubble" onMouseEnter={onMouseEnterBubble} onMouseLeave={onMouseLeaveBubble}>
           <img
-            src="/draw/USERICON.svg"
+            src="/draw/user-icon.svg"
             alt=""
             className="draw-comment-input-icon"
           />

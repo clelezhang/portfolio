@@ -67,7 +67,7 @@ function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
   const text = prefilled ? 'Nice composition overall!' : '';
   return (
     <div className="draw-comment-input-bubble" style={{ pointerEvents: 'none' }}>
-      <img src="/draw/USERICON.svg" alt="" className="draw-comment-input-icon" />
+      <img src="/draw/user-icon.svg" alt="" className="draw-comment-input-icon" />
       <div className="draw-comment-input-field-wrapper">
         <textarea
           value={text}

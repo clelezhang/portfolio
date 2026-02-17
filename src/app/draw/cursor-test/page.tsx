@@ -33,24 +33,24 @@ const ASCII_CHARS = ['#', '@', '*', '+', '~', '%', '&', '=', '-', '/', '\\', '|'
 // Base cursor definitions (without Opus label)
 const BASE_CURSORS = {
   // Navigation/interaction cursors
-  default: { url: '/draw/CURSOR/USER.svg', hotspot: [3, 3] as [number, number], label: 'Default Pointer' },
-  pointer: { url: '/draw/CURSOR/POINTER.svg', hotspot: [10, 2] as [number, number], label: 'Pointer (Clickable)' },
-  grab: { url: '/draw/CURSOR/HAND.svg', hotspot: [11, 5] as [number, number], label: 'Grab (Ready)' },
-  grabbing: { url: '/draw/CURSOR/GRAB.svg', hotspot: [11, 10] as [number, number], label: 'Grabbing (Active)' },
+  default: { url: '/draw/cursors/user.svg', hotspot: [3, 3] as [number, number], label: 'Default Pointer' },
+  pointer: { url: '/draw/cursors/pointer.svg', hotspot: [10, 2] as [number, number], label: 'Pointer (Clickable)' },
+  grab: { url: '/draw/cursors/hand.svg', hotspot: [11, 5] as [number, number], label: 'Grab (Ready)' },
+  grabbing: { url: '/draw/cursors/grab.svg', hotspot: [11, 10] as [number, number], label: 'Grabbing (Active)' },
   // Tool cursors - tips at top-left for drawing tools, bottom-left for comment
-  pencil: { url: '/draw/pencilcursor.svg', hotspot: [3, 3] as [number, number], label: 'Pencil' },
-  eraser: { url: '/draw/erasercursor.svg', hotspot: [3, 3] as [number, number], label: 'Eraser' },
-  ascii: { url: '/draw/asciicursor.svg', hotspot: [3, 3] as [number, number], label: 'ASCII' },
-  comment: { url: '/draw/CURSOR/COMMENT.svg', hotspot: [3, 21] as [number, number], label: 'Comment' },
+  pencil: { url: '/draw/cursors/pencil.svg', hotspot: [3, 3] as [number, number], label: 'Pencil' },
+  eraser: { url: '/draw/cursors/eraser.svg', hotspot: [3, 3] as [number, number], label: 'Eraser' },
+  ascii: { url: '/draw/cursors/ascii.svg', hotspot: [3, 3] as [number, number], label: 'ASCII' },
+  comment: { url: '/draw/cursors/comment.svg', hotspot: [3, 21] as [number, number], label: 'Comment' },
 } as const;
 
 type CursorKey = keyof typeof BASE_CURSORS;
 
 // Tool cursors that Claude can use - pre-made SVGs with Opus label baked in (vector, no pixelation)
 const OPUS_CURSORS = {
-  pencil: { url: '/draw/CURSOR/CLAUDEDRAW.svg', hotspot: [3, 3] as [number, number], label: 'Claude Pencil' },
-  eraser: { url: '/draw/CURSOR/CLAUDEERASE.svg', hotspot: [3, 3] as [number, number], label: 'Claude Eraser' },
-  ascii: { url: '/draw/CURSOR/CLAUDEASCII.svg', hotspot: [3, 3] as [number, number], label: 'Claude ASCII' },
+  pencil: { url: '/draw/cursors/claude-draw.svg', hotspot: [3, 3] as [number, number], label: 'Claude Pencil' },
+  eraser: { url: '/draw/cursors/claude-erase.svg', hotspot: [3, 3] as [number, number], label: 'Claude Eraser' },
+  ascii: { url: '/draw/cursors/claude-ascii.svg', hotspot: [3, 3] as [number, number], label: 'Claude ASCII' },
 } as const;
 
 type OpusCursorKey = keyof typeof OPUS_CURSORS;

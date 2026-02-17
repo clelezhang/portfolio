@@ -2,7 +2,7 @@ interface PencilCursorProps {
   color: string;
 }
 
-// Pencil cursor - matches /draw/pencilcursor.svg structure
+// Pencil cursor - matches /draw/cursors/pencil.svg structure
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function PencilCursor({ color }: PencilCursorProps) {
   return (

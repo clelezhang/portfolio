@@ -1393,7 +1393,7 @@ const WINK_LINE = { x1: 18.2, y: 14.125, x2: 20.6 };
 
 type Line = [number, number, number, number];
 
-// From g2.svg - 8 SHORT rays (all same length ~1 unit)
+// From loading-rays-short.svg - 8 SHORT rays (all same length ~1 unit)
 // Cardinals use rounded rect paths, ~1 unit long
 // All 8 rays visible including topRight
 const G2_RAYS = {
@@ -1409,7 +1409,7 @@ const G2_RAYS = {
   bottomLeft: [10.15, 21.81, 9.44, 22.52] as Line,
 };
 
-// From g3.svg - 7 rays: cardinals LONGER (2 units), diagonals SHORT, NO topRight
+// From loading-rays-mixed.svg - 7 rays: cardinals LONGER (2 units), diagonals SHORT, NO topRight
 // Cardinals use rounded rect paths from y=5.98 to y=7.98 (2 units)
 // Diagonals: topLeft from (9.44, 8.38) to (10.15, 9.09)
 const G3_RAYS = {
@@ -1425,7 +1425,7 @@ const G3_RAYS = {
   bottomLeft: [10.15, 21.81, 9.44, 22.52] as Line,
 };
 
-// From g4.svg - 7 rays: diagonals CAUGHT UP (~2 units)
+// From loading-rays-long.svg - 7 rays: diagonals CAUGHT UP (~2 units)
 // Cardinals same as g3, diagonals grow to ~2 units
 // topLeft: (9.44, 8.38) to (10.86, 9.79)
 // bottomRight: (21.11, 21.11) to (22.52, 22.52)
@@ -1468,9 +1468,9 @@ function lerpLine(a: Line, b: Line, t: number): Line {
   ];
 }
 
-// Circle parameters (matching g1.svg outer circle)
+// Circle parameters (matching loading-face.svg outer circle)
 const CIRCLE_CENTER = 16;
-const CIRCLE_RADIUS = 9.75; // From g1.svg: 25.75 - 16 = 9.75
+const CIRCLE_RADIUS = 9.75; // From loading-face.svg: 25.75 - 16 = 9.75
 
 // Get point on circle at given angle (degrees, 0 = right, -90 = top)
 function getCirclePoint(angle: number): [number, number] {

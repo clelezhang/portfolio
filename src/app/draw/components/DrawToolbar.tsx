@@ -41,9 +41,9 @@ const defaultPopperOptions = {
 };
 
 const STROKE_SIZES = [
-  { size: 2, label: 'Thin', icon: 'TSM' },
-  { size: 6, label: 'Medium', icon: 'TMD' },
-  { size: 12, label: 'Thick', icon: 'TLG' },
+  { size: 2, label: 'Thin', icon: 'tool-sm' },
+  { size: 6, label: 'Medium', icon: 'tool-md' },
+  { size: 12, label: 'Thick', icon: 'tool-lg' },
 ] as const;
 
 export type AnimationType = 'slide' | 'slot' | 'confetti' | 'spring';
@@ -239,7 +239,7 @@ export function DrawToolbar({
             onClick={() => setTool('comment')}
             className={`draw-comment-btn ${tool === 'comment' ? 'draw-comment-btn--active' : ''}`}
           >
-            <img src="/draw/TCOMMENT.svg" alt="" draggable={false} />
+            <img src="/draw/tool-comment.svg" alt="" draggable={false} />
           </button>
         </MaybeTooltip>
       </div>
@@ -264,8 +264,8 @@ export function DrawToolbar({
           </MaybeTooltip>
           {/* ASCII and Eraser */}
           {[
-            { id: 'ascii', label: 'ASCII art', icon: 'TASCII', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
-            { id: 'eraser', label: 'Eraser', icon: 'TERASER', isSelected: tool === 'erase', onClick: () => setTool('erase') },
+            { id: 'ascii', label: 'ASCII art', icon: 'tool-ascii', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
+            { id: 'eraser', label: 'Eraser', icon: 'tool-eraser', isSelected: tool === 'erase', onClick: () => setTool('erase') },
           ].map(({ id, label, icon, isSelected, onClick }) => (
             <MaybeTooltip key={id} content={label} placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
               <button onClick={onClick} className="draw-tool-btn">

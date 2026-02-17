@@ -35,7 +35,7 @@ export function ToolbarDiceCube({ isAnimating, finalFace, clickCount = 1 }: Tool
       >
         {DICE_FACES.map((face, i) => (
           <div key={face} className={`toolbar-dice-face toolbar-dice-${face}`}>
-            <img src={`/draw/dice${i + 1}.svg`} alt={String(i + 1)} />
+            <img src={`/draw/dice-${i + 1}.svg`} alt={String(i + 1)} />
           </div>
         ))}
       </div>

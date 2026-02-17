@@ -3,7 +3,7 @@
 export function ClaudeAsciiCursor() {
   return (
     <img
-      src="/draw/CURSOR/CLAUDEASCII.svg"
+      src="/draw/cursors/claude-ascii.svg"
       alt="Claude ASCII cursor"
       width={65}
       height={34}

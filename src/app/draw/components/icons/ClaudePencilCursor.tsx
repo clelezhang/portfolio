@@ -3,7 +3,7 @@
 export function ClaudePencilCursor() {
   return (
     <img
-      src="/draw/CURSOR/CLAUDEDRAW.svg"
+      src="/draw/cursors/claude-draw.svg"
       alt="Claude pencil cursor"
       width={59}
       height={26}

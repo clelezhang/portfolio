@@ -409,9 +409,6 @@
 
 .draw-comment-bubble--user .draw-comment-submit {
   background-color: #fff !important;
-}
-
-.draw-comment-bubble--user .draw-comment-submit svg {
   color: #000;
 }
 
@@ -567,6 +564,35 @@
   line-height: 20px;
 }
 
+/* Mask-image icon system — SVG files as masks, colored via currentColor */
+.draw-icon-mask {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.draw-icon-arrow {
+  -webkit-mask-image: url('/draw/arrow-up.svg');
+  mask-image: url('/draw/arrow-up.svg');
+}
+
+.draw-icon-close {
+  -webkit-mask-image: url('/draw/close.svg');
+  mask-image: url('/draw/close.svg');
+}
+
+.draw-icon-checkmark {
+  -webkit-mask-image: url('/draw/checkmark.svg');
+  mask-image: url('/draw/checkmark.svg');
+}
+
 .draw-comment-submit {
   position: absolute;
   right: 0;
@@ -583,14 +609,12 @@
   color: #fff;
 }
 
-.draw-comment-submit--empty,
-.draw-comment-submit--empty svg {
+.draw-comment-submit--empty {
   background-color: transparent !important;
   color: rgba(0, 0, 0, 0.3);
 }
 
-.draw-comment-bubble--user .draw-comment-submit--empty,
-.draw-comment-bubble--user .draw-comment-submit--empty svg {
+.draw-comment-bubble--user .draw-comment-submit--empty {
   background-color: transparent !important;
   color: rgba(255, 255, 255, 0.3);
 }
@@ -610,12 +634,33 @@
   flex-basis: 100%;
 }
 
+.draw-comment-reply-btn-inner {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.draw-comment-reply-btn-inner .draw-icon-mask {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .draw-comment-reply-btn-text {
   font-family: var(--font-untitled-sans), -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: -0.24px;
   line-height: 20px;
+}
+
+/* Reply button arrow color */
+.draw-comment-bubble--user .draw-comment-reply-btn-inner .draw-icon-mask {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.draw-comment-bubble--claude .draw-comment-reply-btn-inner .draw-icon-mask {
+  color: rgba(0, 0, 0, 0.3);
 }
 
 /* -----------------------------------------------------------------------------
@@ -668,16 +713,11 @@
   background-color: #000;
 }
 
-.draw-comment-temp-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-.draw-comment-temp-btn--save svg {
+.draw-comment-temp-btn--save .draw-icon-mask {
   color: #000;
 }
 
-.draw-comment-temp-btn--dismiss svg {
+.draw-comment-temp-btn--dismiss .draw-icon-mask {
   color: #fff;
 }
 
@@ -780,14 +820,10 @@
 
 .draw-comment-input-bubble .draw-comment-submit {
   background-color: #fff !important;
-}
-
-.draw-comment-input-bubble .draw-comment-submit svg {
   color: #000;
 }
 
-.draw-comment-input-bubble .draw-comment-submit--empty,
-.draw-comment-input-bubble .draw-comment-submit--empty svg {
+.draw-comment-input-bubble .draw-comment-submit--empty {
   background-color: transparent !important;
   color: rgba(255, 255, 255, 0.3);
 }
