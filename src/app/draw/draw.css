@@ -386,7 +386,7 @@
 
 /* User icon hover animation (wobble) */
 .draw-comment-bubble--user .draw-comment-icon-img:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 
 }
 
@@ -547,7 +547,7 @@
 
 /* User icon hover animation in replies */
 .draw-comment-bubble--user .draw-comment-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 
 }
 
@@ -780,7 +780,7 @@
 }
 
 .draw-comment-input-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 
 }
 
@@ -992,7 +992,7 @@
 }
 
 .draw-comment-btn:hover img {
-  filter: url(#wobbleFilter);
+  filter: url(#wobbleFilterBtn);
 
 }
 
@@ -1192,7 +1192,7 @@
 .draw-comment-icon-img:hover,
 .draw-user-icon:hover,
 .draw-stroke-icon:hover {
-  filter: url(#wobbleFilter);
+  filter: url(#wobbleFilterBtn);
 }
 
 /* Stroke styles - no hover effects to avoid conflicts with canvas filter */

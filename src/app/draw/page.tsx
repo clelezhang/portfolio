@@ -373,6 +373,11 @@ export default function DrawPage() {
     dismissComment,
   } = useComments({ canvasRef, lastDrawnPoint });
 
+  // Reset hover state when comment input closes (form unmounts before onMouseLeave fires)
+  useEffect(() => {
+    if (!commentInput) setIsHoveringCommentInput(false);
+  }, [commentInput]);
+
   // Save current state to undo stack
   const saveToUndoStack = useCallback(() => {
     setUndoStack(prev => [...prev, {
@@ -1404,6 +1409,24 @@ export default function DrawPage() {
               type="turbulence"
               baseFrequency="0.02"
               numOctaves={1}
+              seed="1"
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={distortionAmount}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+          {/* Button filter - uses Chrome-like settings on all browsers so Safari
+              buttons don't get the aggressive 3.5x canvas scale */}
+          <filter id="wobbleFilterBtn" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+            <feTurbulence
+              type="turbulence"
+              baseFrequency="0.03"
+              numOctaves={2}
               seed="1"
               result="noise"
             />
