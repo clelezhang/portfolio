@@ -32,7 +32,6 @@ import {
   DEFAULT_ZOOM_SENSITIVITY,
   DRAG_THRESHOLD,
   LOCALSTORAGE_DEBOUNCE_MS,
-  CURSOR_HIDE_CHECK_INTERVAL_MS,
 } from './constants';
 
 // Storage key for localStorage persistence
@@ -54,6 +53,7 @@ const CUSTOM_CURSORS_ENABLED = true;
 // Hooks
 import { useZoomPan } from './hooks/useZoomPan';
 import { useComments } from './hooks/useComments';
+import { useClaudeAnimation } from './hooks/useClaudeAnimation';
 
 // Utils
 import { simplifyPath } from './utils/simplifyPath';
@@ -205,26 +205,6 @@ export default function DrawPage() {
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
   const [isTouch, setIsTouch] = useState(false);
 
-  // Claude cursor state
-  const [claudeCursorPos, setClaudeCursorPos] = useState<Point | null>(null);
-  const [claudeIsDrawing, setClaudeIsDrawing] = useState(false);
-  // Queue can contain shapes or ASCII blocks
-  type AnimationItem =
-    | { type: 'shape'; shape: Shape; id: string }
-    | { type: 'ascii'; block: AsciiBlock; id: string };
-  const claudeAnimationQueue = useRef<AnimationItem[]>([]);
-  const isAnimatingClaude = useRef(false);
-  const claudeLastEndPoint = useRef<Point | null>(null);
-
-  // Currently animating shape (for progressive reveal)
-  const [animatingShape, setAnimatingShape] = useState<{ shape: Shape; id: string; progress: number } | null>(null);
-
-  // Currently animating ASCII block
-  const [animatingAscii, setAnimatingAscii] = useState<AsciiBlock | null>(null);
-
-  // Claude's current drawing color (for cursor)
-  const [, setClaudeCurrentColor] = useState<string>('#3b82f6');
-
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [animationSpeed, setAnimationSpeed] = useState(1.5); // 0.5x to 3x speed multiplier
@@ -252,178 +232,7 @@ export default function DrawPage() {
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
 
-  // Interpolate points along a quadratic bezier curve
-  const quadraticBezier = useCallback((p0: Point, p1: Point, p2: Point, t: number): Point => {
-    const mt = 1 - t;
-    return {
-      x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
-      y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y,
-    };
-  }, []);
 
-  // Interpolate points along a cubic bezier curve
-  const cubicBezier = useCallback((p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point => {
-    const mt = 1 - t;
-    const mt2 = mt * mt;
-    const mt3 = mt2 * mt;
-    const t2 = t * t;
-    const t3 = t2 * t;
-    return {
-      x: mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
-      y: mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y,
-    };
-  }, []);
-
-  // Parse SVG path d attribute into array of points (with curve interpolation)
-  const parsePathToPoints = useCallback((d: string): Point[] => {
-    const points: Point[] = [];
-    const regex = /([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)/g;
-    let match;
-    let currentX = 0;
-    let currentY = 0;
-    let startX = 0; // Track path start for Z command
-    let startY = 0;
-    const CURVE_STEPS = 16; // Number of points to sample along curves
-
-    while ((match = regex.exec(d)) !== null) {
-      const command = match[1];
-      const args = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
-
-      switch (command) {
-        case 'M': // Move to absolute
-          currentX = args[0];
-          currentY = args[1];
-          startX = currentX; // Remember start for Z
-          startY = currentY;
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'm': // Move to relative
-          currentX += args[0];
-          currentY += args[1];
-          startX = currentX; // Remember start for Z
-          startY = currentY;
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'L': // Line to absolute
-          currentX = args[0];
-          currentY = args[1];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'l': // Line to relative
-          currentX += args[0];
-          currentY += args[1];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'H': // Horizontal line absolute
-          currentX = args[0];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'h': // Horizontal line relative
-          currentX += args[0];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'V': // Vertical line absolute
-          currentY = args[0];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'v': // Vertical line relative
-          currentY += args[0];
-          points.push({ x: currentX, y: currentY });
-          break;
-        case 'Q': { // Quadratic curve absolute - interpolate along curve
-          const p0 = { x: currentX, y: currentY };
-          const p1 = { x: args[0], y: args[1] }; // control point
-          const p2 = { x: args[2], y: args[3] }; // end point
-          for (let i = 1; i <= CURVE_STEPS; i++) {
-            points.push(quadraticBezier(p0, p1, p2, i / CURVE_STEPS));
-          }
-          currentX = args[2];
-          currentY = args[3];
-          break;
-        }
-        case 'C': { // Cubic curve absolute - interpolate along curve
-          const p0 = { x: currentX, y: currentY };
-          const p1 = { x: args[0], y: args[1] }; // control point 1
-          const p2 = { x: args[2], y: args[3] }; // control point 2
-          const p3 = { x: args[4], y: args[5] }; // end point
-          for (let i = 1; i <= CURVE_STEPS; i++) {
-            points.push(cubicBezier(p0, p1, p2, p3, i / CURVE_STEPS));
-          }
-          currentX = args[4];
-          currentY = args[5];
-          break;
-        }
-        case 'Z': // Close path - line back to start
-        case 'z':
-          if (currentX !== startX || currentY !== startY) {
-            points.push({ x: startX, y: startY });
-            currentX = startX;
-            currentY = startY;
-          }
-          break;
-        default:
-          // For other commands, try to extract any coordinate pairs
-          for (let i = 0; i < args.length - 1; i += 2) {
-            if (!isNaN(args[i]) && !isNaN(args[i + 1])) {
-              points.push({ x: args[i], y: args[i + 1] });
-            }
-          }
-      }
-    }
-    return points;
-  }, [quadraticBezier, cubicBezier]);
-
-  // Extract points from a shape for cursor animation
-  const getShapePoints = useCallback((shape: Shape): Point[] => {
-    switch (shape.type) {
-      case 'path':
-      case 'erase':
-        if (shape.d) return parsePathToPoints(shape.d);
-        break;
-      case 'line':
-        if (shape.x1 !== undefined && shape.y1 !== undefined &&
-            shape.x2 !== undefined && shape.y2 !== undefined) {
-          return [
-            { x: shape.x1, y: shape.y1 },
-            { x: shape.x2, y: shape.y2 }
-          ];
-        }
-        break;
-      case 'circle':
-        if (shape.cx !== undefined && shape.cy !== undefined && shape.r !== undefined) {
-          // Generate points around the circle
-          const points: Point[] = [];
-          const steps = 32;
-          for (let i = 0; i <= steps; i++) {
-            const angle = (i / steps) * Math.PI * 2;
-            points.push({
-              x: shape.cx + Math.cos(angle) * shape.r,
-              y: shape.cy + Math.sin(angle) * shape.r
-            });
-          }
-          return points;
-        }
-        break;
-      case 'rect':
-        if (shape.x !== undefined && shape.y !== undefined &&
-            shape.width !== undefined && shape.height !== undefined) {
-          return [
-            { x: shape.x, y: shape.y },
-            { x: shape.x + shape.width, y: shape.y },
-            { x: shape.x + shape.width, y: shape.y + shape.height },
-            { x: shape.x, y: shape.y + shape.height },
-            { x: shape.x, y: shape.y } // close the rect
-          ];
-        }
-        break;
-      case 'curve':
-        if (shape.points && shape.points.length >= 2) {
-          return shape.points.map(p => ({ x: p[0], y: p[1] }));
-        }
-        break;
-    }
-    return [];
-  }, [parsePathToPoints]);
 
   // Capture the full canvas (background + all drawings) as an image
   // Optimized: scales down large images and uses JPEG for smaller payload
@@ -510,422 +319,6 @@ export default function DrawPage() {
     });
   }, [canvasBackground, gridSize]);
 
-  // Calculate total path length from points
-  const calculatePathLength = useCallback((points: Point[]): number => {
-    let length = 0;
-    for (let i = 1; i < points.length; i++) {
-      const dx = points[i].x - points[i - 1].x;
-      const dy = points[i].y - points[i - 1].y;
-      length += Math.sqrt(dx * dx + dy * dy);
-    }
-    return length;
-  }, []);
-
-  // Easing function for natural motion - slow start, fast middle, slow end
-  const easeInOutCubic = useCallback((t: number): number => {
-    return t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  }, []);
-
-  // Simple noise function for organic movement
-  const noise = useCallback((seed: number): number => {
-    const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
-    return x - Math.floor(x);
-  }, []);
-
-  // Calculate direction change at a point (0 = straight, 1 = sharp turn)
-  const getDirectionChange = useCallback((points: Point[], index: number): number => {
-    if (index <= 0 || index >= points.length - 1) return 0;
-    const prev = points[index - 1];
-    const curr = points[index];
-    const next = points[index + 1];
-
-    // Vectors
-    const v1x = curr.x - prev.x;
-    const v1y = curr.y - prev.y;
-    const v2x = next.x - curr.x;
-    const v2y = next.y - curr.y;
-
-    // Normalize
-    const len1 = Math.sqrt(v1x * v1x + v1y * v1y);
-    const len2 = Math.sqrt(v2x * v2x + v2y * v2y);
-    if (len1 < 0.001 || len2 < 0.001) return 0;
-
-    // Dot product gives cos(angle)
-    const dot = (v1x * v2x + v1y * v2y) / (len1 * len2);
-    // Convert to 0-1 range where 1 = sharp turn
-    return (1 - Math.max(-1, Math.min(1, dot))) / 2;
-  }, []);
-
-  // Animate Claude's cursor along points with progress callback
-  const animateClaudeCursor = useCallback(async (
-    points: Point[],
-    onProgress?: (progress: number) => void
-  ) => {
-    if (points.length === 0) return;
-
-    // Calculate duration based on path length for consistent speed
-    // Base speed: ~300 pixels per second, adjusted by animationSpeed
-    const pathLength = calculatePathLength(points);
-    const baseSpeed = 300; // pixels per second
-    const baseDuration = Math.min(3000, Math.max(300, (pathLength / baseSpeed) * 1000));
-    const duration = baseDuration / animationSpeed;
-    const startTime = performance.now();
-
-    // Pre-calculate direction changes for variable speed
-    const directionChanges = points.map((_, i) => getDirectionChange(points, i));
-
-    return new Promise<void>((resolve) => {
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const linearProgress = Math.min(1, elapsed / duration);
-        // Apply easing for natural motion - slow start, fast middle, slow end
-        const easedProgress = easeInOutCubic(linearProgress);
-
-        // Handle edge case: single point or empty array
-        if (points.length <= 1) {
-          if (points.length === 1) {
-            setClaudeCursorPos(points[0]);
-          }
-          onProgress?.(easedProgress);
-          if (linearProgress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            resolve();
-          }
-          return;
-        }
-
-        // Add subtle speed variation based on position along path
-        // Slow down slightly at corners/direction changes
-        const pointIndex = Math.min(
-          Math.floor(easedProgress * (points.length - 1)),
-          points.length - 2
-        );
-
-        // Subtle slowdown at sharp turns (reduced effect)
-        const turnSlowdown = directionChanges[pointIndex] * 0.1;
-        const adjustedProgress = easedProgress * (1 - turnSlowdown * 0.2);
-
-        const finalPointIndex = Math.min(
-          Math.floor(adjustedProgress * (points.length - 1)),
-          points.length - 2
-        );
-        const pointProgress = (adjustedProgress * (points.length - 1)) % 1;
-
-        const p1 = points[finalPointIndex];
-        const p2 = points[finalPointIndex + 1];
-
-        // Safety check
-        if (p1 && p2) {
-          // Variable tremor - more at slow parts, less when moving fast
-          const time = currentTime * 0.008;
-          const speed = Math.abs(easedProgress - (linearProgress > 0.01 ? easeInOutCubic(linearProgress - 0.01) : 0));
-          const baseTremor = 0.6 + noise(time * 0.5) * 0.8; // Varies 0.6-1.4px
-          const speedFactor = Math.max(0.3, 1 - speed * 50); // Less tremor when moving fast
-          const tremor = baseTremor * speedFactor;
-
-          // Multi-frequency noise for more organic feel
-          const jitterX = (noise(time) - 0.5) * tremor + (noise(time * 2.7) - 0.5) * tremor * 0.3;
-          const jitterY = (noise(time + 100) - 0.5) * tremor + (noise(time * 2.7 + 100) - 0.5) * tremor * 0.3;
-
-          setClaudeCursorPos({
-            x: p1.x + (p2.x - p1.x) * pointProgress + jitterX,
-            y: p1.y + (p2.y - p1.y) * pointProgress + jitterY
-          });
-        } else if (p1) {
-          setClaudeCursorPos(p1);
-        }
-
-        onProgress?.(easedProgress);
-
-        if (linearProgress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animate);
-    });
-  }, [animationSpeed, calculatePathLength, easeInOutCubic, noise, getDirectionChange]);
-
-  // Animate cursor gliding from one point to another (for transitions between shapes)
-  const animateCursorGlide = useCallback(async (from: Point, to: Point) => {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // For short distances (typical ASCII spacing), snap with brief delay for streaming feel
-    if (distance < 25) {
-      setClaudeCursorPos(to);
-      // Small delay to create visible streaming effect
-      await new Promise(resolve => setTimeout(resolve, 15 / animationSpeed));
-      return;
-    }
-
-    // Only animate for longer jumps (between words/lines or shapes)
-    // Medium distances: quick, Long distances: up to 400ms
-    const duration = Math.min(400, Math.max(30, (distance - 25) * 1.2)) / animationSpeed;
-    const startTime = performance.now();
-
-    // Random arc direction (perpendicular to travel direction)
-    const perpX = -dy / (distance || 1);
-    const perpY = dx / (distance || 1);
-
-    // Scale arc height with distance - no arc for short hops, bigger arc for longer jumps
-    // Under 30px: minimal/no arc, 30-100px: small arc, 100+px: full arc
-    const arcScale = Math.max(0, Math.min(1, (distance - 30) / 70));
-    const baseArc = (15 + Math.random() * 25) * (Math.random() > 0.5 ? 1 : -1);
-    const arcHeight = baseArc * arcScale;
-
-    return new Promise<void>((resolve) => {
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const linearProgress = Math.min(1, elapsed / duration);
-        const progress = easeInOutCubic(linearProgress);
-
-        // Arc only for longer distances
-        const arcOffset = Math.sin(progress * Math.PI) * arcHeight;
-
-        // Scale tremor with distance too - less jitter for short hops
-        const time = currentTime * 0.01;
-        const tremor = 0.4 * Math.min(1, distance / 50);
-        const jitterX = (noise(time) - 0.5) * tremor;
-        const jitterY = (noise(time + 50) - 0.5) * tremor;
-
-        setClaudeCursorPos({
-          x: from.x + dx * progress + perpX * arcOffset + jitterX,
-          y: from.y + dy * progress + perpY * arcOffset + jitterY
-        });
-
-        if (linearProgress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          resolve();
-        }
-      };
-      requestAnimationFrame(animate);
-    });
-  }, [animationSpeed, easeInOutCubic, noise]);
-
-  // Brief pause for ASCII character "stamp" effect
-  const animateAsciiStamp = useCallback(async () => {
-    const duration = 80 / animationSpeed; // Quick stamp pause
-    return new Promise<void>((resolve) => {
-      setTimeout(resolve, duration);
-    });
-  }, [animationSpeed]);
-
-  // Process queued shapes and ASCII blocks with cursor animation
-  const processClaudeAnimationQueue = useCallback(async () => {
-    if (isAnimatingClaude.current || claudeAnimationQueue.current.length === 0) return;
-
-    isAnimatingClaude.current = true;
-    setClaudeIsDrawing(true);
-
-    while (claudeAnimationQueue.current.length > 0) {
-      const item = claudeAnimationQueue.current.shift()!;
-
-      if (item.type === 'shape') {
-        const { shape, id } = item;
-        const points = getShapePoints(shape);
-
-        // Set cursor color to match the shape being drawn
-        if (shape.color) {
-          setClaudeCurrentColor(shape.color);
-        }
-
-        if (points.length > 0) {
-          const startPoint = points[0];
-
-          // Glide from last position to shape start
-          if (claudeLastEndPoint.current) {
-            await animateCursorGlide(claudeLastEndPoint.current, startPoint);
-          } else {
-            setClaudeCursorPos(startPoint);
-          }
-
-          // Clear ASCII state when drawing shapes
-          setAnimatingAscii(null);
-
-          // Start animating the shape
-          setAnimatingShape({ shape, id, progress: 0 });
-
-          // Animate cursor along the path, updating progress for stroke reveal
-          await animateClaudeCursor(points, (progress) => {
-            setAnimatingShape({ shape, id, progress });
-          });
-
-          // Remember where we ended
-          claudeLastEndPoint.current = points[points.length - 1];
-
-          // Animation complete - add to permanent drawing elements
-          setAnimatingShape(null);
-          setDrawingElements(prev => [...prev, {
-            id,
-            source: 'claude',
-            type: 'shape',
-            data: shape,
-          }]);
-        } else {
-          // No points to animate, just add immediately
-          setDrawingElements(prev => [...prev, {
-            id,
-            source: 'claude',
-            type: 'shape',
-            data: shape,
-          }]);
-        }
-      } else if (item.type === 'ascii') {
-        const { block } = item;
-        const targetPoint = { x: block.x, y: block.y };
-
-        // Clear shape state when doing ASCII
-        setAnimatingShape(null);
-
-        // Show ASCII cursor
-        setAnimatingAscii(block);
-
-        // Glide to the character position
-        if (claudeLastEndPoint.current) {
-          await animateCursorGlide(claudeLastEndPoint.current, targetPoint);
-        } else {
-          setClaudeCursorPos(targetPoint);
-        }
-
-        // Brief stamp pause, then reveal character
-        await animateAsciiStamp();
-
-        // Add the ASCII block to the canvas
-        setAsciiBlocks(prev => [...prev, block]);
-
-        // Remember position
-        claudeLastEndPoint.current = targetPoint;
-      }
-    }
-
-    // Don't hide cursor here - wait for finishClaudeAnimation to be called
-    // This keeps the cursor visible while more items might stream in
-    isAnimatingClaude.current = false;
-  }, [getShapePoints, animateClaudeCursor, animateCursorGlide, animateAsciiStamp]);
-
-  // Called when API stream is complete to hide the cursor
-  const finishClaudeAnimation = useCallback(() => {
-    // If still animating, wait for it to finish then hide
-    const checkAndHide = () => {
-      if (isAnimatingClaude.current) {
-        // Still processing queue, check again soon
-        setTimeout(checkAndHide, CURSOR_HIDE_CHECK_INTERVAL_MS);
-      } else {
-        setClaudeCursorPos(null);
-        setAnimatingAscii(null);
-        setClaudeIsDrawing(false);
-        claudeLastEndPoint.current = null;
-      }
-    };
-    checkAndHide();
-  }, []);
-
-  // Generate test shapes for cursor animation debugging
-  const runTestShapes = useCallback(() => {
-    const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6'];
-    const testShapes: Shape[] = [
-      // A curved path (like a wave)
-      {
-        type: 'path',
-        d: 'M 100 300 Q 200 200 300 300 Q 400 400 500 300 Q 600 200 700 300',
-        color: colors[0],
-        strokeWidth: 3,
-      },
-      // A circle
-      {
-        type: 'circle',
-        cx: 400,
-        cy: 200,
-        r: 60,
-        color: colors[1],
-        strokeWidth: 3,
-      },
-      // A rectangle
-      {
-        type: 'rect',
-        x: 150,
-        y: 400,
-        width: 120,
-        height: 80,
-        color: colors[2],
-        strokeWidth: 3,
-      },
-      // A diagonal line
-      {
-        type: 'line',
-        x1: 500,
-        y1: 150,
-        x2: 700,
-        y2: 350,
-        color: colors[3],
-        strokeWidth: 3,
-      },
-      // A more complex path (star-like)
-      {
-        type: 'path',
-        d: 'M 350 500 L 380 570 L 450 580 L 400 620 L 420 690 L 350 650 L 280 690 L 300 620 L 250 580 L 320 570 Z',
-        color: colors[4],
-        strokeWidth: 3,
-      },
-      // An erase stroke (to test eraser cursor)
-      {
-        type: 'erase',
-        d: 'M 550 450 Q 600 400 650 450 Q 700 500 750 450',
-        strokeWidth: 20,
-      },
-    ];
-
-    // Queue each shape for animation
-    testShapes.forEach((shape) => {
-      const id = `test-${elementIdCounter.current++}`;
-      claudeAnimationQueue.current.push({ type: 'shape', shape, id });
-    });
-
-    // Add some test ASCII blocks - a simple star/sparkle pattern
-    const testAsciiBlocks: AsciiBlock[] = [
-      // Star shape made of ASCII
-      { block: '*', x: 120, y: 100, color: '#f59e0b' },
-      { block: '/', x: 110, y: 110, color: '#f59e0b' },
-      { block: '|', x: 120, y: 110, color: '#f59e0b' },
-      { block: '\\', x: 130, y: 110, color: '#f59e0b' },
-      { block: '-', x: 100, y: 120, color: '#f59e0b' },
-      { block: '-', x: 110, y: 120, color: '#f59e0b' },
-      { block: '*', x: 120, y: 120, color: '#fbbf24' },
-      { block: '-', x: 130, y: 120, color: '#f59e0b' },
-      { block: '-', x: 140, y: 120, color: '#f59e0b' },
-      { block: '\\', x: 110, y: 130, color: '#f59e0b' },
-      { block: '|', x: 120, y: 130, color: '#f59e0b' },
-      { block: '/', x: 130, y: 130, color: '#f59e0b' },
-      { block: '*', x: 120, y: 140, color: '#f59e0b' },
-      // Small cat face
-      { block: '/', x: 180, y: 100, color: '#8b5cf6' },
-      { block: '\\', x: 210, y: 100, color: '#8b5cf6' },
-      { block: '(', x: 175, y: 115, color: '#8b5cf6' },
-      { block: '^', x: 185, y: 115, color: '#ec4899' },
-      { block: '.', x: 195, y: 118, color: '#8b5cf6' },
-      { block: '^', x: 205, y: 115, color: '#ec4899' },
-      { block: ')', x: 215, y: 115, color: '#8b5cf6' },
-      { block: '>', x: 195, y: 125, color: '#ec4899' },
-      { block: '~', x: 185, y: 135, color: '#8b5cf6' },
-      { block: 'w', x: 195, y: 135, color: '#8b5cf6' },
-      { block: '~', x: 205, y: 135, color: '#8b5cf6' },
-    ];
-
-    testAsciiBlocks.forEach((block) => {
-      const id = `test-ascii-${elementIdCounter.current++}`;
-      claudeAnimationQueue.current.push({ type: 'ascii', block, id });
-    });
-
-    processClaudeAnimationQueue();
-  }, [processClaudeAnimationQueue]);
 
   // Use custom hooks
   const {
@@ -943,6 +336,18 @@ export default function DrawPage() {
     screenToCanvas,
     canvasToScreen,
   } = useZoomPan({ containerRef, canvasRef, panSensitivity, zoomSensitivity });
+
+  const {
+    claudeCursorPos,
+    claudeIsDrawing,
+    animatingShape,
+    animatingAscii,
+    enqueueShape,
+    enqueueAscii,
+    processClaudeAnimationQueue,
+    finishClaudeAnimation,
+    runTestShapes,
+  } = useClaudeAnimation({ animationSpeed, setDrawingElements, setAsciiBlocks, elementIdCounter });
 
   const {
     comments,
@@ -1526,16 +931,14 @@ export default function DrawPage() {
               } else if (event.type === 'block') {
                 // Queue ASCII block for cursor animation
                 streamedBlocks.push(event.data);
-                const id = `claude-ascii-${elementIdCounter.current++}`;
-                claudeAnimationQueue.current.push({ type: 'ascii', block: event.data as AsciiBlock, id });
+                enqueueAscii(event.data as AsciiBlock);
                 processClaudeAnimationQueue();
               } else if (event.type === 'shape') {
                 // Don't add to shapes immediately - let animation reveal it
                 streamedShapes.push(event.data);
-                const id = `claude-${elementIdCounter.current++}`;
                 // Queue shape for cursor animation with progressive reveal
                 // Shape will be added to drawingElements after animation completes
-                claudeAnimationQueue.current.push({ type: 'shape', shape: event.data as Shape, id });
+                enqueueShape(event.data as Shape);
                 processClaudeAnimationQueue();
               } else if (event.type === 'say') {
                 // Full comment from tool call

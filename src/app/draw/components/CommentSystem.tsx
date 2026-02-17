@@ -54,6 +54,61 @@ interface CommentSystemProps {
 // Hover delay in milliseconds to prevent jittering
 const HOVER_DELAY = 80;
 
+// Animation duration matches CSS transition (0.2s)
+const TRANSITION_MS = 210;
+
+// Anchor that delays z-index decreases so they happen after the CSS transition finishes
+function CommentAnchor({
+  screenPos,
+  desiredZIndex,
+  onMouseEnter,
+  onMouseLeave,
+  children,
+}: {
+  screenPos: Point;
+  desiredZIndex: number;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  children: React.ReactNode;
+}) {
+  const [zIndex, setZIndex] = useState(desiredZIndex);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevDesiredRef = useRef(desiredZIndex);
+
+  useEffect(() => {
+    const prev = prevDesiredRef.current;
+    prevDesiredRef.current = desiredZIndex;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (desiredZIndex >= prev) {
+      // Increasing or same: apply immediately so the element rises above others
+      setZIndex(desiredZIndex);
+    } else {
+      // Decreasing: wait for the CSS transition to finish before dropping z-index
+      timerRef.current = setTimeout(() => setZIndex(desiredZIndex), TRANSITION_MS);
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [desiredZIndex]);
+
+  return (
+    <div
+      className="draw-comment-anchor"
+      style={{ position: 'absolute', left: screenPos.x, top: screenPos.y, zIndex, pointerEvents: 'auto' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </div>
+  );
+}
+
 export const CommentSystem = memo(function CommentSystem({
   comments,
   strokeColor,
@@ -128,16 +183,10 @@ export const CommentSystem = memo(function CommentSystem({
         const zIndex = isOpen ? 100 : isHovered ? 50 : isTemp ? 20 : 10;
 
         return (
-          <div
+          <CommentAnchor
             key={i}
-            className="draw-comment-anchor"
-            style={{
-              position: 'absolute',
-              left: screenPos.x,
-              top: screenPos.y,
-              zIndex,
-              pointerEvents: 'auto',
-            }}
+            screenPos={screenPos}
+            desiredZIndex={zIndex}
             onMouseEnter={() => handleMouseEnter(i)}
             onMouseLeave={handleMouseLeave}
           >
@@ -177,14 +226,14 @@ export const CommentSystem = memo(function CommentSystem({
               onSave={saveComment ? () => saveComment(i) : undefined}
               onDismiss={dismissComment ? () => dismissComment(i) : undefined}
             />
-          </div>
+          </CommentAnchor>
         );
       })}
     </>
   );
 });
 
-interface CommentBubbleProps {
+export interface CommentBubbleProps {
   comment: Comment;
   commentIndex: number;
   visualState: 'collapsed' | 'preview' | 'open';
@@ -203,7 +252,7 @@ interface CommentBubbleProps {
   onDismiss?: () => void;
 }
 
-function CommentBubble({
+export function CommentBubble({
   comment,
   commentIndex,
   visualState,

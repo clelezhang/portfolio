@@ -487,18 +487,20 @@
    State Styling: Temp (dashed) vs Saved (solid)
    ----------------------------------------------------------------------------- */
 
-/* TEMP state - dashed border */
+/* TEMP state - inset dashed outline (border stays solid/transparent for layout) */
 .draw-comment-bubble--temp {
-  border-style: dashed;
-  border-width: 1.5px;
+  border-color: transparent;
+  outline-style: dashed;
+  outline-width: 1.5px;
+  outline-offset: -3px;
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--user {
-  box-shadow: 0 0 0 1px #000;
+  outline-color: rgba(255, 255, 255, 0.5);
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--claude {
-  box-shadow: 0 0 0 1px #fff, 1px 2px 8px rgba(0, 0, 0, 0.05);
+  outline-color: rgba(0, 0, 0, 0.25);
 }
 
 /* SAVED state - solid border */
