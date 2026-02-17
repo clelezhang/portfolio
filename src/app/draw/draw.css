@@ -202,14 +202,15 @@
 }
 
 /* Wrapper for fade animation and flex layout */
-/* All comment areas use USER.svg cursor, overriding POINTER.svg on buttons */
 .draw-comment-wrapper {
   display: flex;
   align-items: flex-start;
 }
 
-.draw-comment-wrapper button {
-  cursor: var(--cursor-user);
+/* All comment areas use USER.svg cursor, overriding cursor: pointer on bubble/buttons/reply-btn */
+.draw-comment-wrapper,
+.draw-comment-wrapper * {
+  cursor: var(--cursor-user) !important;
 }
 
 /* Apply fade animation only to the bubble, not the action buttons */
@@ -744,8 +745,9 @@
   animation: commentInputAppear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.draw-comment-input-form button {
-  cursor: var(--cursor-user);
+.draw-comment-input-form,
+.draw-comment-input-form * {
+  cursor: var(--cursor-user) !important;
 }
 
 @keyframes commentInputAppear {
