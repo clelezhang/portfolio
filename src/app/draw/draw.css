@@ -205,7 +205,7 @@
 .draw-comment-wrapper {
   display: flex;
   align-items: flex-start;
-  cursor: var(--cursor-user) !important;
+  cursor: default !important;
 }
 
 /* Apply fade animation only to the bubble, not the action buttons */
@@ -382,7 +382,7 @@
 
 /* User icon hover animation (wobble) */
 .draw-comment-bubble--user .draw-comment-icon-img:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 }
 
 /* Claude icon - no hover animation */
@@ -542,7 +542,7 @@
 
 /* User icon hover animation in replies */
 .draw-comment-bubble--user .draw-comment-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 }
 
 .draw-comment-delete {
@@ -732,10 +732,12 @@
   position: fixed;
   inset: 0;
   z-index: 35;
+  cursor: default;
 }
 
 .draw-comment-input-form {
   animation: commentInputAppear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  cursor: default;
 }
 
 @keyframes commentInputAppear {
@@ -770,7 +772,7 @@
 }
 
 .draw-comment-input-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilter);
+  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
 }
 
 .draw-comment-input-field-wrapper {
@@ -981,7 +983,7 @@
 }
 
 .draw-comment-btn:hover img {
-  filter: url(#wobbleFilter);
+  filter: url(#wobbleFilterBtn);
 }
 
 /* Header icon buttons */
@@ -1180,7 +1182,7 @@
 .draw-comment-icon-img:hover,
 .draw-user-icon:hover,
 .draw-stroke-icon:hover {
-  filter: url(#wobbleFilter);
+  filter: url(#wobbleFilterBtn);
 }
 
 /* Stroke styles - no hover effects to avoid conflicts with canvas filter */

@@ -2,6 +2,7 @@
 import '../draw.css';
 import { useState } from 'react';
 import { CommentBubble } from '../components/CommentSystem';
+import { SubmitArrowIcon } from '../components/icons';
 import type { Comment } from '../types';
 
 // ─── Sample data ────────────────────────────────────────────────────────────
@@ -60,6 +61,34 @@ function ShowcaseBubble({ comment, visualState, isReplying = false }: ShowcaseBu
   );
 }
 
+// ─── Comment Input showcase (no backdrop/positioning) ────────────────────────
+
+function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
+  const text = prefilled ? 'Nice composition overall!' : '';
+  return (
+    <div className="draw-comment-input-bubble" style={{ pointerEvents: 'none' }}>
+      <img src="/draw/USERICON.svg" alt="" className="draw-comment-input-icon" />
+      <div className="draw-comment-input-field-wrapper">
+        <textarea
+          value={text}
+          readOnly
+          placeholder="Add a comment"
+          className="draw-comment-input draw-comment-input--plain"
+          rows={1}
+        />
+        <button
+          type="button"
+          disabled={!text.trim()}
+          className="draw-comment-submit"
+          style={{ backgroundColor: '#888', opacity: text.trim() ? 1 : 0.6 }}
+        >
+          <SubmitArrowIcon />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Layout helpers ──────────────────────────────────────────────────────────
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -95,8 +124,8 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 
 export default function CommentStatesPage() {
   return (
-    <div style={{ background: '#f0eeeb', minHeight: '100vh', padding: '56px 64px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 400, color: '#555', letterSpacing: '0.04em', marginBottom: 56 }}>
+    <div className="draw-canvas-dots" style={{ backgroundColor: 'var(--draw-bg-canvas)', minHeight: '100vh', padding: '56px 64px', fontFamily: 'sans-serif' }}>
+      <h1 style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 400, color: 'var(--draw-text-primary)', letterSpacing: '0.04em', marginBottom: 56, opacity: 0.4 }}>
         /draw/comment-states — all comment bubble states
       </h1>
 
@@ -202,6 +231,15 @@ export default function CommentStatesPage() {
         </Tile>
         <Tile label="claude · temp">
           <ShowcaseBubble comment={makeComment(LONG, 'claude', 'temp')} visualState="open" />
+        </Tile>
+      </Section>
+
+      <Section label="Comment Input">
+        <Tile label="empty">
+          <ShowcaseCommentInput />
+        </Tile>
+        <Tile label="with text">
+          <ShowcaseCommentInput prefilled />
         </Tile>
       </Section>
     </div>

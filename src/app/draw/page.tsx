@@ -1416,6 +1416,26 @@ export default function DrawPage() {
               yChannelSelector="G"
             />
           </filter>
+          {/* Button-only filter - uses SMIL <animate> so it works on Safari
+              (Safari ignores JS seed changes on feTurbulence, but honors SMIL) */}
+          <filter id="wobbleFilterBtn" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+            <feTurbulence
+              type="turbulence"
+              baseFrequency="0.03"
+              numOctaves={2}
+              seed="1"
+              result="noise"
+            >
+              <animate attributeName="seed" from="1" to="100" dur="0.5s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={distortionAmount}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
         </defs>
       </svg>
 

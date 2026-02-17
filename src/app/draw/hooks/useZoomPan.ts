@@ -68,6 +68,7 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
   // Reads from stateRef so the listener is only attached once per container.
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
+    console.log('[ZoomPan] wheel event', { deltaX: e.deltaX, deltaY: e.deltaY, ctrlKey: e.ctrlKey });
     const container = containerRef.current;
     if (!container) return;
 
@@ -113,13 +114,22 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     }
   }, [containerRef, panSensitivity, zoomSensitivity]);
 
-  // Attach wheel handler once per container
+  // Attach wheel handler to window (Safari doesn't dispatch wheel events to
+  // non-scrollable elements like overflow:hidden + position:fixed containers)
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
+    const handler = (e: WheelEvent) => {
+      const container = containerRef.current;
+      if (!container) return;
+      // Only handle if cursor is over the canvas container
+      const rect = container.getBoundingClientRect();
+      if (
+        e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top || e.clientY > rect.bottom
+      ) return;
+      handleWheel(e);
+    };
+    window.addEventListener('wheel', handler, { passive: false });
+    return () => window.removeEventListener('wheel', handler);
   }, [handleWheel, containerRef]);
 
   const startPan = useCallback((e: React.MouseEvent) => {
