@@ -65,6 +65,21 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     const container = containerRef.current;
     if (!container) return;
 
+    // If scrolling over a comment bubble that has overflow, scroll it instead of panning
+    const target = e.target as Element;
+    const commentBubble = target.closest('.draw-comment-bubble') as HTMLElement | null;
+    if (commentBubble && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      const canScrollY = commentBubble.scrollHeight > commentBubble.clientHeight;
+      if (canScrollY) {
+        const atTop = commentBubble.scrollTop <= 0;
+        const atBottom = commentBubble.scrollTop + commentBubble.clientHeight >= commentBubble.scrollHeight - 1;
+        if (!((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom))) {
+          commentBubble.scrollTop += e.deltaY;
+          return;
+        }
+      }
+    }
+
     if (e.ctrlKey || e.metaKey) {
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;

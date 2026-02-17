@@ -286,10 +286,6 @@ function CommentBubble({
           e.stopPropagation();
           onOpen();
         }}
-        onWheel={(e) => {
-          // Stop wheel events from bubbling to canvas (prevents panning while scrolling comment)
-          e.stopPropagation();
-        }}
       >
         {/* First row: Icon + Content - wrapped to prevent breaking during transitions */}
         <div className="draw-comment-first-row">

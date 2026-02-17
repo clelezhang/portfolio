@@ -2,10 +2,11 @@ interface ToolbarPencilIconProps {
   color: string;
   className?: string;
   style?: React.CSSProperties;
+  tipAnimation?: string;
 }
 
 // Toolbar pencil icon with dynamic tip color while preserving gradient appearance
-export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIconProps) {
+export function ToolbarPencilIcon({ color, className, style, tipAnimation }: ToolbarPencilIconProps) {
   // Generate unique IDs for this instance to avoid conflicts
   const id = Math.random().toString(36).substr(2, 9);
 
@@ -22,7 +23,7 @@ export function ToolbarPencilIcon({ color, className, style }: ToolbarPencilIcon
       <g clipPath={`url(#clip_${id})`}>
         {/* Pencil tip - dynamic color */}
         <g filter={`url(#filter_${id})`}>
-          <path d="M18.5637 6.49688C18.8881 5.63171 20.1119 5.63171 20.4363 6.49688L27 24H12L18.5637 6.49688Z" fill={color} style={{ transition: 'fill 110ms ease-out' }}/>
+          <path d="M18.5637 6.49688C18.8881 5.63171 20.1119 5.63171 20.4363 6.49688L27 24H12L18.5637 6.49688Z" fill={color} style={{ transition: tipAnimation ? undefined : 'fill 110ms ease-out', animation: tipAnimation }}/>
         </g>
         {/* Pencil tip stroke */}
         <path d="M19.0322 6.67285C19.1944 6.24026 19.8056 6.24027 19.9678 6.67285L26.2783 23.5H12.7217L19.0322 6.67285Z" stroke="#02061D" strokeOpacity="0.1"/>

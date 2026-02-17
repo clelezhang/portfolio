@@ -48,6 +48,34 @@ const STROKE_SIZES = [
 
 export type AnimationType = 'slide' | 'slot' | 'confetti' | 'spring';
 
+// Pencil tip color spin CSS hook - cycles through first color of each palette
+function usePencilColorSpinCSS(id: string, paletteIndex: number) {
+  useEffect(() => {
+    const numPalettes = COLOR_PALETTES.length;
+    const stops: string[] = [];
+    for (let i = 0; i <= numPalettes; i++) {
+      const idx = (paletteIndex + i) % numPalettes;
+      const color = COLOR_PALETTES[idx][0];
+      const pct = Math.round((i / numPalettes) * 100);
+      stops.push(`${pct}% { fill: ${color}; }`);
+    }
+    const css = `
+      @keyframes pencilTipSpin-${id} {
+        ${stops.join('\n        ')}
+      }
+    `;
+    let styleEl = document.getElementById(`pencil-tip-spin-${id}`) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = `pencil-tip-spin-${id}`;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = css;
+  }, [id, paletteIndex]);
+
+  return `pencilTipSpin-${id}`;
+}
+
 // Dynamic Spring CSS hook - generates keyframes based on parameters
 function useDynamicSpringAccumCSS(
   id: string,
@@ -192,6 +220,9 @@ export function DrawToolbar({
   // Generate unique ID for this toolbar instance
   const instanceId = useRef(`toolbar-${Math.random().toString(36).slice(2, 8)}`).current;
 
+  // Pencil tip color spin animation
+  const pencilSpinAnimName = usePencilColorSpinCSS(instanceId, paletteIndex);
+
   // Dynamic CSS for Spring animation (hardcoded optimal values)
   const springAnimName = useDynamicSpringAccumCSS(
     instanceId,
@@ -297,6 +328,7 @@ export function DrawToolbar({
                 color={strokeColor}
                 className={`draw-tool-icon ${tool === 'draw' && !asciiStroke ? 'draw-tool-icon--selected' : ''}`}
                 style={{ bottom: tool === 'draw' && !asciiStroke ? '-2px' : '-20px' }}
+                tipAnimation={isRolling ? `${pencilSpinAnimName} ${slideDuration}ms linear forwards` : undefined}
               />
             </button>
           </MaybeTooltip>
