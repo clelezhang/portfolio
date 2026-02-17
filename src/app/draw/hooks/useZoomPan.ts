@@ -40,6 +40,11 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
   const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const touchGestureState = useRef<TouchGestureState | null>(null);
 
+  // Always-current ref so callbacks don't close over stale zoom/pan
+  const stateRef = useRef({ zoom, pan });
+  stateRef.current.zoom = zoom;
+  stateRef.current.pan = pan;
+
   // Helper to get distance between two touch points
   const getTouchDistance = (touches: React.TouchList): number => {
     if (touches.length < 2) return 0;
@@ -59,7 +64,8 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     };
   };
 
-  // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom
+  // Wheel handler - scroll to pan, ctrl/cmd+scroll to zoom.
+  // Reads from stateRef so the listener is only attached once per container.
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const container = containerRef.current;
@@ -75,10 +81,12 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
         const atBottom = commentBubble.scrollTop + commentBubble.clientHeight >= commentBubble.scrollHeight - 1;
         if (!((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom))) {
           commentBubble.scrollTop += e.deltaY;
-          return;
         }
+        return; // Never pan when hovering over a scrollable comment
       }
     }
+
+    const { zoom, pan } = stateRef.current;
 
     if (e.ctrlKey || e.metaKey) {
       const rect = container.getBoundingClientRect();
@@ -103,9 +111,9 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
         y: prev.y - e.deltaY * panSensitivity,
       }));
     }
-  }, [zoom, pan, containerRef, panSensitivity, zoomSensitivity]);
+  }, [containerRef, panSensitivity, zoomSensitivity]);
 
-  // Attach wheel handler
+  // Attach wheel handler once per container
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -117,8 +125,9 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
   const startPan = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsPanning(true);
+    const { pan } = stateRef.current;
     panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-  }, [pan]);
+  }, []);
 
   const doPan = useCallback((e: React.MouseEvent) => {
     if (!isPanning || !panStart.current) return;
@@ -135,7 +144,7 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
   // Touch gesture handlers for pinch-to-zoom and two-finger pan
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length >= 2) {
-      // Two or more fingers - start gesture
+      const { zoom, pan } = stateRef.current;
       setIsTouchGesture(true);
       touchGestureState.current = {
         initialDistance: getTouchDistance(e.touches),
@@ -144,7 +153,7 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
         initialCenter: getTouchCenter(e.touches),
       };
     }
-  }, [zoom, pan]);
+  }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length >= 2 && touchGestureState.current) {
@@ -183,7 +192,6 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (e.touches.length < 2) {
-      // Less than 2 fingers remaining - end gesture
       setIsTouchGesture(false);
       touchGestureState.current = null;
     }
@@ -200,6 +208,7 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     const canvas = canvasRef.current;
     if (!container || !canvas) return { x: screenX, y: screenY };
 
+    const { zoom, pan } = stateRef.current;
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
@@ -211,13 +220,14 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     const canvasY = (relY - pan.y) / zoom + centerY;
 
     return { x: canvasX, y: canvasY };
-  }, [zoom, pan, containerRef, canvasRef]);
+  }, [containerRef, canvasRef]);
 
   // Convert canvas coordinates to screen coordinates
   const canvasToScreen = useCallback((canvasX: number, canvasY: number): Point => {
     const container = containerRef.current;
     if (!container) return { x: canvasX, y: canvasY };
 
+    const { zoom, pan } = stateRef.current;
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
@@ -226,7 +236,7 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     const screenY = (canvasY - centerY) * zoom + pan.y + centerY;
 
     return { x: screenX, y: screenY };
-  }, [zoom, pan, containerRef]);
+  }, [containerRef]);
 
   return {
     zoom,

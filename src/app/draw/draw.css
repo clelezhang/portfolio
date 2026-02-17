@@ -264,23 +264,19 @@
   display: none;
 }
 
-/* PREVIEW: Text visible, grows taller if text wraps */
+/* PREVIEW: Text visible, truncated with ellipsis if it overflows */
 .draw-comment-bubble--preview {
   width: 180px;
   max-height: 120px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  overflow: hidden;
 }
 
-.draw-comment-bubble--preview.draw-comment-bubble--user:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-}
-
-.draw-comment-bubble--preview.draw-comment-bubble--claude:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+.draw-comment-bubble--preview .draw-comment-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
 }
 
 .draw-comment-bubble--preview .draw-comment-bubble-content {
@@ -2143,6 +2139,32 @@
 
 .draw-reel-spring {
   animation: reelSpring var(--reel-duration, 700ms) cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+/* Spring accumulator keyframe - driven by CSS custom properties computed in JS.
+   --spring-wind-up: px offset for wind-up at 8%
+   --spring-b1..b5: bounce amplitudes in px (set to 0px when energy is low) */
+@keyframes reelSpringAccum {
+  0%   { transform: translateY(0); }
+  8%   { transform: translateY(var(--spring-wind-up, 0px)); }
+  35%  { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - var(--spring-b1, 0px))); }
+  50%  { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) + var(--spring-b2, 0px))); }
+  65%  { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - var(--spring-b3, 0px))); }
+  78%  { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) - var(--spring-b4, 0px))); }
+  88%  { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)) + var(--spring-b5, 0px))); }
+  100% { transform: translateY(calc(-100% + (3 * 100% / var(--reel-items)))); }
+}
+
+/* Pencil tip color spin - driven by --tip-c0..c5 CSS custom properties.
+   Set these on the path element to cycle through palette colors during roll. */
+@keyframes pencilTipSpin {
+  0%   { fill: var(--tip-c0); }
+  16%  { fill: var(--tip-c1); }
+  33%  { fill: var(--tip-c2); }
+  50%  { fill: var(--tip-c3); }
+  66%  { fill: var(--tip-c4); }
+  83%  { fill: var(--tip-c5); }
+  100% { fill: var(--tip-c0); }
 }
 
 /* 4. RANDOM VARIANCE - Each swatch has randomized timing

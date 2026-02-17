@@ -365,8 +365,8 @@ function CommentBubble({
           </div>
         )}
 
-        {/* Reply button - only when open and not replying and saved */}
-        {visualState === 'open' && !isReplying && !isTemp && (
+        {/* Reply button - when open and not already replying */}
+        {visualState === 'open' && !isReplying && (
           <div className="draw-comment-reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
             <img src="/draw/USERICON.svg" alt="" draggable={false} className="draw-comment-icon draw-img-no-anim" />
             <span className="draw-comment-reply-btn-text">Reply...</span>
