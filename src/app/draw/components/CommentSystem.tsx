@@ -402,11 +402,8 @@ export function CommentBubble({
               <button
                 onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
                 disabled={!replyText?.trim()}
-                className="draw-comment-submit"
-                style={{
-                  backgroundColor: strokeColor,
-                  opacity: replyText?.trim() ? 1 : 0.6,
-                }}
+                className={`draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
+                style={replyText?.trim() ? { backgroundColor: strokeColor } : undefined}
               >
                 <SubmitArrowIcon />
               </button>

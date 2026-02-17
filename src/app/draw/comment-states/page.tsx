@@ -10,7 +10,7 @@ import type { Comment } from '../types';
 const SHORT = 'Nice line!';
 const MEDIUM = 'I really like where this is heading — the composition feels balanced.';
 const LONG =
-  'This is a longer comment that should overflow the preview bubble and trigger the three-line clamp with an ellipsis at the end, demonstrating how truncation works.';
+  'This is a longer comment that should overflow the preview bubble and trigger the three-line clamp with an ellipsis at the end, demonstrating how truncation works. This is a longer comment that should overflow the preview bubble and trigger the three-line clamp with an ellipsis at the end, demonstrating how truncation works. This is a longer comment that should overflow the preview bubble and trigger the three-line clamp with an ellipsis at the end, demonstrating how truncation works.';
 
 const REPLIES: Comment['replies'] = [
   { text: 'Thanks, I was going for that!', from: 'human' },
@@ -79,8 +79,8 @@ function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
         <button
           type="button"
           disabled={!text.trim()}
-          className="draw-comment-submit"
-          style={{ backgroundColor: '#888', opacity: text.trim() ? 1 : 0.6 }}
+          className={`draw-comment-submit${text.trim() ? '' : ' draw-comment-submit--empty'}`}
+          style={text.trim() ? { backgroundColor: '#888' } : undefined}
         >
           <SubmitArrowIcon />
         </button>

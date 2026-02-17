@@ -75,11 +75,8 @@ export function CommentInput({
             <button
               type="submit"
               disabled={!commentText.trim()}
-              className="draw-comment-submit"
-              style={{
-                backgroundColor: strokeColor,
-                opacity: commentText.trim() ? 1 : 0.6,
-              }}
+              className={`draw-comment-submit${commentText.trim() ? '' : ' draw-comment-submit--empty'}`}
+              style={commentText.trim() ? { backgroundColor: strokeColor } : undefined}
             >
               <SubmitArrowIcon />
             </button>

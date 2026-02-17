@@ -62,7 +62,7 @@ import { simplifyPath } from './utils/simplifyPath';
 import { DrawToolbar, AnimationType } from './components/DrawToolbar';
 import { HeaderActions } from './components/HeaderActions';
 import { DrawIconButton } from './components/DrawIconButton';
-import { CustomCursor } from './components/CustomCursor';
+import { CustomCursor, CursorMode } from './components/CustomCursor';
 import { ClaudePencilCursor } from './components/icons/ClaudePencilCursor';
 import { ClaudeEraserCursor } from './components/icons/ClaudeEraserCursor';
 import { ClaudeAsciiCursor } from './components/icons/ClaudeAsciiCursor';
@@ -82,6 +82,7 @@ export default function DrawPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastDrawnPoint = useRef<Point | null>(null);
   const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
+  const turbulenceBtnRef = useRef<SVGFETurbulenceElement>(null);
 
   // Safari detection (client-side only to avoid hydration mismatch)
   const [isSafari, setIsSafari] = useState(false);
@@ -201,10 +202,12 @@ export default function DrawPage() {
   const [panSensitivity] = useState(DEFAULT_PAN_SENSITIVITY);
   const [zoomSensitivity] = useState(DEFAULT_ZOOM_SENSITIVITY);
 
-  // Cursor position
-  const [cursorPos, setCursorPos] = useState<Point | null>(null);
+  // Cursor tracking — page-level viewport coordinates for React cursor
+  const [pageCursorPos, setPageCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [isTouch, setIsTouch] = useState(false);
   const [isHoveringCommentInput, setIsHoveringCommentInput] = useState(false);
+  const [isHoveringInteractive, setIsHoveringInteractive] = useState(false);
+  const isOnCanvasRef = useRef(false);
 
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -377,6 +380,20 @@ export default function DrawPage() {
   useEffect(() => {
     if (!commentInput) setIsHoveringCommentInput(false);
   }, [commentInput]);
+
+  // Compute cursor mode from state — priority order determines which cursor shows
+  const cursorMode: CursorMode = (() => {
+    if (isTouch) return 'user'; // fallback, cursor hidden on touch anyway
+    if (isPanning) return 'grabbing';
+    if (hoveredCommentIndex !== null || isHoveringCommentInput) return 'user';
+    if (isOnCanvasRef.current && tool !== 'select') {
+      if (tool === 'comment') return 'comment';
+      if (tool === 'erase') return 'eraser';
+      if (tool === 'draw') return asciiStroke ? 'ascii' : 'pencil';
+    }
+    if (isHoveringInteractive) return 'pointer';
+    return 'user';
+  })();
 
   // Save current state to undo stack
   const saveToUndoStack = useCallback(() => {
@@ -565,6 +582,7 @@ export default function DrawPage() {
     const interval = setInterval(() => {
       seed = (seed % 100) + 1;
       turbulenceRef.current?.setAttribute('seed', String(seed));
+      turbulenceBtnRef.current?.setAttribute('seed', String(seed));
     }, wiggleSpeed);
     return () => clearInterval(interval);
   }, [distortionAmount, wiggleSpeed, isTabVisible, isSafari]);
@@ -1335,7 +1353,23 @@ export default function DrawPage() {
 
   return (
     <BaseUIProvider>
-    <div className={`draw-page ${isPanning ? 'is-panning' : ''}`}>
+    <div
+      className={`draw-page ${isPanning ? 'is-panning' : ''}`}
+      onMouseMove={(e) => {
+        if (CUSTOM_CURSORS_ENABLED) {
+          setPageCursorPos({ x: e.clientX, y: e.clientY });
+          // Detect if hovering an interactive element (button, link, label, [role=button])
+          const target = e.target as HTMLElement;
+          const interactive = target.closest('button, a, label, [role="button"], .cursor-pointer, input[type="range"]');
+          setIsHoveringInteractive(interactive !== null);
+        }
+      }}
+      onMouseLeave={() => {
+        if (CUSTOM_CURSORS_ENABLED) {
+          setPageCursorPos(null);
+        }
+      }}
+    >
       {/* Header bar */}
       <header className="draw-header">
         <div className="draw-header-left">
@@ -1424,6 +1458,7 @@ export default function DrawPage() {
               buttons don't get the aggressive 3.5x canvas scale */}
           <filter id="wobbleFilterBtn" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
             <feTurbulence
+              ref={turbulenceBtnRef}
               type="turbulence"
               baseFrequency="0.03"
               numOctaves={2}
@@ -1447,7 +1482,6 @@ export default function DrawPage() {
         <div
           ref={containerRef}
           className="draw-canvas-container"
-          style={{ cursor: CUSTOM_CURSORS_ENABLED && tool !== 'select' && !isPanning && hoveredCommentIndex === null && !isHoveringCommentInput ? 'none' : undefined }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onMouseDown={(e) => {
@@ -1467,12 +1501,9 @@ export default function DrawPage() {
               startDrawing(e);
             }
           }}
+          onMouseEnter={() => { isOnCanvasRef.current = true; }}
           onMouseMove={(e) => {
             setIsTouch(false); // Switch back to mouse mode
-            const rect = containerRef.current?.getBoundingClientRect();
-            if (rect) {
-              setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-            }
             if (isPanning) {
               doPan(e);
             } else if (isDraggingImage) {
@@ -1503,7 +1534,7 @@ export default function DrawPage() {
             }
           }}
           onMouseLeave={() => {
-            setCursorPos(null);
+            isOnCanvasRef.current = false;
             commentDragStart.current = null;
             handleImageMouseUp();
             if (isPanning) {
@@ -1934,18 +1965,7 @@ export default function DrawPage() {
             )}
           </div>
 
-          {/* Custom cursor - User */}
-          {/* Hide when hovering over any comment or comment input bubble - CSS shows USER.svg instead */}
-          {CUSTOM_CURSORS_ENABLED && hoveredCommentIndex === null && !isHoveringCommentInput && (
-            <CustomCursor
-              cursorPos={cursorPos}
-              isPanning={isPanning}
-              isTouch={isTouch}
-              tool={tool}
-              asciiStroke={asciiStroke}
-              strokeColor={strokeColor}
-            />
-          )}
+          {/* Custom cursor removed from here — now rendered at page level */}
 
 
           {/* Comment system */}
@@ -2439,6 +2459,15 @@ export default function DrawPage() {
         onSave={handleSaveToCloud}
         currentDrawingId={currentDrawingId}
       />
+
+      {/* Page-level custom cursor — renders all cursor types as React SVG components */}
+      {CUSTOM_CURSORS_ENABLED && !isTouch && (
+        <CustomCursor
+          position={pageCursorPos}
+          mode={cursorMode}
+          strokeColor={strokeColor}
+        />
+      )}
     </div>
     </BaseUIProvider>
   );

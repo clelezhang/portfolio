@@ -146,50 +146,22 @@
    Cursor - Custom cursor system
 
    Architecture:
-   - CSS handles: default (USER), pointer, grab/grabbing cursors
-   - React CustomCursor handles: tool cursors (pencil, eraser, ascii, comment)
-   - Native cursor hidden on canvas when tool active, CustomCursor div shows instead
+   - ALL cursors rendered as React components (CustomCursor) for crisp Retina display
+   - Native cursor hidden everywhere via cursor: none
+   - CursorMode computed in page.tsx from state (tool, hover, panning, etc.)
    ----------------------------------------------------------------------------- */
 
-/* CSS Custom Properties for cursor URLs - single source of truth */
-.draw-page {
-  --cursor-user: url('/draw/CURSOR/USER.svg') 3 3, auto;
-  --cursor-pointer: url('/draw/CURSOR/POINTER.svg') 10 2, pointer;
-  --cursor-grab: url('/draw/CURSOR/HAND.svg') 11 5, grab;
-  --cursor-grabbing: url('/draw/CURSOR/GRAB.svg') 11 10, grabbing;
-}
-
-/* CustomCursor component container - positioned div for tool cursors */
+/* CustomCursor component container - fixed-position div for all cursor types */
 .draw-cursor {
-  position: absolute;
+  position: fixed;
   pointer-events: none;
-  z-index: 50;
+  z-index: 9999;
 }
 
-/* Default cursor for entire draw page */
-.draw-page {
-  cursor: var(--cursor-user);
-}
-
-/* Interactive elements use pointer cursor */
-.draw-page button,
-.draw-page [role="button"],
-.draw-page a,
-.draw-page label,
-.draw-page .cursor-pointer {
-  cursor: var(--cursor-pointer);
-}
-
-/* Grab states */
-.draw-page .cursor-grab,
-.draw-page [data-cursor="grab"] {
-  cursor: var(--cursor-grab);
-}
-
-.draw-page .cursor-grabbing,
-.draw-page [data-cursor="grabbing"],
-.draw-page.is-panning {
-  cursor: var(--cursor-grabbing);
+/* Hide native cursor on entire draw page and all children */
+.draw-page,
+.draw-page * {
+  cursor: none !important;
 }
 
 /* -----------------------------------------------------------------------------
@@ -207,11 +179,7 @@
   align-items: flex-start;
 }
 
-/* All comment areas use USER.svg cursor, overriding cursor: pointer on bubble/buttons/reply-btn */
-.draw-comment-wrapper,
-.draw-comment-wrapper * {
-  cursor: var(--cursor-user) !important;
-}
+/* Comment cursor handled by React CustomCursor — native cursor already hidden via .draw-page * */
 
 /* Apply fade animation only to the bubble, not the action buttons */
 .draw-comment-wrapper--temp .draw-comment-bubble {
@@ -387,7 +355,7 @@
 
 /* User icon hover animation (wobble) */
 .draw-comment-bubble--user .draw-comment-icon-img:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
+  filter: invert(1) url(#wobbleFilterBtn);
 
 }
 
@@ -423,7 +391,7 @@
 
 .draw-comment-bubble--user .draw-comment-icon-img,
 .draw-comment-bubble--user .draw-comment-icon {
-  filter: brightness(0) invert(1);
+  filter: invert(1);
 }
 
 .draw-comment-bubble--user .draw-comment-reply-btn-text {
@@ -548,7 +516,7 @@
 
 /* User icon hover animation in replies */
 .draw-comment-bubble--user .draw-comment-icon:hover {
-  filter: brightness(0) invert(1) url(#wobbleFilterBtn);
+  filter: invert(1) url(#wobbleFilterBtn);
 
 }
 
@@ -612,6 +580,19 @@
   flex-shrink: 0;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
+  color: #fff;
+}
+
+.draw-comment-submit--empty,
+.draw-comment-submit--empty svg {
+  background-color: transparent !important;
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.draw-comment-bubble--user .draw-comment-submit--empty,
+.draw-comment-bubble--user .draw-comment-submit--empty svg {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .draw-comment-submit:hover {
@@ -745,10 +726,7 @@
   animation: commentInputAppear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.draw-comment-input-form,
-.draw-comment-input-form * {
-  cursor: var(--cursor-user) !important;
-}
+/* Comment input cursor handled by React CustomCursor */
 
 @keyframes commentInputAppear {
   from {
@@ -806,6 +784,12 @@
 
 .draw-comment-input-bubble .draw-comment-submit svg {
   color: #000;
+}
+
+.draw-comment-input-bubble .draw-comment-submit--empty,
+.draw-comment-input-bubble .draw-comment-submit--empty svg {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 /* Utility: disable image animations */
