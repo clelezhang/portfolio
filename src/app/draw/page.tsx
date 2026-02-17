@@ -82,6 +82,7 @@ export default function DrawPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastDrawnPoint = useRef<Point | null>(null);
   const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
+  const turbulenceBtnRef = useRef<SVGFETurbulenceElement>(null);
 
   // Safari detection (client-side only to avoid hydration mismatch)
   const [isSafari, setIsSafari] = useState(false);
@@ -204,6 +205,7 @@ export default function DrawPage() {
   // Cursor position
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
   const [isTouch, setIsTouch] = useState(false);
+  const [isHoveringCommentInput, setIsHoveringCommentInput] = useState(false);
 
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -550,20 +552,20 @@ export default function DrawPage() {
   }, []);
 
   // Wiggle animation - uses direct DOM manipulation to avoid React re-renders
-  // Safari: no wiggle animation (just static distortion for performance)
-  // Chrome: full wiggle animation
-  // See docs/wiggle-filter-learnings.md for details
+  // Animates wobbleFilter seed which affects:
+  //   Chrome: canvas + buttons (canvas uses wobbleFilter)
+  //   Safari: buttons only (canvas uses separate wobbleFilterGrid/wobbleFilterStroke)
   useEffect(() => {
-    // Safari gets static distortion only (no animation)
-    if (isSafari || distortionAmount === 0 || !isTabVisible) return;
+    if (distortionAmount === 0 || !isTabVisible) return;
 
     let seed = 1;
     const interval = setInterval(() => {
       seed = (seed % 100) + 1;
       turbulenceRef.current?.setAttribute('seed', String(seed));
+      turbulenceBtnRef.current?.setAttribute('seed', String(seed));
     }, wiggleSpeed);
     return () => clearInterval(interval);
-  }, [distortionAmount, wiggleSpeed, isTabVisible, isSafari]);
+  }, [distortionAmount, wiggleSpeed, isTabVisible]);
 
   // Set random initial brush color on mount (client-side only to avoid hydration mismatch)
   useEffect(() => {
@@ -1416,18 +1418,17 @@ export default function DrawPage() {
               yChannelSelector="G"
             />
           </filter>
-          {/* Button-only filter - uses SMIL <animate> so it works on Safari
-              (Safari ignores JS seed changes on feTurbulence, but honors SMIL) */}
+          {/* Button filter - always uses Chrome-like settings (higher detail, lower scale)
+              so buttons don't get the Safari canvas overrides (3.5x scale, lower octaves) */}
           <filter id="wobbleFilterBtn" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
             <feTurbulence
+              ref={turbulenceBtnRef}
               type="turbulence"
               baseFrequency="0.03"
               numOctaves={2}
               seed="1"
               result="noise"
-            >
-              <animate attributeName="seed" from="1" to="100" dur="0.5s" repeatCount="indefinite" />
-            </feTurbulence>
+            />
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
@@ -1933,8 +1934,8 @@ export default function DrawPage() {
           </div>
 
           {/* Custom cursor - User */}
-          {/* Hide when hovering over any comment - CSS shows USER.svg instead */}
-          {CUSTOM_CURSORS_ENABLED && hoveredCommentIndex === null && (
+          {/* Hide when hovering over any comment or comment input bubble - CSS shows USER.svg instead */}
+          {CUSTOM_CURSORS_ENABLED && hoveredCommentIndex === null && !isHoveringCommentInput && (
             <CustomCursor
               cursorPos={cursorPos}
               isPanning={isPanning}
@@ -1991,6 +1992,8 @@ export default function DrawPage() {
               strokeColor={strokeColor}
               onSubmit={handleCommentSubmit}
               onCancel={handleCommentCancel}
+              onMouseEnterBubble={() => setIsHoveringCommentInput(true)}
+              onMouseLeaveBubble={() => setIsHoveringCommentInput(false)}
             />
           )}
         </div>

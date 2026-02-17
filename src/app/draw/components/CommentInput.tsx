@@ -10,6 +10,8 @@ interface CommentInputProps {
   strokeColor: string;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  onMouseEnterBubble?: () => void;
+  onMouseLeaveBubble?: () => void;
 }
 
 export function CommentInput({
@@ -19,6 +21,8 @@ export function CommentInput({
   strokeColor,
   onSubmit,
   onCancel,
+  onMouseEnterBubble,
+  onMouseLeaveBubble,
 }: CommentInputProps) {
   const handleTextareaResize = useAutoResizeTextarea(100);
 
@@ -43,7 +47,7 @@ export function CommentInput({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="draw-comment-input-bubble">
+        <div className="draw-comment-input-bubble" onMouseEnter={onMouseEnterBubble} onMouseLeave={onMouseLeaveBubble}>
           <img
             src="/draw/USERICON.svg"
             alt=""

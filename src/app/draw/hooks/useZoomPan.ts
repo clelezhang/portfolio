@@ -68,7 +68,6 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
   // Reads from stateRef so the listener is only attached once per container.
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    console.log('[ZoomPan] wheel event', { deltaX: e.deltaX, deltaY: e.deltaY, ctrlKey: e.ctrlKey });
     const container = containerRef.current;
     if (!container) return;
 
