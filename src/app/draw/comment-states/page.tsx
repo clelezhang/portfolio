@@ -117,7 +117,7 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
       <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#ccc', letterSpacing: '0.06em' }}>
         {label}
       </span>
-      <div style={{ pointerEvents: 'none' }}>
+      <div>
         {children}
       </div>
     </div>

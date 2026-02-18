@@ -65,10 +65,22 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px;
-  border-bottom: 1px solid var(--draw-border);
   background-color: var(--draw-bg-canvas);
   flex-shrink: 0;
   z-index: 20;
+  position: relative;
+}
+
+.draw-header::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--draw-border) calc(50% - 0.5px), var(--draw-border) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  filter: url(#wobbleFilterGrid);
+  pointer-events: none;
 }
 
 .draw-header-left {
@@ -120,6 +132,7 @@
   position: relative;
   background-color: var(--draw-bg-canvas);
   isolation: isolate;
+  margin-top: -1px;
 }
 
 .draw-canvas-wrapper {
@@ -201,7 +214,7 @@
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 0px 8px 8px;
   border: 1px solid;
   cursor: pointer;
   transform-origin: top left;
@@ -263,54 +276,34 @@
 .draw-comment-bubble--open {
   width: 260px;
   max-height: 300px;
+  overflow: hidden;
+}
+
+/* Inner scroller — lives inside padding, scrollbar doesn't clip on rounded corners */
+.draw-comment-bubble-inner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.draw-comment-bubble--open .draw-comment-bubble-inner {
+  max-height: calc(300px - 18px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  padding-right: 8px;
 }
 
-.draw-comment-bubble--open.draw-comment-bubble--user:hover {
+/* User (dark bubble): light scrollbar */
+.draw-comment-bubble--user .draw-comment-bubble-inner {
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
-.draw-comment-bubble--open.draw-comment-bubble--claude:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-/* Custom scrollbar for webkit browsers (Chrome, Safari) */
-.draw-comment-bubble::-webkit-scrollbar {
-  width: 6px;
-}
-
-.draw-comment-bubble::-webkit-scrollbar-track {
-  background: transparent;
-  /* Use transparent border to create padding - keeps thumb away from rounded corners */
-  border-top: 14px solid transparent;
-  border-bottom: 14px solid transparent;
-  background-clip: content-box;
-}
-
-.draw-comment-bubble::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  /* Also add border to the thumb itself for extra padding */
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-.draw-comment-bubble:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(128, 128, 128, 0.4);
-}
-
-/* User comments: lighter scrollbar thumb */
-.draw-comment-bubble--user:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Claude comments: darker scrollbar thumb */
-.draw-comment-bubble--claude:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+/* Claude (white bubble): grey scrollbar */
+.draw-comment-bubble--claude .draw-comment-bubble-inner {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 .draw-comment-bubble--open .draw-comment-row--main .draw-comment-row-body {
@@ -462,8 +455,8 @@
 
 .draw-comment-delete {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 9px;
+  right: 9px;
   z-index: 1;
   width: 24px;
   height: 24px;
@@ -481,8 +474,16 @@
   opacity: 0.5;
 }
 
+.draw-comment-delete:hover {
+  background-color: rgba(128, 128, 128, 0.15);
+}
+
 .draw-comment-delete:hover .draw-icon-mask {
   opacity: 1;
+}
+
+.draw-comment-delete:active .draw-icon-mask {
+  transform: scale(0.9);
 }
 
 @keyframes fadeIn {
@@ -528,6 +529,7 @@
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
+  transition: transform 0.1s, opacity 0.1s;
   -webkit-mask-position: center;
   mask-position: center;
 }
@@ -577,8 +579,8 @@
   top: 0;
 }
 
-.draw-comment-submit:hover {
-  transform: scale(1.1);
+.draw-comment-submit:active .draw-icon-mask {
+  transform: scale(0.9);
 }
 
 /* Reply button row */
@@ -639,8 +641,8 @@
   transition: opacity 0.1s, transform 0.1s;
 }
 
-.draw-comment-temp-btn:hover {
-  transform: scale(1.1);
+.draw-comment-temp-btn:active .draw-icon-mask {
+  transform: scale(0.9);
 }
 
 .draw-comment-temp-btn--save {

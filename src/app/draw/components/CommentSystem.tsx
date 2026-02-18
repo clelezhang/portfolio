@@ -300,7 +300,6 @@ export function CommentBubble({
       }}
     >
       <div
-        ref={bubbleRef}
         className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}`}
         style={{ '--stroke-color': strokeColor } as React.CSSProperties}
         onClick={(e) => {
@@ -308,81 +307,83 @@ export function CommentBubble({
           onOpen();
         }}
       >
-        {/* Main row */}
-        <div className="draw-comment-row draw-comment-row--main">
-          <img
-            src={comment.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
-            alt=""
-            className="draw-comment-row-icon"
-          />
-          <div className="draw-comment-row-body">
-            <span className="draw-comment-text">{comment.text}</span>
-          </div>
-        </div>
-
-        {/* Reply items — only in open state */}
-        {visualState === 'open' && comment.replies?.map((reply, ri) => (
-          <div key={ri} className="draw-comment-row draw-comment-row--reply">
+        <div ref={bubbleRef} className="draw-comment-bubble-inner">
+          {/* Main row */}
+          <div className="draw-comment-row draw-comment-row--main">
             <img
-              src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
+              src={comment.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
               alt=""
               className="draw-comment-row-icon"
             />
             <div className="draw-comment-row-body">
-              <span className="draw-comment-text">{reply.text}</span>
+              <span className="draw-comment-text">{comment.text}</span>
             </div>
           </div>
-        ))}
 
-        {/* Reply input */}
-        {visualState === 'open' && isReplying && (
-          <div className="draw-comment-row draw-comment-row--reply-input">
-            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-            <div className="draw-comment-row-body">
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Reply..."
-                className="draw-comment-input draw-comment-input--plain"
-                rows={1}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') onReplyCancel();
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    onReplySubmit();
-                  }
-                }}
-                onInput={handleTextareaResize}
-                onClick={(e) => e.stopPropagation()}
+          {/* Reply items — only in open state */}
+          {visualState === 'open' && comment.replies?.map((reply, ri) => (
+            <div key={ri} className="draw-comment-row draw-comment-row--reply">
+              <img
+                src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
+                alt=""
+                className="draw-comment-row-icon"
               />
-              <button
-                onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
-                disabled={!replyText?.trim()}
-                className={`draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
-              >
-                <SubmitArrowIcon />
-              </button>
+              <div className="draw-comment-row-body">
+                <span className="draw-comment-text">{reply.text}</span>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
 
-        {/* Reply button */}
-        {visualState === 'open' && !isReplying && (
-          <div className="draw-comment-row draw-comment-row--reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-            <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-            <div className="draw-comment-row-body">
-              <span className="draw-comment-reply-btn-text">Reply...</span>
-              <button
-                type="button"
-                className="draw-comment-submit draw-comment-submit--empty"
-                tabIndex={-1}
-              >
-                <SubmitArrowIcon />
-              </button>
+          {/* Reply input */}
+          {visualState === 'open' && isReplying && (
+            <div className="draw-comment-row draw-comment-row--reply-input">
+              <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+              <div className="draw-comment-row-body">
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Reply..."
+                  className="draw-comment-input draw-comment-input--plain"
+                  rows={1}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') onReplyCancel();
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      onReplySubmit();
+                    }
+                  }}
+                  onInput={handleTextareaResize}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
+                  disabled={!replyText?.trim()}
+                  className={`draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
+                >
+                  <SubmitArrowIcon />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Reply button */}
+          {visualState === 'open' && !isReplying && (
+            <div className="draw-comment-row draw-comment-row--reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
+              <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+              <div className="draw-comment-row-body">
+                <span className="draw-comment-reply-btn-text">Reply...</span>
+                <button
+                  type="button"
+                  className="draw-comment-submit draw-comment-submit--empty"
+                  tabIndex={-1}
+                >
+                  <SubmitArrowIcon />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Delete button - positioned outside scrollable bubble so it stays fixed */}
