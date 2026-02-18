@@ -995,7 +995,7 @@ function FullToolbarTest({
             >
               <button
                 onClick={() => setTool('comment')}
-                className={`draw-comment-btn ${tool === 'comment' ? 'draw-comment-btn--active' : ''}`}
+                className={`draw-toolbar-comment-btn ${tool === 'comment' ? 'draw-toolbar-comment-btn--active' : ''}`}
               >
                 <img src="/draw/tool-comment.svg" alt="" />
               </button>

@@ -380,7 +380,7 @@ export function CommentBubble({
                 <button
                   onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
                   disabled={!replyText?.trim()}
-                  className={`draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
+                  className={`draw-comment-btn draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
                 >
                   <SubmitArrowIcon />
                 </button>
@@ -396,7 +396,7 @@ export function CommentBubble({
                 <span className="draw-comment-reply-btn-text">Reply...</span>
                 <button
                   type="button"
-                  className="draw-comment-submit draw-comment-submit--empty"
+                  className="draw-comment-btn draw-comment-submit draw-comment-submit--empty"
                   tabIndex={-1}
                 >
                   <SubmitArrowIcon />
@@ -411,7 +411,7 @@ export function CommentBubble({
       {visualState === 'open' && !isTemp && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="draw-comment-delete"
+          className="draw-comment-btn draw-comment-delete"
           title="Delete comment"
         >
           <CloseIcon />
@@ -423,7 +423,7 @@ export function CommentBubble({
         <div className="draw-comment-temp-actions">
           {onSave && (
             <button
-              className="draw-comment-temp-btn draw-comment-temp-btn--save"
+              className="draw-comment-btn draw-comment-temp-btn draw-comment-temp-btn--save"
               onClick={(e) => { e.stopPropagation(); onSave(); }}
               title="Save comment"
             >
@@ -432,7 +432,7 @@ export function CommentBubble({
           )}
           {onDismiss && (
             <button
-              className="draw-comment-temp-btn draw-comment-temp-btn--dismiss"
+              className="draw-comment-btn draw-comment-temp-btn draw-comment-temp-btn--dismiss"
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
               title="Dismiss comment"
             >

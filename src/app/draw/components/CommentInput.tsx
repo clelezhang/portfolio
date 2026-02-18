@@ -75,7 +75,7 @@ export function CommentInput({
             <button
               type="submit"
               disabled={!commentText.trim()}
-              className={`draw-comment-submit${commentText.trim() ? '' : ' draw-comment-submit--empty'}`}
+              className={`draw-comment-btn draw-comment-submit${commentText.trim() ? '' : ' draw-comment-submit--empty'}`}
             >
               <SubmitArrowIcon />
             </button>

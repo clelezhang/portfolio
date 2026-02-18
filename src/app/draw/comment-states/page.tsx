@@ -84,7 +84,7 @@ function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
         <button
           type="button"
           disabled={!text.trim()}
-          className={`draw-comment-submit${text.trim() ? '' : ' draw-comment-submit--empty'}`}
+          className={`draw-comment-btn draw-comment-submit${text.trim() ? '' : ' draw-comment-submit--empty'}`}
         >
           <SubmitArrowIcon />
         </button>
