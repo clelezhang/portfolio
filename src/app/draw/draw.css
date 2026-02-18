@@ -24,6 +24,15 @@
   --draw-gap: 12px;
   --draw-comment-padding: 10px;
 
+  /* Comment color tiers (black on white / white on black) */
+  --comment-black-subtle: rgba(0, 0, 0, 0.05);
+  --comment-black-light: rgba(0, 0, 0, 0.1);
+  --comment-black-medium: rgba(0, 0, 0, 0.15);
+  --comment-black-strong: rgba(0, 0, 0, 0.5);
+  --comment-white-subtle: rgba(255, 255, 255, 0.1);
+  --comment-white-medium: rgba(255, 255, 255, 0.3);
+  --comment-white-strong: rgba(255, 255, 255, 0.5);
+
   /* Sizes */
   --draw-icon-size: 32px;
   --draw-comment-width: 240px;
@@ -295,11 +304,11 @@
 }
 
 .draw-comment-bubble--open::before {
-  top: 8px;
+  top: 7.5px;
 }
 
 .draw-comment-bubble--open::after {
-  bottom: 8px;
+  bottom: 7.5px;
 }
 
 .draw-comment-bubble--user.draw-comment-bubble--open::before {
@@ -345,12 +354,12 @@
 
 /* User (dark bubble): light scrollbar */
 .draw-comment-bubble--user .draw-comment-bubble-inner {
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-color: var(--comment-white-medium) transparent;
 }
 
 /* Claude (white bubble): grey scrollbar */
 .draw-comment-bubble--claude .draw-comment-bubble-inner {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: var(--comment-black-medium) transparent;
 }
 
 .draw-comment-bubble--open .draw-comment-row--main .draw-comment-row-body {
@@ -412,8 +421,8 @@
 /* USER comments - BLACK background, white text */
 .draw-comment-bubble--user {
   background-color: #000;
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: var(--comment-white-medium);
+  box-shadow: 1px 2px 8px var(--comment-black-subtle);
   color: #fff;
 }
 
@@ -430,15 +439,20 @@
   color: #000;
 }
 
-.draw-comment-bubble--user .draw-comment-delete:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+/* Delete button lives outside .draw-comment-bubble (sibling), so use ~ combinator */
+.draw-comment-bubble--user ~ .draw-comment-delete {
+  color: var(--comment-white-strong);
+}
+
+.draw-comment-bubble--user ~ .draw-comment-delete:hover {
+  background-color: #ffffff29;
 }
 
 /* CLAUDE comments - WHITE background, black text */
 .draw-comment-bubble--claude {
   background-color: #fff;
-  border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: var(--comment-black-light);
+  box-shadow: 1px 2px 8px var(--comment-black-subtle);
   color: #000;
 }
 
@@ -446,8 +460,12 @@
   background: transparent;
 }
 
-.draw-comment-bubble--claude .draw-comment-delete:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.draw-comment-bubble--claude ~ .draw-comment-delete {
+  color: var(--comment-black-strong);
+}
+
+.draw-comment-bubble--claude ~ .draw-comment-delete:hover {
+  background-color: var(--comment-black-subtle);
 }
 
 /* -----------------------------------------------------------------------------
@@ -463,11 +481,11 @@
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--user {
-  outline-color: rgba(255, 255, 255, 0.5);
+  outline-color: var(--comment-white-strong);
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--claude {
-  outline-color: rgba(0, 0, 0, 0.25);
+  outline-color: var(--comment-black-medium);
 }
 
 /* SAVED state - solid border */
@@ -493,11 +511,16 @@
   padding-top: 1px;
 }
 
-/* Muted elements — inherit color, reduce opacity */
-.draw-comment-reply-btn-text,
-.draw-comment-input::placeholder {
-  color: inherit;
-  opacity: 0.5;
+/* Muted elements — use strong tier for 50% muted text */
+.draw-comment-bubble--user .draw-comment-reply-btn-text,
+.draw-comment-bubble--user .draw-comment-input::placeholder,
+.draw-comment-input-bubble .draw-comment-input::placeholder {
+  color: var(--comment-white-strong);
+}
+
+.draw-comment-bubble--claude .draw-comment-reply-btn-text,
+.draw-comment-bubble--claude .draw-comment-input::placeholder {
+  color: var(--comment-black-strong);
 }
 
 .draw-comment-delete {
@@ -512,21 +535,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.1s, opacity 0.15s;
+  transition: background-color 0.15s ease, opacity 0.15s;
   opacity: 0;
   animation: fadeIn 0.15s ease-out forwards;
 }
 
-.draw-comment-delete .draw-icon-mask {
-  opacity: 0.5;
-}
-
 .draw-comment-delete:hover {
-  background-color: rgba(128, 128, 128, 0.15);
+  background-color: var(--comment-black-subtle);
 }
 
-.draw-comment-delete:hover .draw-icon-mask {
-  opacity: 1;
+.draw-comment-delete .draw-icon-mask {
+  transition: transform 0.15s ease;
 }
 
 .draw-comment-delete:active .draw-icon-mask {
@@ -611,11 +630,18 @@
   color: #fff;
 }
 
-/* Empty state — no background, arrow inherits text color from bubble */
+/* Empty state — no background, muted color from tier variables */
 .draw-comment-submit--empty {
   background-color: transparent;
-  color: inherit;
-  opacity: 0.3;
+}
+
+.draw-comment-bubble--user .draw-comment-submit--empty,
+.draw-comment-input-bubble .draw-comment-submit--empty {
+  color: var(--comment-white-strong);
+}
+
+.draw-comment-bubble--claude .draw-comment-submit--empty {
+  color: var(--comment-black-strong);
 }
 
 /* Absolute positioning in input contexts (textarea overlay) */
@@ -775,9 +801,9 @@
   padding: 8px;
   background-color: #000;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--comment-white-medium);
   border-radius: 4px 21px 21px 21px;
-  box-shadow: 1px 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 1px 2px 8px var(--comment-black-subtle);
   min-width: 200px;
   max-width: 280px;
 }
