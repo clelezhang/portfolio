@@ -47,7 +47,7 @@ export function CommentInput({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="draw-comment-input-bubble" onMouseEnter={onMouseEnterBubble} onMouseLeave={onMouseLeaveBubble}>
+        <div className="draw-comment-input-bubble" style={{ '--stroke-color': strokeColor } as React.CSSProperties} onMouseEnter={onMouseEnterBubble} onMouseLeave={onMouseLeaveBubble}>
           <img
             src="/draw/user-icon.svg"
             alt=""
@@ -76,7 +76,6 @@ export function CommentInput({
               type="submit"
               disabled={!commentText.trim()}
               className={`draw-comment-submit${commentText.trim() ? '' : ' draw-comment-submit--empty'}`}
-              style={commentText.trim() ? { backgroundColor: strokeColor } : undefined}
             >
               <SubmitArrowIcon />
             </button>

@@ -71,7 +71,7 @@ function ShowcaseBubble({ comment, visualState, isReplying = false }: ShowcaseBu
 function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
   const text = prefilled ? 'Nice composition overall!' : '';
   return (
-    <div className="draw-comment-input-bubble" style={{ pointerEvents: 'none' }}>
+    <div className="draw-comment-input-bubble" style={{ pointerEvents: 'none', '--stroke-color': '#888' } as React.CSSProperties}>
       <img src="/draw/user-icon.svg" alt="" className="draw-comment-input-icon" />
       <div className="draw-comment-input-field-wrapper">
         <textarea
@@ -85,7 +85,6 @@ function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
           type="button"
           disabled={!text.trim()}
           className={`draw-comment-submit${text.trim() ? '' : ' draw-comment-submit--empty'}`}
-          style={text.trim() ? { backgroundColor: '#888' } : undefined}
         >
           <SubmitArrowIcon />
         </button>
@@ -214,7 +213,7 @@ export default function CommentStatesPage() {
       {/* Scrollable content with comment states — drawing handlers here so scroll works */}
       <div
         className="absolute inset-0"
-        style={{ overflowY: 'auto', padding: '56px 64px', fontFamily: 'sans-serif', position: 'relative', zIndex: 2, cursor: 'crosshair' }}
+        style={{ overflowY: 'auto', padding: '56px 64px', fontFamily: 'sans-serif', zIndex: 2, cursor: 'crosshair' }}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}

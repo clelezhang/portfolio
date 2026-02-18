@@ -721,6 +721,10 @@ export default function DrawPage() {
     if (lastPoint.current) {
       lastDrawnPoint.current = { ...lastPoint.current };
     }
+    if (currentStroke && !currentStroke.d.includes('L')) {
+      // Single click with no movement - add a tiny segment to make a dot
+      currentStroke.d += ` L ${lastPoint.current!.x + 0.1} ${lastPoint.current!.y + 0.1}`;
+    }
     if (currentStroke && currentStroke.d.includes('L')) {
       setHumanStrokes(prev => [...prev, currentStroke]);
       const id = `human-${elementIdCounter.current++}`;

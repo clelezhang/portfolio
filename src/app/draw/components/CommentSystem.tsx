@@ -1,17 +1,7 @@
 import { memo, useEffect, useRef, useCallback, useState } from 'react';
 import { Comment, Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
-import { CloseIcon, SubmitArrowIcon } from './icons';
-
-// Checkmark icon for save button
-function CheckmarkIcon() {
-  return <span className="draw-icon-mask draw-icon-checkmark" />;
-}
-
-// X icon for dismiss button
-function DismissIcon() {
-  return <span className="draw-icon-mask draw-icon-close" />;
-}
+import { CloseIcon, CheckmarkIcon, SubmitArrowIcon } from './icons';
 
 interface CommentSystemProps {
   comments: Comment[];
@@ -312,6 +302,7 @@ export function CommentBubble({
       <div
         ref={bubbleRef}
         className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}`}
+        style={{ '--stroke-color': strokeColor } as React.CSSProperties}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -369,7 +360,6 @@ export function CommentBubble({
                 onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
                 disabled={!replyText?.trim()}
                 className={`draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
-                style={replyText?.trim() ? { backgroundColor: strokeColor } : undefined}
               >
                 <SubmitArrowIcon />
               </button>
@@ -383,7 +373,13 @@ export function CommentBubble({
             <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
             <div className="draw-comment-row-body">
               <span className="draw-comment-reply-btn-text">Reply...</span>
-              <SubmitArrowIcon />
+              <button
+                type="button"
+                className="draw-comment-submit draw-comment-submit--empty"
+                tabIndex={-1}
+              >
+                <SubmitArrowIcon />
+              </button>
             </div>
           </div>
         )}
@@ -418,7 +414,7 @@ export function CommentBubble({
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
               title="Dismiss comment"
             >
-              <DismissIcon />
+              <CloseIcon />
             </button>
           )}
         </div>

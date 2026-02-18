@@ -385,8 +385,8 @@
   background: transparent;
 }
 
-.draw-comment-bubble--user .draw-comment-submit {
-  background-color: #fff !important;
+.draw-comment-bubble--user .draw-comment-submit:not(.draw-comment-submit--empty) {
+  background-color: #fff;
   color: #000;
 }
 
@@ -414,17 +414,20 @@
    State Styling: Temp (dashed) vs Saved (solid)
    ----------------------------------------------------------------------------- */
 
-/* TEMP state - dashed border (same box model as saved, just line style differs) */
+/* TEMP state - inset dashed outline (outline never affects layout, so zero shift) */
 .draw-comment-bubble--temp {
-  border-style: dashed;
+  border-color: transparent;
+  outline-style: dashed;
+  outline-width: 1px;
+  outline-offset: -2px;
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--user {
-  border-color: rgba(255, 255, 255, 0.5);
+  outline-color: rgba(255, 255, 255, 0.5);
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--claude {
-  border-color: rgba(0, 0, 0, 0.25);
+  outline-color: rgba(0, 0, 0, 0.25);
 }
 
 /* SAVED state - solid border */
@@ -447,11 +450,13 @@
   word-break: break-word;
   flex: 1;
   min-width: 0;
+  padding-top: 1px;
 }
 
 /* Muted elements — inherit color, reduce opacity */
 .draw-comment-reply-btn-text,
 .draw-comment-input::placeholder {
+  color: inherit;
   opacity: 0.5;
 }
 
@@ -508,6 +513,7 @@
   border: none;
   background: transparent;
   padding: 0;
+  padding-top: 1px;
   padding-right: 2rem;
   line-height: 20px;
 }
@@ -541,11 +547,8 @@
   mask-image: url('/draw/checkmark.svg');
 }
 
-/* Submit button */
+/* Submit button — filled state by default */
 .draw-comment-submit {
-  position: absolute;
-  right: 0;
-  top: 0;
   width: 24px;
   height: 24px;
   border-radius: 9999px;
@@ -555,12 +558,23 @@
   flex-shrink: 0;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
+  background-color: var(--stroke-color, #888);
   color: #fff;
 }
 
+/* Empty state — no background, arrow inherits text color from bubble */
 .draw-comment-submit--empty {
-  background-color: transparent !important;
+  background-color: transparent;
+  color: inherit;
   opacity: 0.3;
+}
+
+/* Absolute positioning in input contexts (textarea overlay) */
+.draw-comment-row--reply-input .draw-comment-submit,
+.draw-comment-input-field-wrapper .draw-comment-submit {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .draw-comment-submit:hover {
@@ -576,10 +590,9 @@
   align-items: center;
 }
 
-.draw-comment-row--reply-btn .draw-icon-mask {
-  flex-shrink: 0;
+.draw-comment-row--reply-btn .draw-comment-submit {
   margin-left: auto;
-  opacity: 0.3;
+  pointer-events: none;
 }
 
 .draw-comment-reply-btn-text {
@@ -740,14 +753,9 @@
   background: transparent;
 }
 
-.draw-comment-input-bubble .draw-comment-submit {
-  background-color: #fff !important;
+.draw-comment-input-bubble .draw-comment-submit:not(.draw-comment-submit--empty) {
+  background-color: #fff;
   color: #000;
-}
-
-.draw-comment-input-bubble .draw-comment-submit--empty {
-  background-color: transparent !important;
-  opacity: 0.3;
 }
 
 /* Utility: disable image animations */
