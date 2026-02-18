@@ -274,9 +274,56 @@
 
 /* OPEN: Full content - 260px wide, max 300px tall */
 .draw-comment-bubble--open {
+  position: relative;
   width: 260px;
   max-height: 300px;
   overflow: hidden;
+}
+
+/* Scroll fade indicators */
+.draw-comment-bubble--open::before,
+.draw-comment-bubble--open::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 1;
+}
+
+.draw-comment-bubble--open::before {
+  top: 8px;
+}
+
+.draw-comment-bubble--open::after {
+  bottom: 8px;
+}
+
+.draw-comment-bubble--user.draw-comment-bubble--open::before {
+  background: linear-gradient(to bottom, #000, transparent);
+}
+
+.draw-comment-bubble--user.draw-comment-bubble--open::after {
+  background: linear-gradient(to top, #000, transparent);
+}
+
+.draw-comment-bubble--claude.draw-comment-bubble--open::before {
+  background: linear-gradient(to bottom, #fff, transparent);
+}
+
+.draw-comment-bubble--claude.draw-comment-bubble--open::after {
+  background: linear-gradient(to top, #fff, transparent);
+}
+
+.draw-comment-bubble--fade-top::before {
+  opacity: 1;
+}
+
+.draw-comment-bubble--fade-bottom::after {
+  opacity: 1;
 }
 
 /* Inner scroller — lives inside padding, scrollbar doesn't clip on rounded corners */

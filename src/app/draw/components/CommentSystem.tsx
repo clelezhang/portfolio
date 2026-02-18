@@ -247,6 +247,27 @@ export function CommentBubble({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  // Update scroll fade indicators
+  const updateScrollFades = useCallback(() => {
+    const el = bubbleRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 0);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+  }, []);
+
+  // Check fades when visual state changes (content may appear/disappear)
+  useEffect(() => {
+    if (visualState === 'open') {
+      // Wait a tick for content to render
+      requestAnimationFrame(updateScrollFades);
+    } else {
+      setCanScrollUp(false);
+      setCanScrollDown(false);
+    }
+  }, [visualState, isReplying, comment.replies?.length, updateScrollFades]);
 
   // Mark as animated after mount to enable transitions
   useEffect(() => {
@@ -300,14 +321,14 @@ export function CommentBubble({
       }}
     >
       <div
-        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}`}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}${canScrollUp ? ' draw-comment-bubble--fade-top' : ''}${canScrollDown ? ' draw-comment-bubble--fade-bottom' : ''}`}
         style={{ '--stroke-color': strokeColor } as React.CSSProperties}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
         }}
       >
-        <div ref={bubbleRef} className="draw-comment-bubble-inner">
+        <div ref={bubbleRef} className="draw-comment-bubble-inner" onScroll={updateScrollFades}>
           {/* Main row */}
           <div className="draw-comment-row draw-comment-row--main">
             <img
