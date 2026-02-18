@@ -650,11 +650,14 @@
 }
 
 .draw-comment-row--reply-btn .draw-comment-row-body {
+  position: relative;
   align-items: center;
 }
 
 .draw-comment-row--reply-btn .draw-comment-submit {
-  margin-left: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
   pointer-events: none;
 }
 
