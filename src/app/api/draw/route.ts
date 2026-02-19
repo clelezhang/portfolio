@@ -777,6 +777,7 @@ Look at the canvas. What do you see? What could be a good addition? How can that
           let sentShapesCount = 0;
           let sentBlocksCount = 0;
           let sentDrawing = false;
+          let sentAsciiColor = false;
 
           // Track current content block type
           let currentBlockType: 'thinking' | 'text' | 'tool_use' | null = null;
@@ -823,6 +824,15 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     // Send palette change if present
                     if (input.setPaletteIndex !== undefined) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'setPalette', data: input.setPaletteIndex })}\n\n`));
+                    }
+                    // Send drawing summary from tool call
+                    if (input.drawing && !sentDrawing) {
+                      console.log('[DEBUG] Tool call drawing:', input.drawing);
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: input.drawing })}\n\n`));
+                    }
+                    if (input.drawingAsciiColor && !sentAsciiColor) {
+                      console.log('[DEBUG] Tool call asciiColor:', input.drawingAsciiColor);
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawingAsciiColor', data: input.drawingAsciiColor })}\n\n`));
                     }
                     // Send interaction style from tool call
                     if (input.interactionStyle) {
@@ -905,10 +915,17 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     if (!sentDrawing) {
                       const drawingMatch = partialJson.match(/"drawing"\s*:\s*"([^"]+)"/);
                       if (drawingMatch) {
-                        const asciiColorMatch = partialJson.match(/"drawingAsciiColor"\s*:\s*"([^"]+)"/);
                         console.log('[DEBUG] Streaming drawing event:', drawingMatch[1]);
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: drawingMatch[1], asciiColor: asciiColorMatch?.[1] || null })}\n\n`));
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: drawingMatch[1] })}\n\n`));
                         sentDrawing = true;
+                      }
+                    }
+                    // Extract ASCII color separately (streams after drawing)
+                    if (!sentAsciiColor) {
+                      const asciiColorMatch = partialJson.match(/"drawingAsciiColor"\s*:\s*"([^"]+)"/);
+                      if (asciiColorMatch) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawingAsciiColor', data: asciiColorMatch[1] })}\n\n`));
+                        sentAsciiColor = true;
                       }
                     }
                   }
@@ -918,6 +935,24 @@ Look at the canvas. What do you see? What could be a good addition? How can that
               // Handle tool call input streaming (only when useToolCalls is enabled)
               if (useToolCalls && event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
                 toolInput += event.delta.partial_json;
+
+                // Extract drawing/asciiColor from partial tool input
+                if (!sentDrawing) {
+                  const m = toolInput.match(/"drawing"\s*:\s*"([^"]+)"/);
+                  if (m) {
+                    console.log('[DEBUG] Streaming tool drawing:', m[1]);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: m[1] })}\n\n`));
+                    sentDrawing = true;
+                  }
+                }
+                if (!sentAsciiColor) {
+                  const m = toolInput.match(/"drawingAsciiColor"\s*:\s*"([^"]+)"/);
+                  if (m) {
+                    console.log('[DEBUG] Streaming tool asciiColor:', m[1]);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawingAsciiColor', data: m[1] })}\n\n`));
+                    sentAsciiColor = true;
+                  }
+                }
 
                 // Try to extract and stream shapes/blocks as they complete
                 // This gives us incremental streaming even within the tool call
@@ -995,7 +1030,10 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                   };
                   if (parsed.drawing && !sentDrawing) {
                     console.log('[DEBUG] Sending drawing event (final):', parsed.drawing);
-                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing, asciiColor: parsed.drawingAsciiColor || null })}\n\n`);
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing })}\n\n`);
+                  }
+                  if (parsed.drawingAsciiColor && !sentAsciiColor) {
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawingAsciiColor', data: parsed.drawingAsciiColor })}\n\n`);
                   }
                   if (parsed.interactionStyle) {
                     safeEnqueue(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`);

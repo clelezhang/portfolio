@@ -1164,7 +1164,7 @@ html:has(.draw-page) * {
 .draw-header-text {
   font-size: 14px;
   color: var(--draw-text-primary);
-  transition: opacity 0.4s ease;
+  transition: opacity 0.15s ease;
 }
 
 .draw-header-text--loading {
@@ -1175,6 +1175,7 @@ html:has(.draw-page) * {
   font-family: 'Berkeley Mono', 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
   letter-spacing: 0.02em;
   font-size: 12px;
+  transition: color 0.15s ease;
 }
 
 .draw-divider {

@@ -120,6 +120,7 @@ export default function DrawPage() {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const imageDragOffset = useRef<Point | null>(null);
   const imageIdCounter = useRef(0);
+  const lastClaudeCursorColor = useRef('#000');
 
   // Undo/redo state
   type DrawingSnapshot = {
@@ -504,6 +505,8 @@ export default function DrawPage() {
   }, [isLoading, claudePreview]);
 
   // Typewriter effect for header text
+  const typewriterFrameRef = useRef<number | null>(null);
+
   useEffect(() => {
     // Determine target text
     const targetText = isLoading
@@ -513,10 +516,9 @@ export default function DrawPage() {
     // If target hasn't changed, do nothing
     if (targetText === headerTextTargetRef.current) return;
 
-    // Clear any existing animation
-    if (typewriterRef.current) {
-      clearTimeout(typewriterRef.current);
-    }
+    // Cancel any in-flight animation
+    if (typewriterFrameRef.current) cancelAnimationFrame(typewriterFrameRef.current);
+    if (typewriterRef.current) clearTimeout(typewriterRef.current);
 
     headerTextTargetRef.current = targetText;
 
@@ -524,7 +526,7 @@ export default function DrawPage() {
     setDisplayedHeaderText('');
 
     // Defer typewriter start so the clear actually paints first
-    const frameId = requestAnimationFrame(() => {
+    typewriterFrameRef.current = requestAnimationFrame(() => {
       const words = targetText.split(' ');
       let currentWordIndex = 1;
 
@@ -546,13 +548,6 @@ export default function DrawPage() {
         typewriterRef.current = setTimeout(showNextWord, delay);
       }
     });
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      if (typewriterRef.current) {
-        clearTimeout(typewriterRef.current);
-      }
-    };
   }, [isLoading, claudeDrawing, loadingMessage]);
 
   // Redraw ASCII blocks and shapes
@@ -1092,7 +1087,9 @@ export default function DrawPage() {
                 // 3-6 word summary of what Claude is adding
                 console.log('[DEBUG] drawing event received:', event.data);
                 setClaudeDrawing(event.data);
-                setClaudeDrawingAsciiColor(event.asciiColor || null);
+              } else if (event.type === 'drawingAsciiColor') {
+                console.log('[DEBUG] asciiColor event received:', event.data);
+                setClaudeDrawingAsciiColor(event.data);
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
                 setInteractionStyle(event.data);
@@ -1425,13 +1422,13 @@ export default function DrawPage() {
           />
           <span className={`draw-header-text${isLoading && !claudeDrawing ? ' draw-header-text--loading' : ''}`}>
             {(() => {
-              const text = displayedHeaderText.charAt(0).toUpperCase() + displayedHeaderText.slice(1);
+              const text = displayedHeaderText.replace(/[a-zA-Z]/, c => c.toUpperCase());
               // Only apply ASCII color styling for drawing info, not loading or default
               if (!claudeDrawing) return text;
               // Use Claude's chosen color, or fall back to first palette color
               const asciiColor = claudeDrawingAsciiColor || COLOR_PALETTES[paletteIndex][0];
               // Split into runs of ASCII art vs normal text
-              return text.split(/([a-zA-Z][a-zA-Z']+(?:\s+[a-zA-Z][a-zA-Z']+)*)/).map((part, i) =>
+              return text.split(/([a-zA-Z][a-zA-Z']*(?:\s+[a-zA-Z][a-zA-Z']*)*)/).map((part, i) =>
                 /^[a-zA-Z]/.test(part)
                   ? <span key={i}>{part}</span>
                   : <span key={i} className="draw-header-ascii" style={{ color: asciiColor }}>{part}</span>
@@ -1995,7 +1992,7 @@ export default function DrawPage() {
             ))}
 
             {/* Claude's cursor - rendered inside transform wrapper at canvas coordinates */}
-            {/* Uses pre-made SVGs with "opus" label for Claude's cursor */}
+            {/* Uses inline SVG components with "opus" label, same style as user cursors */}
             {CUSTOM_CURSORS_ENABLED && claudeCursorPos && (
               <div
                 className="absolute pointer-events-none"
@@ -2008,6 +2005,7 @@ export default function DrawPage() {
                   // Counter-scale to keep cursor at consistent size regardless of zoom
                   transform: `scale(${1 / zoom})`,
                   transformOrigin: '3px 3px',
+                  filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
                 }}
               >
                 {animatingAscii ? (
@@ -2015,7 +2013,11 @@ export default function DrawPage() {
                 ) : animatingShape?.shape.type === 'erase' ? (
                   <ClaudeEraserCursor />
                 ) : (
-                  <ClaudePencilCursor />
+                  <ClaudePencilCursor color={(() => {
+                    const c = animatingShape?.shape.color || animatingShape?.shape.fill;
+                    if (c) lastClaudeCursorColor.current = c;
+                    return lastClaudeCursorColor.current;
+                  })()} />
                 )}
               </div>
             )}
