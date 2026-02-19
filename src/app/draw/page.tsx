@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { useDialKit } from 'dialkit';
 import './draw.css';
 
 // Types
@@ -236,7 +237,36 @@ export default function DrawPage() {
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
 
+  // DialKit - floating control panel for tweaking visual parameters
+  const dialConfig = {
+    effects: {
+      distortion: [distortionAmount, 0, 30] as [number, number, number],
+      wiggleSpeed: [wiggleSpeed, 50, 500] as [number, number, number],
+      bounceIntensity: [bounceIntensity, 0, 2] as [number, number, number],
+    },
+    drawing: {
+      strokeSize: [strokeSize, 1, 40] as [number, number, number],
+      animationSpeed: [animationSpeed, 0.5, 3] as [number, number, number],
+    },
+    ai: {
+      temperature: [temperature, 0, 2] as [number, number, number],
+      maxTokens: [maxTokens, 256, 2048] as [number, number, number],
+    },
+    canvas: {
+      gridSize: [gridSize, 8, 64] as [number, number, number],
+    },
+  };
+  const dial = useDialKit('Draw', dialConfig);
 
+  // Sync DialKit values → existing state
+  useEffect(() => { setDistortionAmount(dial.effects.distortion); }, [dial.effects.distortion]);
+  useEffect(() => { setWiggleSpeed(dial.effects.wiggleSpeed); }, [dial.effects.wiggleSpeed]);
+  useEffect(() => { setBounceIntensity(dial.effects.bounceIntensity); }, [dial.effects.bounceIntensity]);
+  useEffect(() => { setStrokeSize(dial.drawing.strokeSize); }, [dial.drawing.strokeSize]);
+  useEffect(() => { setAnimationSpeed(dial.drawing.animationSpeed); }, [dial.drawing.animationSpeed]);
+  useEffect(() => { setTemperature(dial.ai.temperature); }, [dial.ai.temperature]);
+  useEffect(() => { setMaxTokens(dial.ai.maxTokens); }, [dial.ai.maxTokens]);
+  useEffect(() => { setGridSize(dial.canvas.gridSize); }, [dial.canvas.gridSize]);
 
   // Capture the full canvas (background + all drawings) as an image
   // Optimized: scales down large images and uses JPEG for smaller payload

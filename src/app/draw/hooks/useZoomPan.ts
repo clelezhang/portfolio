@@ -72,15 +72,17 @@ export function useZoomPan({ containerRef, canvasRef, panSensitivity = 1.0, zoom
     if (!container) return;
 
     // If scrolling over a comment bubble that has overflow, scroll it instead of panning
+    // The inner scroller (.draw-comment-bubble-inner) has overflow-y: auto,
+    // while the bubble itself has overflow: hidden — so check the inner element.
     const target = e.target as Element;
-    const commentBubble = target.closest('.draw-comment-bubble') as HTMLElement | null;
-    if (commentBubble && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      const canScrollY = commentBubble.scrollHeight > commentBubble.clientHeight;
+    const commentInner = target.closest('.draw-comment-bubble-inner') as HTMLElement | null;
+    if (commentInner && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      const canScrollY = commentInner.scrollHeight > commentInner.clientHeight;
       if (canScrollY) {
-        const atTop = commentBubble.scrollTop <= 0;
-        const atBottom = commentBubble.scrollTop + commentBubble.clientHeight >= commentBubble.scrollHeight - 1;
+        const atTop = commentInner.scrollTop <= 0;
+        const atBottom = commentInner.scrollTop + commentInner.clientHeight >= commentInner.scrollHeight - 1;
         if (!((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom))) {
-          commentBubble.scrollTop += e.deltaY;
+          commentInner.scrollTop += e.deltaY;
         }
         return; // Never pan when hovering over a scrollable comment
       }

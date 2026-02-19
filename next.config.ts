@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 31536000,
   },
   experimental: {
-    optimizePackageImports: ['framer-motion', '@heroicons/react', 'lucide-react', '@anthropic-ai/sdk'],
+    optimizePackageImports: ['@heroicons/react', 'lucide-react', '@anthropic-ai/sdk'],
     webpackMemoryOptimizations: true,
   },
   turbopack: {

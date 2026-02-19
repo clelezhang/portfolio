@@ -186,6 +186,12 @@
   cursor: none !important;
 }
 
+/* Also hide on html/body to prevent default cursor leaking through */
+html:has(.draw-page),
+html:has(.draw-page) body {
+  cursor: none !important;
+}
+
 /* -----------------------------------------------------------------------------
    Comments - Morphing Bubble System
    ----------------------------------------------------------------------------- */

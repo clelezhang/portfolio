@@ -31,6 +31,7 @@
     "ai": "^5.0.28",
     "baseui": "^16.0.0",
     "crypto-js": "^4.2.0",
+    "dialkit": "^0.2.1",
     "exa-js": "^2.0.0",
     "framer-motion": "^12.23.12",
     "highlight.js": "^11.11.1",
