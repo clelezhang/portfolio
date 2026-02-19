@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useCallback, useState } from 'react';
+import { useDialKit } from 'dialkit';
 import { Comment, Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
 import { CloseIcon, CheckmarkIcon, SubmitArrowIcon } from './icons';
@@ -23,9 +24,6 @@ interface CommentSystemProps {
   saveComment?: (index: number) => void;
   dismissComment?: (index: number) => void;
 }
-
-// Hover delay in milliseconds to prevent jittering
-const HOVER_DELAY = 80;
 
 // Animation duration matches CSS transition (0.2s)
 const TRANSITION_MS = 210;
@@ -102,6 +100,80 @@ export const CommentSystem = memo(function CommentSystem({
   saveComment,
   dismissComment,
 }: CommentSystemProps) {
+  // Easing presets for DialKit select controls
+  const EASING_OPTIONS = [
+    { value: 'cubic-bezier(0.4, 0, 0.2, 1)', label: 'ease-out (default)' },
+    { value: 'cubic-bezier(0.34, 1.56, 0.64, 1)', label: 'ease-out-back' },
+    { value: 'cubic-bezier(0.22, 1, 0.36, 1)', label: 'ease-out-quint' },
+    { value: 'cubic-bezier(0.16, 1, 0.3, 1)', label: 'ease-out-expo' },
+    { value: 'cubic-bezier(0.33, 1, 0.68, 1)', label: 'ease-out-cubic' },
+    { value: 'cubic-bezier(0.25, 0.1, 0.25, 1)', label: 'ease (CSS default)' },
+    { value: 'cubic-bezier(0.4, 0, 1, 1)', label: 'ease-in' },
+    { value: 'linear', label: 'linear' },
+  ];
+
+  // DialKit — animation fine-tuning panel
+  const dial = useDialKit('Comments', {
+    morph: {
+      duration: [200, 50, 600] as [number, number, number],
+      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+      closeDuration: [180, 50, 600] as [number, number, number],
+      closeEasing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+      openScaleFrom: [1, 0.5, 1] as [number, number, number],
+      openBlurFrom: [0, 0, 10] as [number, number, number],
+    },
+    hover: {
+      duration: [200, 50, 600] as [number, number, number],
+      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+      delay: [80, 0, 300] as [number, number, number],
+    },
+    input: {
+      duration: [228, 50, 600] as [number, number, number],
+      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+      scaleFrom: [0.94, 0.5, 1] as [number, number, number],
+      closeDuration: [71, 50, 600] as [number, number, number],
+      closeEasing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+    },
+    fade: {
+      total: [60, 5, 120] as [number, number, number],
+      blurMax: [1, 0, 5] as [number, number, number],
+    },
+    details: {
+      deleteDuration: [150, 50, 400] as [number, number, number],
+      tempSlideDuration: [150, 50, 400] as [number, number, number],
+    },
+  });
+
+  // Apply DialKit values as CSS custom properties on :root so they cascade everywhere
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars: Record<string, string> = {
+      '--comment-morph-duration': `${dial.morph.duration}ms`,
+      '--comment-morph-easing': dial.morph.easing,
+      '--comment-open-scale-from': String(dial.morph.openScaleFrom),
+      '--comment-open-blur-from': `${dial.morph.openBlurFrom}px`,
+      '--comment-close-duration': `${dial.morph.closeDuration}ms`,
+      '--comment-close-easing': dial.morph.closeEasing,
+      '--comment-hover-duration': `${dial.hover.duration}ms`,
+      '--comment-hover-easing': dial.hover.easing,
+      '--comment-input-duration': `${dial.input.duration}ms`,
+      '--comment-input-easing': dial.input.easing,
+      '--comment-input-scale-from': String(dial.input.scaleFrom),
+      '--comment-input-close-duration': `${dial.input.closeDuration}ms`,
+      '--comment-input-close-easing': dial.input.closeEasing,
+      '--comment-delete-duration': `${dial.details.deleteDuration}ms`,
+      '--comment-fade-total': `${dial.fade.total}s`,
+      '--comment-fade-blur-max': `${dial.fade.blurMax}px`,
+      '--comment-temp-slide-duration': `${dial.details.tempSlideDuration}ms`,
+    };
+    for (const [key, value] of Object.entries(vars)) {
+      root.style.setProperty(key, value);
+    }
+  }, [dial]);
+
+  // Use DialKit hover delay value
+  const hoverDelay = dial.hover.delay;
+
   // Ref to track hover timer for debouncing
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -115,8 +187,8 @@ export const CommentSystem = memo(function CommentSystem({
     // Set hover after delay
     hoverTimerRef.current = setTimeout(() => {
       setHoveredCommentIndex(index);
-    }, HOVER_DELAY);
-  }, [setHoveredCommentIndex]);
+    }, hoverDelay);
+  }, [setHoveredCommentIndex, hoverDelay]);
 
   const handleMouseLeave = useCallback(() => {
     // Clear any pending enter timer
@@ -127,8 +199,8 @@ export const CommentSystem = memo(function CommentSystem({
     // Clear hover after delay
     hoverTimerRef.current = setTimeout(() => {
       setHoveredCommentIndex(null);
-    }, HOVER_DELAY);
-  }, [setHoveredCommentIndex]);
+    }, hoverDelay);
+  }, [setHoveredCommentIndex, hoverDelay]);
 
   // Cleanup timer on unmount
   useEffect(() => {

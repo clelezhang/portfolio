@@ -37,6 +37,7 @@
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.536.0",
     "markdown-it": "13.0.2",
+    "motion": "^12.34.2",
     "next": "^15.4.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",

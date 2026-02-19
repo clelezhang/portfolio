@@ -433,9 +433,10 @@ Output a single JSON object with ALL these fields:
   "drawing": "REQUIRED: 3-6 word summary of what you're adding",
   "interactionStyle": "collaborative" or "playful",
   "shapes": [...],
-  "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''}
+  "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''},
+  "loadingMessages": ["5 whimsical messages about the drawing..."]
 }
-IMPORTANT: Always include the "drawing" field with a brief summary.
+IMPORTANT: Always include the "drawing" field with a brief summary and "loadingMessages" with 5 creative messages.
 </output-format>`;
 
   return `<drawing-reference>
@@ -636,11 +637,12 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
       'haiku': 'claude-3-5-haiku-20241022',
       'sonnet': 'claude-sonnet-4-20250514',
       'opus': 'claude-opus-4-20250514',
-      // Opus version variants for comparison testing
+      // Version variants for comparison testing
       'opus-4': 'claude-opus-4-20250514',
       'opus-4.1': 'claude-opus-4-1-20250805',
       'opus-4.5': 'claude-opus-4-5-20251101',
       'opus-4.6': 'claude-opus-4-6',
+      'sonnet-4.6': 'claude-sonnet-4-6',
     };
     const selectedModel = modelMap[model] || 'claude-opus-4-20250514';
 

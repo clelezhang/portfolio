@@ -1,3 +1,4 @@
+import { useRef, useCallback, useState } from 'react';
 import { Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
@@ -25,6 +26,20 @@ export function CommentInput({
   onMouseLeaveBubble,
 }: CommentInputProps) {
   const handleTextareaResize = useAutoResizeTextarea(100);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Animate out before calling onCancel
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    const form = formRef.current;
+    if (form) {
+      form.addEventListener('animationend', () => onCancel(), { once: true });
+    } else {
+      onCancel();
+    }
+  }, [onCancel, isClosing]);
 
   return (
     <>
@@ -33,12 +48,13 @@ export function CommentInput({
         className="draw-comment-input-backdrop"
         onClick={(e) => {
           e.stopPropagation();
-          onCancel();
+          handleClose();
         }}
       />
       <form
+        ref={formRef}
         onSubmit={onSubmit}
-        className="draw-comment-input-form"
+        className={`draw-comment-input-form${isClosing ? ' draw-comment-input-form--closing' : ''}`}
         style={{
           position: 'absolute',
           left: screenPosition.x,
@@ -62,7 +78,7 @@ export function CommentInput({
               rows={1}
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Escape') onCancel();
+                if (e.key === 'Escape') handleClose();
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   if (commentText.trim()) {

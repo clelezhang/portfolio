@@ -47,6 +47,25 @@
   --draw-radius-sm: 4px;
   --draw-radius-md: 12px;
   --draw-radius-lg: 1.5rem;
+
+  /* Comment animation tokens */
+  --comment-morph-duration: 0.2s;
+  --comment-morph-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --comment-open-scale-from: 0.92;
+  --comment-open-blur-from: 2px;
+  --comment-close-duration: 0.18s;
+  --comment-close-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --comment-hover-duration: 0.2s;
+  --comment-hover-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --comment-input-duration: 0.2s;
+  --comment-input-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --comment-input-scale-from: 0.95;
+  --comment-input-close-duration: 0.15s;
+  --comment-input-close-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --comment-delete-duration: 0.15s;
+  --comment-fade-total: 60s;
+  --comment-fade-blur-max: 1px;
+  --comment-temp-slide-duration: 0.15s;
 }
 
 /* -----------------------------------------------------------------------------
@@ -186,9 +205,10 @@
   cursor: none !important;
 }
 
-/* Also hide on html/body to prevent default cursor leaking through */
+/* Also hide on ALL elements in the document (including layout siblings,
+   portals, and library-injected elements outside .draw-page) */
 html:has(.draw-page),
-html:has(.draw-page) body {
+html:has(.draw-page) * {
   cursor: none !important;
 }
 
@@ -212,7 +232,7 @@ html:has(.draw-page) body {
 
 /* Apply fade animation only to the bubble, not the action buttons */
 .draw-comment-wrapper--temp .draw-comment-bubble {
-  animation: commentFadeOut 60s linear forwards;
+  animation: commentFadeOut var(--comment-fade-total) linear forwards;
 }
 
 .draw-comment-wrapper--temp:hover .draw-comment-bubble {
@@ -238,7 +258,28 @@ html:has(.draw-page) body {
 
 /* Enable transitions only after mount (prevents initial animation) */
 .draw-comment-bubble.draw-comment-bubble--animated {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    width var(--comment-morph-duration) var(--comment-morph-easing),
+    max-height var(--comment-morph-duration) var(--comment-morph-easing),
+    padding var(--comment-morph-duration) var(--comment-morph-easing),
+    border-radius var(--comment-morph-duration) var(--comment-morph-easing),
+    transform var(--comment-morph-duration) var(--comment-morph-easing),
+    filter var(--comment-morph-duration) var(--comment-morph-easing),
+    opacity var(--comment-morph-duration) var(--comment-morph-easing);
+  transform-origin: 0 0;
+}
+
+/* Closing transition (collapsing back) */
+.draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed {
+  transition:
+    width var(--comment-close-duration) var(--comment-close-easing),
+    max-height var(--comment-close-duration) var(--comment-close-easing),
+    padding var(--comment-close-duration) var(--comment-close-easing),
+    border-radius var(--comment-close-duration) var(--comment-close-easing),
+    transform var(--comment-close-duration) var(--comment-close-easing),
+    filter var(--comment-close-duration) var(--comment-close-easing),
+    opacity var(--comment-close-duration) var(--comment-close-easing);
+  transform-origin: 0 0;
 }
 
 /* -----------------------------------------------------------------------------
@@ -246,11 +287,13 @@ html:has(.draw-page) body {
    Collapsed and Preview look identical - only text visibility differs
    ----------------------------------------------------------------------------- */
 
-/* COLLAPSED: Icon only - 42x42 */
+/* COLLAPSED: Icon only - 42x42, scaled down to origin */
 .draw-comment-bubble--collapsed {
   width: 42px;
   max-height: 42px;
   overflow: hidden;
+  transform: scale(var(--comment-open-scale-from));
+  filter: blur(var(--comment-open-blur-from));
 }
 
 .draw-comment-bubble--collapsed .draw-comment-row--main {
@@ -271,6 +314,8 @@ html:has(.draw-page) body {
   width: 180px;
   max-height: 120px;
   overflow: hidden;
+  transform: scale(1);
+  filter: blur(0px);
 }
 
 .draw-comment-bubble--preview .draw-comment-text {
@@ -293,6 +338,8 @@ html:has(.draw-page) body {
   width: 260px;
   max-height: 300px;
   overflow: hidden;
+  transform: scale(1);
+  filter: blur(0px);
 }
 
 /* Scroll fade indicators */
@@ -417,7 +464,7 @@ html:has(.draw-page) body {
 /* Main row body — transitions for collapse/expand */
 .draw-comment-row--main .draw-comment-row-body {
   overflow: hidden;
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity var(--comment-hover-duration) var(--comment-hover-easing);
 }
 
 /* -----------------------------------------------------------------------------
@@ -551,7 +598,7 @@ html:has(.draw-page) body {
   right: 9px;
   z-index: 1;
   opacity: 0;
-  animation: fadeIn 0.15s ease-out forwards;
+  animation: fadeIn var(--comment-delete-duration) ease-out forwards;
 }
 
 .draw-comment-delete:hover {
@@ -686,7 +733,7 @@ html:has(.draw-page) body {
   align-items: center;
   padding: 8px;
   flex-shrink: 0;
-  animation: tempActionsSlideIn 0.15s ease-out forwards;
+  animation: tempActionsSlideIn var(--comment-temp-slide-duration) ease-out forwards;
 }
 
 @keyframes tempActionsSlideIn {
@@ -767,19 +814,19 @@ html:has(.draw-page) body {
   }
   50% {
     opacity: 0.85;
-    filter: blur(0.25px);
+    filter: blur(calc(var(--comment-fade-blur-max) * 0.25));
   }
   75% {
     opacity: 0.75;
-    filter: blur(0.5px);
+    filter: blur(calc(var(--comment-fade-blur-max) * 0.5));
   }
   92% {
     opacity: 0.4;
-    filter: blur(0.75px);
+    filter: blur(calc(var(--comment-fade-blur-max) * 0.75));
   }
   100% {
     opacity: 0;
-    filter: blur(1px);
+    filter: blur(var(--comment-fade-blur-max));
   }
 }
 
@@ -794,7 +841,12 @@ html:has(.draw-page) body {
 }
 
 .draw-comment-input-form {
-  animation: commentInputAppear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: commentInputAppear var(--comment-input-duration) var(--comment-input-easing) forwards;
+}
+
+/* Close animation for comment input */
+.draw-comment-input-form--closing {
+  animation: commentInputClose var(--comment-input-close-duration) var(--comment-input-close-easing) forwards;
 }
 
 /* Comment input cursor handled by React CustomCursor */
@@ -802,11 +854,22 @@ html:has(.draw-page) body {
 @keyframes commentInputAppear {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(var(--comment-input-scale-from));
   }
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes commentInputClose {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--comment-input-scale-from));
   }
 }
 
