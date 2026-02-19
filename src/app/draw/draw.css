@@ -1164,6 +1164,17 @@ html:has(.draw-page) * {
 .draw-header-text {
   font-size: 14px;
   color: var(--draw-text-primary);
+  transition: opacity 0.4s ease;
+}
+
+.draw-header-text--loading {
+  opacity: 0.45;
+}
+
+.draw-header-ascii {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
+  font-size: 12px;
 }
 
 .draw-divider {

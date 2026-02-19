@@ -40,12 +40,11 @@ const CANVAS_STORAGE_KEY = 'draw-canvas-state';
 
 // Fallback loading messages (turn 1 only, before Claude has generated custom ones)
 const FALLBACK_LOADING_MESSAGES = [
-  'Contemplating pixels...',
-  'Calibrating imagination...',
-  'Downloading inspiration...',
-  'Whispering with shapes...',
-  'Negotiating with colors...',
-  'Thinking thoughts...',
+  'Contemplating ~ pixels . _~',
+  'Calibrating imagination . o O @',
+  'Negotiating with colors . . .',
+  'Warming up creativity * * ~~-->',
+  'Downloading inspiration _ / | \\ _',
 ];
 
 // Toggle to disable custom cursors globally (set to false to disable)
@@ -484,7 +483,13 @@ export default function DrawPage() {
 
   // Cycle through loading messages (Claude-generated from last turn, or fallbacks)
   useEffect(() => {
-    const pool = claudePreview && claudePreview.length > 0 ? claudePreview : FALLBACK_LOADING_MESSAGES;
+    const custom = claudePreview && claudePreview.length > 0 ? claudePreview : [];
+    // Mix in fallbacks if we have few custom messages to avoid repetition
+    const pool = custom.length === 0
+      ? FALLBACK_LOADING_MESSAGES
+      : custom.length <= 4
+        ? [...custom, ...FALLBACK_LOADING_MESSAGES]
+        : custom;
     const pickRandom = () => pool[Math.floor(Math.random() * pool.length)];
     if (!isLoading) {
       setLoadingMessage(pickRandom());
@@ -514,34 +519,37 @@ export default function DrawPage() {
 
     headerTextTargetRef.current = targetText;
 
-    // Split into words for chunk-based streaming with random timing
-    const words = targetText.split(' ');
-    let currentWordIndex = 0;
-    let timeoutId: NodeJS.Timeout | null = null;
+    // Clear old text immediately
+    setDisplayedHeaderText('');
 
-    const showNextWord = () => {
-      currentWordIndex++;
-      setDisplayedHeaderText(words.slice(0, currentWordIndex).join(' '));
+    // Defer typewriter start so the clear actually paints first
+    const frameId = requestAnimationFrame(() => {
+      const words = targetText.split(' ');
+      let currentWordIndex = 1;
 
-      if (currentWordIndex < words.length) {
-        // Random delay between 50-150ms per word
+      // Show first word
+      setDisplayedHeaderText(words[0] || '');
+
+      if (words.length > 1) {
+        const showNextWord = () => {
+          currentWordIndex++;
+          setDisplayedHeaderText(words.slice(0, currentWordIndex).join(' '));
+
+          if (currentWordIndex < words.length) {
+            const delay = 50 + Math.random() * 100;
+            typewriterRef.current = setTimeout(showNextWord, delay);
+          }
+        };
+
         const delay = 50 + Math.random() * 100;
-        timeoutId = setTimeout(showNextWord, delay);
+        typewriterRef.current = setTimeout(showNextWord, delay);
       }
-    };
-
-    // Show first word immediately
-    setDisplayedHeaderText(words[0] || '');
-    currentWordIndex = 1;
-
-    if (words.length > 1) {
-      const delay = 50 + Math.random() * 100;
-      timeoutId = setTimeout(showNextWord, delay);
-    }
+    });
 
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+      cancelAnimationFrame(frameId);
+      if (typewriterRef.current) {
+        clearTimeout(typewriterRef.current);
       }
     };
   }, [isLoading, claudeDrawing, loadingMessage]);
@@ -1412,8 +1420,18 @@ export default function DrawPage() {
             onClick={handleYourTurn}
             disabled={isLoading}
           />
-          <span className="draw-header-text">
-            {displayedHeaderText.charAt(0).toUpperCase() + displayedHeaderText.slice(1)}
+          <span className={`draw-header-text${isLoading && !claudeDrawing ? ' draw-header-text--loading' : ''}`}>
+            {(() => {
+              const text = displayedHeaderText.charAt(0).toUpperCase() + displayedHeaderText.slice(1);
+              // Split into runs of ASCII art vs normal text
+              // ASCII art = sequences of symbols like . _ / \ | ~ > < ( ) - = @ o O : that aren't normal words
+              return text.split(/([a-zA-Z][a-zA-Z']+(?:\s+[a-zA-Z][a-zA-Z']+)*)/).map((part, i) =>
+                // Runs that are purely word characters = normal text, everything else = ASCII
+                /^[a-zA-Z]/.test(part)
+                  ? <span key={i}>{part}</span>
+                  : <span key={i} className="draw-header-ascii">{part}</span>
+              );
+            })()}
           </span>
         </div>
         <div className="draw-header-right">

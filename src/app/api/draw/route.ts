@@ -434,9 +434,9 @@ Output a single JSON object with ALL these fields:
   "interactionStyle": "collaborative" or "playful",
   "shapes": [...],
   "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''},
-  "loadingMessages": ["5 whimsical messages about the drawing..."]
+  "loadingMessages": ["5 short messages with ASCII art mixed in"]
 }
-IMPORTANT: Always include the "drawing" field with a brief summary and "loadingMessages" with 5 creative messages.
+IMPORTANT: Always include the "drawing" field with a brief summary and "loadingMessages" with 5 loading messages with small ASCII art.
 </output-format>`;
 
   return `<drawing-reference>
@@ -527,7 +527,7 @@ const DRAW_TOOL: Anthropic.Tool = {
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
       interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
-      loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: 'REQUIRED: 5 whimsical, creative 3-8 word loading messages about what\'s on the canvas and what you might do next. Be playful and specific to the drawing content. e.g. ["Those flowers need friends...", "Eyeing that empty corner...", "The sun looks lonely up there...", "Contemplating more petals...", "What if I added a bee..."]' },
+      loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: 'REQUIRED: 5 short loading messages about the drawing. Mix in small ASCII art — little faces, arrows, dots, slashes, symbols — woven into the text naturally. Vary the style: some might trail off with dots, some have a tiny face, some use punctuation as texture. No fixed format. e.g. ["Those flowers need friends . o", "Eyeing that corner -->", "Hmm (._.) the sun looks lonely", "Adding . . . more petals", "A bee? ~~~>"]' },
     },
   },
 };
