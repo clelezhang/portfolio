@@ -38,8 +38,8 @@ import {
 // Storage key for localStorage persistence
 const CANVAS_STORAGE_KEY = 'draw-canvas-state';
 
-// Whimsical loading messages
-const LOADING_MESSAGES = [
+// Fallback loading messages (turn 1 only, before Claude has generated custom ones)
+const FALLBACK_LOADING_MESSAGES = [
   'Contemplating pixels...',
   'Calibrating imagination...',
   'Downloading inspiration...',
@@ -102,7 +102,8 @@ export default function DrawPage() {
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
+  const [loadingMessage, setLoadingMessage] = useState(FALLBACK_LOADING_MESSAGES[0]);
+  const [claudePreview, setClaudePreview] = useState<string[] | null>(null); // whimsical loading messages from Claude's last turn
   const [asciiBlocks, setAsciiBlocks] = useState<AsciiBlock[]>([]);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [humanStrokes, setHumanStrokes] = useState<HumanStroke[]>([]);
@@ -237,36 +238,23 @@ export default function DrawPage() {
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
 
-  // DialKit - floating control panel for tweaking visual parameters
-  const dialConfig = {
-    effects: {
+  // DialKit - floating control panel for animation fine-tuning
+  const dial = useDialKit('Animations', {
+    wobble: {
       distortion: [distortionAmount, 0, 30] as [number, number, number],
       wiggleSpeed: [wiggleSpeed, 50, 500] as [number, number, number],
+    },
+    claude: {
+      animationSpeed: [animationSpeed, 0.5, 3] as [number, number, number],
       bounceIntensity: [bounceIntensity, 0, 2] as [number, number, number],
     },
-    drawing: {
-      strokeSize: [strokeSize, 1, 40] as [number, number, number],
-      animationSpeed: [animationSpeed, 0.5, 3] as [number, number, number],
-    },
-    ai: {
-      temperature: [temperature, 0, 2] as [number, number, number],
-      maxTokens: [maxTokens, 256, 2048] as [number, number, number],
-    },
-    canvas: {
-      gridSize: [gridSize, 8, 64] as [number, number, number],
-    },
-  };
-  const dial = useDialKit('Draw', dialConfig);
+  });
 
   // Sync DialKit values → existing state
-  useEffect(() => { setDistortionAmount(dial.effects.distortion); }, [dial.effects.distortion]);
-  useEffect(() => { setWiggleSpeed(dial.effects.wiggleSpeed); }, [dial.effects.wiggleSpeed]);
-  useEffect(() => { setBounceIntensity(dial.effects.bounceIntensity); }, [dial.effects.bounceIntensity]);
-  useEffect(() => { setStrokeSize(dial.drawing.strokeSize); }, [dial.drawing.strokeSize]);
-  useEffect(() => { setAnimationSpeed(dial.drawing.animationSpeed); }, [dial.drawing.animationSpeed]);
-  useEffect(() => { setTemperature(dial.ai.temperature); }, [dial.ai.temperature]);
-  useEffect(() => { setMaxTokens(dial.ai.maxTokens); }, [dial.ai.maxTokens]);
-  useEffect(() => { setGridSize(dial.canvas.gridSize); }, [dial.canvas.gridSize]);
+  useEffect(() => { setDistortionAmount(dial.wobble.distortion); }, [dial.wobble.distortion]);
+  useEffect(() => { setWiggleSpeed(dial.wobble.wiggleSpeed); }, [dial.wobble.wiggleSpeed]);
+  useEffect(() => { setAnimationSpeed(dial.claude.animationSpeed); }, [dial.claude.animationSpeed]);
+  useEffect(() => { setBounceIntensity(dial.claude.bounceIntensity); }, [dial.claude.bounceIntensity]);
 
   // Capture the full canvas (background + all drawings) as an image
   // Optimized: scales down large images and uses JPEG for smaller payload
@@ -494,17 +482,20 @@ export default function DrawPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
 
-  // Cycle through whimsical loading messages
+  // Cycle through loading messages (Claude-generated from last turn, or fallbacks)
   useEffect(() => {
+    const pool = claudePreview && claudePreview.length > 0 ? claudePreview : FALLBACK_LOADING_MESSAGES;
+    const pickRandom = () => pool[Math.floor(Math.random() * pool.length)];
     if (!isLoading) {
-      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+      setLoadingMessage(pickRandom());
       return;
     }
+    setLoadingMessage(pickRandom());
     const interval = setInterval(() => {
-      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+      setLoadingMessage(pickRandom());
     }, 2000);
     return () => clearInterval(interval);
-  }, [isLoading]);
+  }, [isLoading, claudePreview]);
 
   // Typewriter effect for header text
   useEffect(() => {
@@ -957,7 +948,11 @@ export default function DrawPage() {
         });
       }
 
-      if (!response.ok) throw new Error('Failed to get response');
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Draw API error (${response.status}):`, errorBody);
+        throw new Error(`Failed to get response (${response.status}): ${errorBody}`);
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader available');
@@ -1090,6 +1085,9 @@ export default function DrawPage() {
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
                 setInteractionStyle(event.data);
+              } else if (event.type === 'preview') {
+                // Next-turn loading message teaser from Claude
+                setClaudePreview(event.data);
               } else if (event.type === 'usage') {
                 // Track token usage (sent as separate event from API)
                 setLastUsage({ input_tokens: event.input_tokens, output_tokens: event.output_tokens });
@@ -1164,6 +1162,7 @@ export default function DrawPage() {
     setWish(null);
     setDrawingElements([]);
     setThinkingText('');
+    setClaudePreview(null);
     setImages([]);
     setSelectedImageId(null);
     lastDrawnPoint.current = null;

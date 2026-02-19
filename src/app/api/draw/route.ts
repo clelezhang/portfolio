@@ -67,6 +67,7 @@ interface AsciiResponse {
   drawing?: string; // 3-6 word summary of what Claude is adding
   mode?: DrawingMode; // forms, details, or general
   interactionStyle?: InteractionStyle; // Detected human interaction style
+  loadingMessages?: string[]; // Whimsical loading messages for next turn
 }
 
 interface PreviousDrawing {
@@ -424,7 +425,7 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
   // Output format differs based on tool calls vs JSON mode
   const outputFormat = useToolCalls
     ? `<output-format>
-Call the draw tool immediately with your shapes/blocks. Include interactionStyle in the tool call.
+Call the draw tool immediately with your shapes/blocks. Include interactionStyle and loadingMessages in the tool call.
 </output-format>`
     : `<output-format>
 Output a single JSON object with ALL these fields:
@@ -525,6 +526,7 @@ const DRAW_TOOL: Anthropic.Tool = {
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
       interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
+      loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: 'REQUIRED: 5 whimsical, creative 3-8 word loading messages about what\'s on the canvas and what you might do next. Be playful and specific to the drawing content. e.g. ["Those flowers need friends...", "Eyeing that empty corner...", "The sun looks lonely up there...", "Contemplating more petals...", "What if I added a bee..."]' },
     },
   },
 };
@@ -816,6 +818,10 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     if (input.interactionStyle) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'interactionStyle', data: input.interactionStyle })}\n\n`));
                     }
+                    // Send next-turn preview teaser
+                    if (input.loadingMessages) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'preview', data: input.loadingMessages })}\n\n`));
+                    }
                   } catch { /* tool input parsing failed */ }
                 }
                 currentBlockType = null;
@@ -1001,6 +1007,9 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                   if (parsed.setPaletteIndex !== undefined) {
                     safeEnqueue(`data: ${JSON.stringify({ type: 'setPalette', data: parsed.setPaletteIndex })}\n\n`);
                   }
+                  if (parsed.loadingMessages) {
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'preview', data: parsed.loadingMessages })}\n\n`);
+                  }
                 }
               } catch (e) { console.log('[DEBUG] JSON parse error:', e); }
             }
@@ -1067,6 +1076,7 @@ Look at the canvas. What do you see? What could be a good addition? How can that
         replyTo?: number;
         setPaletteIndex?: number;
         interactionStyle?: InteractionStyle;
+        loadingMessages?: string[];
       };
 
       // Build response from tool data (no text parsing needed)
@@ -1079,6 +1089,7 @@ Look at the canvas. What do you see? What could be a good addition? How can that
         replyTo: toolInput.replyTo,
         setPaletteIndex: toolInput.setPaletteIndex,
         interactionStyle: toolInput.interactionStyle,
+        loadingMessages: toolInput.loadingMessages,
       };
 
       return NextResponse.json(asciiResponse);

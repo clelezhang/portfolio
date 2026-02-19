@@ -542,7 +542,7 @@ html:has(.draw-page) body {
 }
 
 .draw-comment-btn:active .draw-icon-mask {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 
 .draw-comment-delete {
@@ -802,7 +802,7 @@ html:has(.draw-page) body {
 @keyframes commentInputAppear {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -1003,7 +1003,11 @@ html:has(.draw-page) body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.draw-icon-btn:active {
+  transform: scale(0.95);
 }
 
 .draw-icon-btn:hover {
@@ -1031,7 +1035,11 @@ html:has(.draw-page) body {
   justify-content: center;
   width: var(--draw-icon-size);
   height: var(--draw-icon-size);
-  transition: all 0.2s;
+  transition: all 0.2s, transform 0.1s;
+}
+
+.draw-toolbar-comment-btn:active {
+  transform: scale(0.95);
 }
 
 .draw-toolbar-comment-btn:hover img {
@@ -1050,7 +1058,11 @@ html:has(.draw-page) body {
   border-radius: 0.5rem;
   cursor: pointer;
   color: var(--draw-text-primary);
-  transition: all 0.2s;
+  transition: all 0.2s, transform 0.1s;
+}
+
+.draw-header-icon-btn:active {
+  transform: scale(0.95);
 }
 
 .draw-header-icon-btn:hover {
@@ -1494,6 +1506,16 @@ html:has(.draw-page) body {
 .draw-color-btn--dice {
   background-color: transparent;
   overflow: visible;
+  border-radius: 0 8px 8px 0;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.draw-color-btn--dice:hover {
+  background-color: var(--draw-hover-bg);
+}
+
+.draw-color-btn--dice:active {
+  transform: scale(0.95);
 }
 
 .toolbar-dice-cube-container {
@@ -1851,11 +1873,11 @@ html:has(.draw-page) body {
   0% { transform: translateY(0) scale(1); }
   10% { transform: translateY(-20%) scale(0.95) rotate(-2deg); }
   20% { transform: translateY(-45%) scale(1.05) rotate(3deg); }
-  30% { transform: translateY(-25%) scale(0.9) rotate(-4deg); }
+  30% { transform: translateY(-25%) scale(0.95) rotate(-4deg); }
   40% { transform: translateY(-70%) scale(1.1) rotate(2deg); }
   50% { transform: translateY(-40%) scale(0.95) rotate(-3deg); }
   60% { transform: translateY(-85%) scale(1.05) rotate(4deg); }
-  70% { transform: translateY(-60%) scale(0.9) rotate(-2deg); }
+  70% { transform: translateY(-60%) scale(0.95) rotate(-2deg); }
   80% { transform: translateY(-95%) scale(1.02) rotate(1deg); }
   90% { transform: translateY(calc(-100% + 1.5rem - 3px)) scale(1) rotate(-1deg); }
   100% { transform: translateY(calc(-100% + 1.5rem)) scale(1) rotate(0deg); }
@@ -2365,11 +2387,11 @@ html:has(.draw-page) body {
 /* Chaos Animation - colors go crazy with random transforms */
 @keyframes chaosShake {
   0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
-  10% { transform: translate(-3px, 2px) rotate(-8deg) scale(0.9); }
+  10% { transform: translate(-3px, 2px) rotate(-8deg) scale(0.95); }
   20% { transform: translate(4px, -3px) rotate(12deg) scale(1.1); }
   30% { transform: translate(-2px, 4px) rotate(-5deg) scale(0.95); }
   40% { transform: translate(3px, -2px) rotate(10deg) scale(1.05); }
-  50% { transform: translate(-4px, -1px) rotate(-12deg) scale(0.9); }
+  50% { transform: translate(-4px, -1px) rotate(-12deg) scale(0.95); }
   60% { transform: translate(2px, 3px) rotate(8deg) scale(1.1); }
   70% { transform: translate(-3px, -3px) rotate(-10deg) scale(0.95); }
   80% { transform: translate(4px, 1px) rotate(6deg) scale(1.05); }
@@ -2483,7 +2505,7 @@ html:has(.draw-page) body {
 /* Slot Animation - rapid multi-spin like slot machine */
 @keyframes slotMachineSpin {
   0% { transform: translateY(0) scale(1); opacity: 1; }
-  10% { transform: translateY(-8px) scale(0.9); opacity: 0.7; }
+  10% { transform: translateY(-8px) scale(0.95); opacity: 0.7; }
   20% { transform: translateY(4px) scale(1.1); opacity: 1; }
   30% { transform: translateY(-6px) scale(0.95); opacity: 0.8; }
   40% { transform: translateY(2px) scale(1.05); opacity: 1; }
