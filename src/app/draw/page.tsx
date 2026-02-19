@@ -167,6 +167,7 @@ export default function DrawPage() {
   type InteractionStyle = 'collaborative' | 'playful' | 'neutral';
   const [claudeReasoning, setClaudeReasoning] = useState('');
   const [claudeDrawing, setClaudeDrawing] = useState(''); // 3-6 word summary of what Claude is adding
+  const [claudeDrawingAsciiColor, setClaudeDrawingAsciiColor] = useState<string | null>(null);
   const [interactionStyle, setInteractionStyle] = useState<InteractionStyle>('neutral');
 
   // Typewriter effect for header text
@@ -850,6 +851,7 @@ export default function DrawPage() {
     // Clear previous narration
     setClaudeReasoning('');
     setClaudeDrawing('');
+    setClaudeDrawingAsciiColor(null);
 
     const newHistory = [...history];
     if (humanHasDrawn || humanHasCommented) {
@@ -1090,6 +1092,7 @@ export default function DrawPage() {
                 // 3-6 word summary of what Claude is adding
                 console.log('[DEBUG] drawing event received:', event.data);
                 setClaudeDrawing(event.data);
+                setClaudeDrawingAsciiColor(event.asciiColor || null);
               } else if (event.type === 'interactionStyle') {
                 // Detected interaction style (collaborative, playful, neutral)
                 setInteractionStyle(event.data);
@@ -1423,13 +1426,15 @@ export default function DrawPage() {
           <span className={`draw-header-text${isLoading && !claudeDrawing ? ' draw-header-text--loading' : ''}`}>
             {(() => {
               const text = displayedHeaderText.charAt(0).toUpperCase() + displayedHeaderText.slice(1);
+              // Only apply ASCII color styling for drawing info, not loading or default
+              if (!claudeDrawing) return text;
+              // Use Claude's chosen color, or fall back to first palette color
+              const asciiColor = claudeDrawingAsciiColor || COLOR_PALETTES[paletteIndex][0];
               // Split into runs of ASCII art vs normal text
-              // ASCII art = sequences of symbols like . _ / \ | ~ > < ( ) - = @ o O : that aren't normal words
               return text.split(/([a-zA-Z][a-zA-Z']+(?:\s+[a-zA-Z][a-zA-Z']+)*)/).map((part, i) =>
-                // Runs that are purely word characters = normal text, everything else = ASCII
                 /^[a-zA-Z]/.test(part)
                   ? <span key={i}>{part}</span>
-                  : <span key={i} className="draw-header-ascii">{part}</span>
+                  : <span key={i} className="draw-header-ascii" style={{ color: asciiColor }}>{part}</span>
               );
             })()}
           </span>

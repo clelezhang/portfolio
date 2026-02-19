@@ -430,13 +430,13 @@ Call the draw tool immediately with your shapes/blocks. Include interactionStyle
     : `<output-format>
 Output a single JSON object with ALL these fields:
 {
-  "drawing": "REQUIRED: 3-6 word summary of what you're adding",
+  "drawing": "short summary with ASCII/unicode art (see <style>)",
+  "drawingAsciiColor": "#hex from current palette",
   "interactionStyle": "collaborative" or "playful",
   "shapes": [...],
   "blocks": [...]${sayEnabled ? ',\n  "say": "optional comment", "sayX": n, "sayY": n' : ''},
-  "loadingMessages": ["5 short messages with ASCII art mixed in"]
+  "loadingMessages": ["5 short messages with ASCII/unicode art (see <style>)"]
 }
-IMPORTANT: Always include the "drawing" field with a brief summary and "loadingMessages" with 5 loading messages with small ASCII art.
 </output-format>`;
 
   return `<drawing-reference>
@@ -460,6 +460,11 @@ Zones: top (sky/background), middle (main subject), bottom (ground/foreground)
 3. ${useToolCalls ? 'Call draw tool immediately' : 'Output JSON response'}
 </process>
 
+<style>
+"drawing" and "loadingMessages": weave in tiny ASCII/unicode art (░▒▓█ ◉●○ ★☆ ▲▼ ◆◇ .~*/ etc.) as little illustrations, not decoration. No emojis. Vary each one.
+e.g. "Grew a garden .o꩜°" | "/\ Built a house" | "☆ . * . sky" | "The river ~ ~ goes where?"
+</style>
+
 <interaction>
 ${interactionStyleGuide}
 ${commentGuide}
@@ -480,6 +485,8 @@ const DRAW_TOOL: Anthropic.Tool = {
   input_schema: {
     type: 'object' as const,
     properties: {
+      drawing: { type: 'string', description: 'Short summary of what you drew with ASCII/unicode art (see <style>)' },
+      drawingAsciiColor: { type: 'string', description: 'Hex color from current palette for the ASCII/unicode art in drawing summary' },
       shapes: {
         type: 'array',
         description: 'SVG shapes to draw',
@@ -527,8 +534,9 @@ const DRAW_TOOL: Anthropic.Tool = {
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
       interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
-      loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: 'REQUIRED: 5 short loading messages about the drawing. Mix in small ASCII art — little faces, arrows, dots, slashes, symbols — woven into the text naturally. Vary the style: some might trail off with dots, some have a tiny face, some use punctuation as texture. No fixed format. e.g. ["Those flowers need friends . o", "Eyeing that corner -->", "Hmm (._.) the sun looks lonely", "Adding . . . more petals", "A bee? ~~~>"]' },
+      loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: '5 short loading messages about the drawing with ASCII/unicode art (see <style>). Vary wildly.' },
     },
+    required: ['drawing', 'drawingAsciiColor', 'interactionStyle', 'loadingMessages'],
   },
 };
 
@@ -897,8 +905,9 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     if (!sentDrawing) {
                       const drawingMatch = partialJson.match(/"drawing"\s*:\s*"([^"]+)"/);
                       if (drawingMatch) {
+                        const asciiColorMatch = partialJson.match(/"drawingAsciiColor"\s*:\s*"([^"]+)"/);
                         console.log('[DEBUG] Streaming drawing event:', drawingMatch[1]);
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: drawingMatch[1] })}\n\n`));
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'drawing', data: drawingMatch[1], asciiColor: asciiColorMatch?.[1] || null })}\n\n`));
                         sentDrawing = true;
                       }
                     }
@@ -986,7 +995,7 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                   };
                   if (parsed.drawing && !sentDrawing) {
                     console.log('[DEBUG] Sending drawing event (final):', parsed.drawing);
-                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing })}\n\n`);
+                    safeEnqueue(`data: ${JSON.stringify({ type: 'drawing', data: parsed.drawing, asciiColor: parsed.drawingAsciiColor || null })}\n\n`);
                   }
                   if (parsed.interactionStyle) {
                     safeEnqueue(`data: ${JSON.stringify({ type: 'interactionStyle', data: parsed.interactionStyle })}\n\n`);
