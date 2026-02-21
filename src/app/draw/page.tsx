@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { useDialKit } from 'dialkit';
 import './draw.css';
 
 // Types
@@ -17,6 +16,7 @@ import {
   CanvasBackground,
   Tool,
   UploadedImage,
+  Comment as DrawComment,
 } from './types';
 
 // Constants
@@ -54,6 +54,7 @@ const CUSTOM_CURSORS_ENABLED = true;
 import { useZoomPan } from './hooks/useZoomPan';
 import { useComments } from './hooks/useComments';
 import { useClaudeAnimation } from './hooks/useClaudeAnimation';
+import { useIsMobile } from './hooks/useIsMobile';
 
 // Utils
 import { simplifyPath } from './utils/simplifyPath';
@@ -68,6 +69,9 @@ import { ClaudeEraserCursor } from './components/icons/claude-eraser-cursor';
 import { ClaudeAsciiCursor } from './components/icons/claude-ascii-cursor';
 import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
+import { MobileToolbar, MobileToolbarMode } from './components/MobileToolbar';
+import { MobileCommentInput } from './components/MobileCommentInput';
+import { MobileCommentSheet } from './components/MobileCommentSheet';
 import { ClaudeIcon } from './components/ClaudeIcon';
 
 // Auth components
@@ -144,6 +148,11 @@ export default function DrawPage() {
   const [strokeSize, setStrokeSize] = useState(DEFAULT_STROKE_SIZE);
   const [strokeColor, setStrokeColor] = useState<string>(COLOR_PALETTES[4][0]);
   const [paletteIndex, setPaletteIndex] = useState(4);
+
+  // Mobile state
+  const { isMobile } = useIsMobile();
+  const [mobileToolbarMode, setMobileToolbarMode] = useState<MobileToolbarMode>('tools');
+  const [mobileCommentSheetOpen, setMobileCommentSheetOpen] = useState(false);
 
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -238,24 +247,9 @@ export default function DrawPage() {
   const lastAutoDrawTimeRef = useRef<number>(0);
   const handleYourTurnRef = useRef<() => void>(() => {});
   const commentDragStart = useRef<Point | null>(null); // Track drag start for comment mode
+  const [spaceHeld, setSpaceHeld] = useState(false); // Hold space to pan (Figma-style)
 
-  // DialKit - floating control panel for animation fine-tuning
-  const dial = useDialKit('Animations', {
-    wobble: {
-      distortion: [distortionAmount, 0, 30] as [number, number, number],
-      wiggleSpeed: [wiggleSpeed, 50, 500] as [number, number, number],
-    },
-    claude: {
-      animationSpeed: [animationSpeed, 0.5, 3] as [number, number, number],
-      bounceIntensity: [bounceIntensity, 0, 2] as [number, number, number],
-    },
-  });
 
-  // Sync DialKit values → existing state
-  useEffect(() => { setDistortionAmount(dial.wobble.distortion); }, [dial.wobble.distortion]);
-  useEffect(() => { setWiggleSpeed(dial.wobble.wiggleSpeed); }, [dial.wobble.wiggleSpeed]);
-  useEffect(() => { setAnimationSpeed(dial.claude.animationSpeed); }, [dial.claude.animationSpeed]);
-  useEffect(() => { setBounceIntensity(dial.claude.bounceIntensity); }, [dial.claude.bounceIntensity]);
 
   // Capture the full canvas (background + all drawings) as an image
   // Optimized: scales down large images and uses JPEG for smaller payload
@@ -404,6 +398,7 @@ export default function DrawPage() {
   const cursorMode: CursorMode = (() => {
     if (isTouch) return 'user'; // fallback, cursor hidden on touch anyway
     if (isPanning) return 'grabbing';
+    if (spaceHeld) return 'grab';
     if (hoveredCommentIndex !== null || isHoveringCommentInput) return 'user';
     if (isOnCanvasRef.current && tool !== 'select') {
       if (tool === 'comment') return 'comment';
@@ -462,26 +457,114 @@ export default function DrawPage() {
     setRedoStack(prev => prev.slice(0, -1));
   }, [redoStack, drawingElements, humanStrokes, humanAsciiChars]);
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts
+  const STROKE_SIZES = [2, 6, 12] as const;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      // Skip shortcuts when typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+
+      // Ignore key repeats (e.g. holding space)
+      if (e.repeat) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Undo/Redo: Cmd+Z / Cmd+Shift+Z / Cmd+Y
+      if (mod && e.key === 'z') {
         e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
+        if (e.shiftKey) handleRedo(); else handleUndo();
+        return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+      if (mod && e.key === 'y') {
         e.preventDefault();
         handleRedo();
+        return;
+      }
+
+      // Skip remaining shortcuts if modifier held (avoid conflicts)
+      if (mod) return;
+
+      // Hold space to pan (Figma-style)
+      if (e.key === ' ') {
+        e.preventDefault();
+        setSpaceHeld(true);
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      switch (key) {
+        // Tools: D=draw, A=ascii, E=eraser, C=comment
+        case 'd':
+          setTool('draw');
+          setAsciiStroke(false);
+          break;
+        case 'a':
+          setTool('draw');
+          setAsciiStroke(true);
+          break;
+        case 'e':
+          setTool('erase');
+          break;
+        case 'c':
+          setTool('comment');
+          break;
+
+        // Stroke size: [ = smaller, ] = bigger
+        case '[': {
+          const idx = STROKE_SIZES.indexOf(strokeSize as 2 | 6 | 12);
+          if (idx > 0) setStrokeSize(STROKE_SIZES[idx - 1]);
+          break;
+        }
+        case ']': {
+          const idx = STROKE_SIZES.indexOf(strokeSize as 2 | 6 | 12);
+          if (idx < STROKE_SIZES.length - 1) setStrokeSize(STROKE_SIZES[idx + 1]);
+          break;
+        }
+
+        // Palette: X = cycle to next palette
+        case 'x':
+          setPaletteIndex((paletteIndex + 1) % COLOR_PALETTES.length);
+          setStrokeColor(COLOR_PALETTES[(paletteIndex + 1) % COLOR_PALETTES.length][0]);
+          break;
+
+        // Color: 1-4 = pick color from current palette
+        case '1': case '2': case '3': case '4': {
+          const colorIdx = parseInt(key) - 1;
+          setStrokeColor(COLOR_PALETTES[paletteIndex][colorIdx]);
+          break;
+        }
+
+        // Reset zoom/pan: 0
+        case '0':
+          handleDoubleClick();
+          break;
+
+        default:
+          break;
+      }
+
+      // Enter: Claude's turn (not lowercased — e.key is 'Enter')
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!isLoading) handleYourTurnRef.current();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        setSpaceHeld(false);
+        stopPan();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleUndo, handleRedo, strokeSize, paletteIndex, isLoading, handleDoubleClick, stopPan]);
 
   // Cycle through loading messages (Claude-generated from last turn, or fallbacks)
   useEffect(() => {
@@ -1176,6 +1259,7 @@ export default function DrawPage() {
     lastDrawnPoint.current = null;
     // Clear localStorage
     localStorage.removeItem(CANVAS_STORAGE_KEY);
+    localStorage.removeItem('draw-comments');
     // Reset ID counters
     elementIdCounter.current = 0;
     imageIdCounter.current = 0;
@@ -1278,23 +1362,127 @@ export default function DrawPage() {
     }, AUTO_DRAW_DELAY);
   }, []);
 
+  // Lightweight comment-only API call — doesn't trigger drawing
+  // Accepts optional updatedComments to avoid stale closure (React state not yet updated)
+  const handleCommentResponse = useCallback(async (updatedComments?: DrawComment[]) => {
+    const commentsToSend = updatedComments || comments;
+    // Track which comment we're streaming a reply into
+    let streamingTarget: number | null = null;
+
+    try {
+      const response = await fetch('/api/draw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentOnly: true,
+          canvasWidth: containerRef.current?.getBoundingClientRect().width || 800,
+          canvasHeight: containerRef.current?.getBoundingClientRect().height || 600,
+          history: history.length > 0 ? history : undefined,
+          comments: commentsToSend.length > 0 ? commentsToSend : undefined,
+          streaming: true,
+          model: 'opus',
+          userApiKey: userSettings?.anthropic_api_key || undefined,
+        }),
+      });
+
+      if (!response.ok) return;
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+
+            if (event.type === 'replyStart') {
+              // Find target comment index
+              let targetIdx: number | undefined;
+              if (event.data.replyTo) {
+                targetIdx = event.data.replyTo - 1;
+              } else if (event.data.replyToLast) {
+                targetIdx = commentsToSend.map((c, i) => ({ c, i })).filter(({ c }) => c.from === 'human').pop()?.i;
+              }
+              if (targetIdx !== undefined && targetIdx >= 0) {
+                streamingTarget = targetIdx;
+                // Create empty reply in temp state (chunks appended directly)
+                setComments((prev) => {
+                  if (targetIdx >= prev.length) return prev;
+                  const updated = [...prev];
+                  updated[targetIdx] = {
+                    ...updated[targetIdx],
+                    replies: [...(updated[targetIdx].replies || []), { text: '', from: 'claude' as const }],
+                    status: 'temp',
+                    tempStartedAt: Date.now(),
+                  };
+                  return updated;
+                });
+                setOpenCommentIndex(targetIdx);
+              }
+            } else if (event.type === 'sayChunk' && streamingTarget !== null) {
+              // Append chunk to the streaming reply
+              const target = streamingTarget;
+              setComments((prev) => {
+                if (target >= prev.length) return prev;
+                const comment = prev[target];
+                if (!comment.replies || comment.replies.length === 0) return prev;
+                const lastReply = comment.replies[comment.replies.length - 1];
+                const updated = [...prev];
+                updated[target] = {
+                  ...comment,
+                  replies: [
+                    ...comment.replies.slice(0, -1),
+                    { ...lastReply, text: lastReply.text + event.data.text },
+                  ],
+                };
+                return updated;
+              });
+            } else if (event.type === 'say') {
+              // Fallback: full reply at once (if streaming didn't work)
+              if (event.data.replyTo) {
+                const commentIndex = event.data.replyTo - 1;
+                if (commentIndex >= 0) {
+                  addReplyToComment(commentIndex, event.data.text, 'claude');
+                  setOpenCommentIndex(commentIndex);
+                }
+              } else if (event.data.replyToLast) {
+                const lastHumanIdx = commentsToSend.map((c, i) => ({ c, i })).filter(({ c }) => c.from === 'human').pop()?.i;
+                if (lastHumanIdx !== undefined) {
+                  addReplyToComment(lastHumanIdx, event.data.text, 'claude');
+                  setOpenCommentIndex(lastHumanIdx);
+                }
+              } else if (event.data.sayX !== undefined && event.data.sayY !== undefined) {
+                addComment(event.data.text, 'claude', event.data.sayX, event.data.sayY);
+              }
+            }
+          } catch { /* skip parse errors */ }
+        }
+      }
+    } catch (error) {
+      console.error('Comment response error:', error);
+    }
+  }, [history, comments, userSettings, addComment, addReplyToComment, setOpenCommentIndex, setComments]);
+
   const handleCommentSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim() || !commentInput) return;
-    addComment(commentText.trim(), 'human', commentInput.x, commentInput.y);
-    setPendingMessages((prev) => [...prev, commentText.trim()]);
-    setCommentInput(null);
-    setCommentText('');
+    const newComment: DrawComment = { text: commentText.trim(), x: commentInput.x, y: commentInput.y, from: 'human' };
+    addComment(newComment.text, 'human', newComment.x, newComment.y);
+    // Don't clear commentInput/commentText here — let CommentInput animate out first,
+    // then onCancel (handleCommentCancel) will clean up
     setHumanHasCommented(true);
-    // Trigger auto-draw on comment if enabled
-    if (autoDrawEnabled) {
-      triggerAutoDraw();
-    }
-    // TEST: Auto-reply from Claude after 500ms
-    setTimeout(() => {
-      addComment('This is a test reply from Claude! 🎨', 'claude', commentInput.x + 50, commentInput.y + 50);
-    }, 500);
-  }, [commentText, commentInput, addComment, autoDrawEnabled, triggerAutoDraw]);
+    handleCommentResponse([...comments, newComment]);
+  }, [commentText, commentInput, addComment, handleCommentResponse, comments]);
 
   // Image upload handler
   const handleImageUpload = useCallback((file: File, dropPoint?: Point) => {
@@ -1542,7 +1730,7 @@ export default function DrawPage() {
             if (openCommentIndex !== null || commentInput !== null) {
               return;
             }
-            if (e.button === 1) {
+            if (e.button === 1 || spaceHeld) {
               startPan(e);
             } else if (tool === 'select') {
               // Deselect image if clicking on empty space (image clicks are handled separately)
@@ -2027,42 +2215,38 @@ export default function DrawPage() {
 
 
           {/* Comment system */}
-          <CommentSystem
-            comments={comments}
-            strokeColor={strokeColor}
-            openCommentIndex={openCommentIndex}
-            setOpenCommentIndex={setOpenCommentIndex}
-            hoveredCommentIndex={hoveredCommentIndex}
-            setHoveredCommentIndex={setHoveredCommentIndex}
-            replyingToIndex={replyingToIndex}
-            setReplyingToIndex={setReplyingToIndex}
-            replyText={replyText}
-            setReplyText={setReplyText}
-            deleteComment={deleteComment}
-            addReplyToComment={addReplyToComment}
-            canvasToScreen={canvasToScreen}
-            hasCommentInput={commentInput !== null}
-            onCloseCommentInput={() => {
-              setCommentInput(null);
-              setCommentText('');
-            }}
-            onUserReply={(index, text) => {
-              setPendingMessages((prev) => [...prev, text]);
-              setHumanHasCommented(true);
-              if (autoDrawEnabled) {
-                triggerAutoDraw();
-              }
-              // TEST: Auto-reply from Claude after 500ms
-              setTimeout(() => {
-                addReplyToComment(index, 'Claude replying to your message! This should make it temp.', 'claude');
-              }, 500);
-            }}
-            saveComment={saveComment}
-            dismissComment={dismissComment}
-          />
+          {!isMobile && (
+            <CommentSystem
+              comments={comments}
+              strokeColor={strokeColor}
+              openCommentIndex={openCommentIndex}
+              setOpenCommentIndex={setOpenCommentIndex}
+              hoveredCommentIndex={hoveredCommentIndex}
+              setHoveredCommentIndex={setHoveredCommentIndex}
+              replyingToIndex={replyingToIndex}
+              setReplyingToIndex={setReplyingToIndex}
+              replyText={replyText}
+              setReplyText={setReplyText}
+              deleteComment={deleteComment}
+              addReplyToComment={addReplyToComment}
+              canvasToScreen={canvasToScreen}
+              hasCommentInput={commentInput !== null}
+              onCloseCommentInput={() => {
+                setCommentInput(null);
+                setCommentText('');
+              }}
+              onUserReply={(_index, _text) => {
+                setHumanHasCommented(true);
+                // Trigger comment-only response (no drawing)
+                handleCommentResponse();
+              }}
+              saveComment={saveComment}
+              dismissComment={dismissComment}
+            />
+          )}
 
-          {/* Comment input */}
-          {commentInput && (
+          {/* Comment input - desktop */}
+          {!isMobile && commentInput && (
             <CommentInput
               position={commentInput}
               screenPosition={canvasToScreen(commentInput.x, commentInput.y)}
@@ -2467,31 +2651,49 @@ export default function DrawPage() {
       )}
 
       {/* Bottom toolbar */}
-      <DrawToolbar
-        tool={tool}
-        setTool={setTool}
-        asciiStroke={asciiStroke}
-        setAsciiStroke={handleSetAsciiStroke}
-        strokeColor={strokeColor}
-        setStrokeColor={setStrokeColor}
-        strokeSize={strokeSize}
-        setStrokeSize={setStrokeSize}
-        paletteIndex={paletteIndex}
-        setPaletteIndex={setPaletteIndex}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-        isLoading={isLoading}
-        onYourTurn={handleYourTurn}
-        onClear={handleClear}
-        onSave={handleSave}
-        animationType={animationType}
-        slideDuration={slideDuration}
-        slideStagger={slideStagger}
-        slideBounce={slideBounce}
-        showSelectTool={showSelectTool}
-        showReactButton={showReactButton}
-        showDownloadButton={showDownloadButton}
-      />
+      {isMobile ? (
+        <MobileToolbar
+          tool={tool}
+          setTool={setTool}
+          asciiStroke={asciiStroke}
+          setAsciiStroke={handleSetAsciiStroke}
+          strokeColor={strokeColor}
+          setStrokeColor={setStrokeColor}
+          strokeSize={strokeSize}
+          setStrokeSize={setStrokeSize}
+          paletteIndex={paletteIndex}
+          setPaletteIndex={setPaletteIndex}
+          mode={mobileToolbarMode}
+          setMode={setMobileToolbarMode}
+          onCommentOpen={() => setMobileCommentSheetOpen(true)}
+        />
+      ) : (
+        <DrawToolbar
+          tool={tool}
+          setTool={setTool}
+          asciiStroke={asciiStroke}
+          setAsciiStroke={handleSetAsciiStroke}
+          strokeColor={strokeColor}
+          setStrokeColor={setStrokeColor}
+          strokeSize={strokeSize}
+          setStrokeSize={setStrokeSize}
+          paletteIndex={paletteIndex}
+          setPaletteIndex={setPaletteIndex}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+          isLoading={isLoading}
+          onYourTurn={handleYourTurn}
+          onClear={handleClear}
+          onSave={handleSave}
+          animationType={animationType}
+          slideDuration={slideDuration}
+          slideStagger={slideStagger}
+          slideBounce={slideBounce}
+          showSelectTool={showSelectTool}
+          showReactButton={showReactButton}
+          showDownloadButton={showDownloadButton}
+        />
+      )}
 
       {/* Settings button - bottom right */}
       <button
@@ -2504,6 +2706,36 @@ export default function DrawPage() {
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
         </svg>
       </button>
+
+      {/* Mobile comment system */}
+      {isMobile && (
+        <>
+          <MobileCommentSheet
+            isOpen={mobileCommentSheetOpen}
+            onClose={() => setMobileCommentSheetOpen(false)}
+            comments={comments}
+            replyingToIndex={replyingToIndex}
+            setReplyingToIndex={setReplyingToIndex}
+            replyText={replyText}
+            setReplyText={setReplyText}
+            addReplyToComment={addReplyToComment}
+            deleteComment={deleteComment}
+            onUserReply={(_index, _text) => {
+              setHumanHasCommented(true);
+              // Trigger comment-only response (no drawing)
+              handleCommentResponse();
+            }}
+          />
+          {commentInput && (
+            <MobileCommentInput
+              commentText={commentText}
+              setCommentText={setCommentText}
+              onSubmit={handleCommentSubmit}
+              onCancel={handleCommentCancel}
+            />
+          )}
+        </>
+      )}
 
       {/* Auth modals */}
       <ApiKeyModal

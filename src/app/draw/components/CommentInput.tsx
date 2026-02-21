@@ -27,34 +27,63 @@ export function CommentInput({
 }: CommentInputProps) {
   const handleTextareaResize = useAutoResizeTextarea(100);
   const formRef = useRef<HTMLFormElement>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const isHoveredRef = useRef(false);
+  const [closingAs, setClosingAs] = useState<'close' | 'send' | null>(null);
 
-  // Animate out before calling onCancel
-  const handleClose = useCallback(() => {
-    if (isClosing) return;
-    setIsClosing(true);
-    const form = formRef.current;
-    if (form) {
-      form.addEventListener('animationend', () => onCancel(), { once: true });
+  // Animate out before calling a callback
+  const animateOut = useCallback((type: 'close' | 'send', callback: () => void) => {
+    if (closingAs) return;
+    setClosingAs(type);
+    if (type === 'send') {
+      // Send morph: listen for width transition on the bubble
+      const bubble = bubbleRef.current;
+      if (bubble) {
+        bubble.addEventListener('transitionend', (e) => {
+          if (e.propertyName === 'width') callback();
+        }, { once: true });
+      } else {
+        callback();
+      }
     } else {
-      onCancel();
+      // Close: listen for keyframe animation on the form
+      const form = formRef.current;
+      if (form) {
+        form.addEventListener('animationend', () => callback(), { once: true });
+      } else {
+        callback();
+      }
     }
-  }, [onCancel, isClosing]);
+  }, [closingAs]);
+
+  const handleClose = useCallback(() => {
+    animateOut('close', onCancel);
+  }, [animateOut, onCancel]);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    // Submit immediately (adds comment + triggers API), then animate input form out
+    onSubmit(e);
+    animateOut('send', onCancel);
+  }, [commentText, onSubmit, animateOut, onCancel]);
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="draw-comment-input-backdrop"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleClose();
-        }}
-      />
+      {!closingAs && (
+        <div
+          className="draw-comment-input-backdrop"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
+        />
+      )}
       <form
         ref={formRef}
-        onSubmit={onSubmit}
-        className={`draw-comment-input-form${isClosing ? ' draw-comment-input-form--closing' : ''}`}
+        onSubmit={handleSubmit}
+        className={`draw-comment-input-form${closingAs === 'close' ? ' draw-comment-input-form--closing' : ''}${closingAs === 'send' ? ' draw-comment-input-form--sending' : ''}`}
         style={{
           position: 'absolute',
           left: screenPosition.x,
@@ -63,7 +92,7 @@ export function CommentInput({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="draw-comment-input-bubble" style={{ '--stroke-color': strokeColor } as React.CSSProperties} onMouseEnter={onMouseEnterBubble} onMouseLeave={onMouseLeaveBubble}>
+        <div ref={bubbleRef} className="draw-comment-input-bubble" style={{ '--stroke-color': strokeColor } as React.CSSProperties} onMouseEnter={() => { isHoveredRef.current = true; onMouseEnterBubble?.(); }} onMouseLeave={() => { isHoveredRef.current = false; onMouseLeaveBubble?.(); }}>
           <img
             src="/draw/user-icon.svg"
             alt=""
@@ -82,7 +111,7 @@ export function CommentInput({
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   if (commentText.trim()) {
-                    onSubmit(e as unknown as React.FormEvent);
+                    handleSubmit(e as unknown as React.FormEvent);
                   }
                 }
               }}

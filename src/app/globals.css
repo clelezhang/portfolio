@@ -813,3 +813,58 @@ img.fade-in {
     transform: scale(1);
   }
 }
+
+/* DialKit overrides — smaller text */
+.dialkit-root {
+  font-size: 11px !important;
+}
+
+.dialkit-folder-title-root {
+  font-size: 12px !important;
+}
+
+.dialkit-folder-title,
+.dialkit-slider-label,
+.dialkit-slider-value,
+.dialkit-slider-input,
+.dialkit-toggle-label,
+.dialkit-labeled-control-label,
+.dialkit-text-label,
+.dialkit-text-input,
+.dialkit-color-label,
+.dialkit-color-hex,
+.dialkit-color-hex-input,
+.dialkit-select-label,
+.dialkit-select-value,
+.dialkit-select-option,
+.dialkit-segmented-button,
+.dialkit-button,
+.dialkit-action-button,
+.dialkit-toolbar-copy,
+.dialkit-preset-label,
+.dialkit-preset-name,
+.dialkit-preset-input,
+.dialkit-preset-save-btn {
+  font-size: 11px !important;
+}
+
+/* DialKit overrides — restore default cursor over the panel */
+[class*="dialkit"] {
+  cursor: default !important;
+}
+
+/* DialKit overrides — let select dropdowns escape clipping parents */
+.dialkit-select-dropdown {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* When a dropdown is open, prevent panel-inner from clipping it */
+.dialkit-panel-inner:has(.dialkit-select-dropdown) {
+  overflow-y: visible;
+}
+
+/* Also clear the inline clipPath on folder-content when a dropdown is open */
+.dialkit-folder-content:has(.dialkit-select-dropdown) {
+  clip-path: none !important;
+}

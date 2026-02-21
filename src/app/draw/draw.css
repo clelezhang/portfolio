@@ -49,23 +49,42 @@
   --draw-radius-lg: 1.5rem;
 
   /* Comment animation tokens */
-  --comment-morph-duration: 0.2s;
-  --comment-morph-easing: cubic-bezier(0.4, 0, 0.2, 1);
-  --comment-open-scale-from: 0.92;
-  --comment-open-blur-from: 2px;
-  --comment-close-duration: 0.18s;
-  --comment-close-easing: cubic-bezier(0.4, 0, 0.2, 1);
-  --comment-hover-duration: 0.2s;
-  --comment-hover-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Hover: collapsed ↔ preview */
+  --comment-hover-duration: 85ms;
+  --comment-hover-easing: cubic-bezier(0.4, 0, 1, 1);
+  /* Open: preview → open */
+  --comment-open-duration: 85ms;
+  --comment-open-easing: cubic-bezier(0.4, 0, 1, 1);
+  /* Unhover: preview → collapsed */
+  --comment-unhover-duration: 215ms;
+  --comment-unhover-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --comment-unhover-delay: 80ms;
+  --comment-unhover-scale-to: 1;
+  --comment-unhover-blur-to: 0px;
+  /* Close: open → collapsed */
+  --comment-close-duration: 215ms;
+  --comment-close-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --comment-close-scale-to: 1;
+  --comment-close-blur-to: 0px;
   --comment-input-duration: 0.2s;
   --comment-input-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
   --comment-input-scale-from: 0.95;
   --comment-input-close-duration: 0.15s;
   --comment-input-close-easing: cubic-bezier(0.4, 0, 0.2, 1);
-  --comment-delete-duration: 0.15s;
+  --comment-input-send-duration: 215ms;
+  --comment-input-send-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --comment-delete-duration: 200ms;
+  --comment-delete-easing: cubic-bezier(0.4, 0, 1, 1);
+  --comment-delete-scale-to: 0.85;
   --comment-fade-total: 60s;
   --comment-fade-blur-max: 1px;
-  --comment-temp-slide-duration: 0.15s;
+  --comment-fade-easing: ease-in;
+  --comment-temp-slide-duration: 150ms;
+  --comment-temp-slide-in-easing: ease-out;
+  --comment-temp-slide-out-easing: ease-in;
+  --comment-temp-style-transition: 200ms;
+  --comment-reply-collapse-delay: 800;
+  --comment-stream-speed: 30;
 }
 
 /* -----------------------------------------------------------------------------
@@ -232,7 +251,7 @@ html:has(.draw-page) * {
 
 /* Apply fade animation only to the bubble, not the action buttons */
 .draw-comment-wrapper--temp .draw-comment-bubble {
-  animation: commentFadeOut var(--comment-fade-total) linear forwards;
+  animation: commentFadeOut var(--comment-fade-total) var(--comment-fade-easing, ease-in) forwards;
 }
 
 .draw-comment-wrapper--temp:hover .draw-comment-bubble {
@@ -251,34 +270,82 @@ html:has(.draw-page) * {
   gap: 8px;
   padding: 8px 0px 8px 8px;
   border: 1px solid;
+  outline: 1px dashed transparent;
+  outline-offset: -2px;
   cursor: pointer;
   transform-origin: top left;
   border-radius: 4px 21px 21px 21px;
 }
 
 /* Enable transitions only after mount (prevents initial animation) */
+
+/* Hover: arriving at preview from collapsed. */
 .draw-comment-bubble.draw-comment-bubble--animated {
   transition:
-    width var(--comment-morph-duration) var(--comment-morph-easing),
-    max-height var(--comment-morph-duration) var(--comment-morph-easing),
-    padding var(--comment-morph-duration) var(--comment-morph-easing),
-    border-radius var(--comment-morph-duration) var(--comment-morph-easing),
-    transform var(--comment-morph-duration) var(--comment-morph-easing),
-    filter var(--comment-morph-duration) var(--comment-morph-easing),
-    opacity var(--comment-morph-duration) var(--comment-morph-easing);
+    width var(--comment-hover-duration) var(--comment-hover-easing),
+    padding var(--comment-hover-duration) var(--comment-hover-easing),
+    border-radius var(--comment-hover-duration) ease-out,
+    transform var(--comment-hover-duration) var(--comment-hover-easing),
+    filter var(--comment-hover-duration) var(--comment-hover-easing),
+    opacity var(--comment-hover-duration) var(--comment-hover-easing),
+    border-color var(--comment-temp-style-transition) ease-in,
+    outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
 }
 
-/* Closing transition (collapsing back) */
+/* Open: arriving at open from preview/collapsed. */
+.draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--open {
+  transition:
+    width var(--comment-open-duration) var(--comment-open-easing),
+    padding var(--comment-open-duration) var(--comment-open-easing),
+    border-radius var(--comment-open-duration) ease-out,
+    transform var(--comment-open-duration) var(--comment-open-easing),
+    filter var(--comment-open-duration) var(--comment-open-easing),
+    opacity var(--comment-open-duration) var(--comment-open-easing),
+    border-color var(--comment-temp-style-transition) ease-in,
+    outline-color var(--comment-temp-style-transition) ease-in;
+  transform-origin: 0 0;
+}
+
+/* Close: arriving at collapsed (fallback) */
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed {
   transition:
     width var(--comment-close-duration) var(--comment-close-easing),
-    max-height var(--comment-close-duration) var(--comment-close-easing),
     padding var(--comment-close-duration) var(--comment-close-easing),
-    border-radius var(--comment-close-duration) var(--comment-close-easing),
+    border-radius var(--comment-close-duration) ease-out,
     transform var(--comment-close-duration) var(--comment-close-easing),
     filter var(--comment-close-duration) var(--comment-close-easing),
-    opacity var(--comment-close-duration) var(--comment-close-easing);
+    opacity var(--comment-close-duration) var(--comment-close-easing),
+    border-color var(--comment-temp-style-transition) ease-in,
+    outline-color var(--comment-temp-style-transition) ease-in;
+  transform-origin: 0 0;
+}
+
+/* Unhover: preview → collapsed */
+.draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed.draw-comment-bubble--closing-from-preview {
+  transition:
+    width var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    padding var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    border-radius var(--comment-unhover-duration) ease-out var(--comment-unhover-delay),
+    transform var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    filter var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    opacity var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    border-color var(--comment-temp-style-transition) ease-in,
+    outline-color var(--comment-temp-style-transition) ease-in;
+  transform-origin: 0 0;
+}
+
+/* Close: open → collapsed */
+.draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed.draw-comment-bubble--closing-from-open {
+  transition:
+    width var(--comment-close-duration) var(--comment-close-easing),
+    padding var(--comment-close-duration) var(--comment-close-easing),
+    border-radius var(--comment-close-duration) ease-out,
+    transform var(--comment-close-duration) var(--comment-close-easing),
+    filter var(--comment-close-duration) var(--comment-close-easing),
+    opacity var(--comment-close-duration) var(--comment-close-easing),
+    border-color var(--comment-temp-style-transition) ease-in,
+    outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
 }
 
@@ -287,38 +354,65 @@ html:has(.draw-page) * {
    Collapsed and Preview look identical - only text visibility differs
    ----------------------------------------------------------------------------- */
 
-/* COLLAPSED: Icon only - 42x42, scaled down to origin */
+/* COLLAPSED: Icon only — height is natural (icon + padding ≈ 42px).
+   No max-height; grid-template-rows: 0fr on text/open grids collapses content. */
 .draw-comment-bubble--collapsed {
   width: 42px;
-  max-height: 42px;
   overflow: hidden;
-  transform: scale(var(--comment-open-scale-from));
-  filter: blur(var(--comment-open-blur-from));
+  transform: scale(var(--comment-close-scale-to));
+  filter: blur(var(--comment-close-blur-to));
 }
 
+/* No height constraint on main row — text grid 0fr handles collapse smoothly */
 .draw-comment-bubble--collapsed .draw-comment-row--main {
   width: auto;
 }
 
-.draw-comment-bubble--collapsed .draw-comment-row--main .draw-comment-row-body {
+/* Text grid — grid rows for smooth height morph, opacity to hide horizontal clip.
+   No column animation to avoid text reflow artifacts. */
+.draw-comment-text-grid {
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
-  width: 0;
+  transition:
+    grid-template-rows var(--comment-close-duration) var(--comment-close-easing),
+    opacity var(--comment-close-duration) var(--comment-close-easing);
+  overflow: hidden;
 }
 
-.draw-comment-bubble--collapsed .draw-comment-row:not(.draw-comment-row--main) {
-  display: none;
+/* Unhover: use unhover timing for text grid collapse + fade */
+.draw-comment-bubble--closing-from-preview .draw-comment-text-grid {
+  transition:
+    grid-template-rows var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    opacity var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay);
 }
 
-/* PREVIEW: Text visible, truncated with ellipsis if it overflows */
+.draw-comment-text-grid--visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--comment-hover-duration) var(--comment-hover-easing),
+    opacity var(--comment-hover-duration) var(--comment-hover-easing);
+}
+
+.draw-comment-text-grid-inner {
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Reply rows are hidden by open-grid's 0fr + overflow:hidden — no display:none needed */
+
+/* PREVIEW: Text visible, truncated — height is natural (line-clamp bounds it). */
 .draw-comment-bubble--preview {
   width: 180px;
-  max-height: 120px;
   overflow: hidden;
   transform: scale(1);
   filter: blur(0px);
 }
 
-.draw-comment-bubble--preview .draw-comment-text {
+.draw-comment-bubble--preview .draw-comment-text,
+.draw-comment-bubble--closing-from-preview .draw-comment-text {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -326,10 +420,12 @@ html:has(.draw-page) * {
   white-space: normal;
 }
 
-.draw-comment-bubble--preview .draw-comment-row--main .draw-comment-row-body {
-  opacity: 1;
-  width: auto;
-  max-width: 130px;
+/* Fixed width prevents text reflow jitter during bubble width transition.
+   The body doesn't flex with the bubble — it snaps to its target width. */
+.draw-comment-bubble--preview .draw-comment-row--main .draw-comment-row-body,
+.draw-comment-bubble--closing-from-preview .draw-comment-row--main .draw-comment-row-body {
+  flex: none;
+  width: 130px;
 }
 
 /* OPEN: Full content - 260px wide, max 300px tall */
@@ -394,10 +490,11 @@ html:has(.draw-page) * {
   flex-direction: row;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 8px;
+  gap: 0px;
 }
 
 .draw-comment-bubble--open .draw-comment-bubble-inner {
+  gap: 8px;
   max-height: calc(300px - 18px);
   overflow-x: hidden;
   overflow-y: auto;
@@ -415,13 +512,49 @@ html:has(.draw-page) * {
   scrollbar-color: var(--comment-black-medium) transparent;
 }
 
+/* Grid wrapper for open-only content — animates height from 0 to auto */
+.draw-comment-open-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--comment-close-duration) var(--comment-close-easing);
+  flex-basis: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.draw-comment-open-grid--open {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--comment-open-duration) var(--comment-open-easing);
+}
+
+.draw-comment-open-grid-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+/* Fade overlay — rendered as a real DOM element, shown only during grid transition */
+.draw-comment-open-grid-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(to bottom, transparent, var(--comment-bubble-bg));
+  pointer-events: none;
+  z-index: 1;
+}
+
+
 .draw-comment-bubble--open .draw-comment-row--main .draw-comment-row-body {
-  flex: 1;
-  min-width: 0;
-  opacity: 1;
-  width: auto;
-  max-width: 220px;
-  padding-right: 24px;
+  flex: none;
+  width: 220px;
+  padding-right: 32px;
 }
 
 /* -----------------------------------------------------------------------------
@@ -461,10 +594,9 @@ html:has(.draw-page) * {
   min-width: 0;
 }
 
-/* Main row body — transitions for collapse/expand */
+/* Main row body */
 .draw-comment-row--main .draw-comment-row-body {
   overflow: hidden;
-  transition: opacity var(--comment-hover-duration) var(--comment-hover-easing);
 }
 
 /* -----------------------------------------------------------------------------
@@ -473,6 +605,7 @@ html:has(.draw-page) * {
 
 /* USER comments - BLACK background, white text */
 .draw-comment-bubble--user {
+  --comment-bubble-bg: #000;
   background-color: #000;
   border-color: var(--comment-white-medium);
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
@@ -503,6 +636,7 @@ html:has(.draw-page) * {
 
 /* CLAUDE comments - WHITE background, black text */
 .draw-comment-bubble--claude {
+  --comment-bubble-bg: #fff;
   background-color: #fff;
   border-color: var(--comment-black-light);
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
@@ -527,10 +661,7 @@ html:has(.draw-page) * {
 
 /* TEMP state - inset dashed outline (outline never affects layout, so zero shift) */
 .draw-comment-bubble--temp {
-  border-color: transparent;
-  outline-style: dashed;
-  outline-width: 1px;
-  outline-offset: -2px;
+  border-color: transparent !important;
 }
 
 .draw-comment-bubble--temp.draw-comment-bubble--user {
@@ -673,6 +804,7 @@ html:has(.draw-page) * {
   flex-shrink: 0;
   background-color: var(--stroke-color, #888);
   color: #fff;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
 /* Empty state — no background, muted color from tier variables */
@@ -733,7 +865,7 @@ html:has(.draw-page) * {
   align-items: center;
   padding: 8px;
   flex-shrink: 0;
-  animation: tempActionsSlideIn var(--comment-temp-slide-duration) ease-out forwards;
+  animation: tempActionsSlideIn var(--comment-temp-slide-duration) var(--comment-temp-slide-in-easing) forwards;
 }
 
 @keyframes tempActionsSlideIn {
@@ -774,9 +906,7 @@ html:has(.draw-page) * {
 }
 
 .draw-comment-temp-btn--save {
-  background: linear-gradient(90deg, rgba(16, 16, 16, 0.08) 0%, rgba(16, 16, 16, 0.08) 100%),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%);
-  backdrop-filter: blur(12px);
+  background: rgba(230, 230, 230, 1);
 }
 
 .draw-comment-temp-btn--save::after {
@@ -804,27 +934,11 @@ html:has(.draw-page) * {
    ----------------------------------------------------------------------------- */
 
 @keyframes commentFadeOut {
-  0% {
+  from {
     opacity: 1;
     filter: blur(0px);
   }
-  25% {
-    opacity: 0.95;
-    filter: blur(0px);
-  }
-  50% {
-    opacity: 0.85;
-    filter: blur(calc(var(--comment-fade-blur-max) * 0.25));
-  }
-  75% {
-    opacity: 0.75;
-    filter: blur(calc(var(--comment-fade-blur-max) * 0.5));
-  }
-  92% {
-    opacity: 0.4;
-    filter: blur(calc(var(--comment-fade-blur-max) * 0.75));
-  }
-  100% {
+  to {
     opacity: 0;
     filter: blur(var(--comment-fade-blur-max));
   }
@@ -842,11 +956,34 @@ html:has(.draw-page) * {
 
 .draw-comment-input-form {
   animation: commentInputAppear var(--comment-input-duration) var(--comment-input-easing) forwards;
+  transform-origin: 0 0;
 }
 
-/* Close animation for comment input */
+/* Close animation for comment input (cancel/escape/backdrop) */
 .draw-comment-input-form--closing {
   animation: commentInputClose var(--comment-input-close-duration) var(--comment-input-close-easing) forwards;
+}
+
+/* Send animation — morph bubble into collapsed dot (matches unhover) */
+.draw-comment-input-form--sending {
+  pointer-events: none;
+}
+
+.draw-comment-input-form--sending .draw-comment-input-bubble {
+  width: 42px;
+  padding: 8px 0px 8px 8px;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width var(--comment-input-send-duration) var(--comment-input-send-easing),
+    padding var(--comment-input-send-duration) var(--comment-input-send-easing),
+    border-radius var(--comment-input-send-duration) ease-out,
+    opacity var(--comment-input-send-duration) var(--comment-input-send-easing);
+}
+
+.draw-comment-input-form--sending .draw-comment-submit {
+  opacity: 0;
+  transition: opacity var(--comment-input-send-duration) var(--comment-input-send-easing);
 }
 
 /* Comment input cursor handled by React CustomCursor */
@@ -873,6 +1010,61 @@ html:has(.draw-page) * {
   }
 }
 
+
+/* Delete animation — scale down + fade out */
+@keyframes commentBubbleDelete {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--comment-delete-scale-to));
+  }
+}
+
+.draw-comment-wrapper--deleting {
+  animation: commentBubbleDelete var(--comment-delete-duration) var(--comment-delete-easing) forwards;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+/* Freeze bubble in its current state during delete — prevent collapse transition from mouse-leave */
+.draw-comment-wrapper--deleting .draw-comment-bubble,
+.draw-comment-wrapper--deleting .draw-comment-text-grid,
+.draw-comment-wrapper--deleting .draw-comment-open-grid {
+  transition: none !important;
+}
+
+/* Temp actions exit animation — reverse of slide in */
+@keyframes tempActionsSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+.draw-comment-temp-actions--exiting {
+  animation: tempActionsSlideOut var(--comment-temp-slide-duration) var(--comment-temp-slide-out-easing) forwards;
+  pointer-events: none;
+}
+
+/* Stream cursor blink */
+@keyframes streamCursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.draw-comment-text--streaming::after {
+  content: '|';
+  animation: streamCursorBlink 0.6s step-end infinite;
+  margin-left: 1px;
+}
+
 .draw-comment-input-bubble {
   display: flex;
   align-items: flex-start;
@@ -883,8 +1075,7 @@ html:has(.draw-page) * {
   border: 1px solid var(--comment-white-medium);
   border-radius: 4px 21px 21px 21px;
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
-  min-width: 200px;
-  max-width: 280px;
+  width: 280px;
 }
 
 .draw-comment-input-icon {
@@ -2656,4 +2847,465 @@ html:has(.draw-page) * {
 /* Pause animation when not visible */
 .draw-wiggle-css.paused {
   animation-play-state: paused;
+}
+
+/* =============================================================================
+   Mobile Layout (max-width: 768px)
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  /* Header: compact */
+  .draw-header {
+    padding: 6px 8px;
+  }
+
+  .draw-header-text {
+    font-size: 13px;
+  }
+
+  /* Hide desktop toolbar on mobile */
+  .draw-toolbar {
+    display: none !important;
+  }
+
+  /* Hide desktop comment anchors (shown in bottom sheet instead) */
+  .draw-comment-anchor {
+    display: none !important;
+  }
+
+  /* Hide desktop comment input form */
+  .draw-comment-input-backdrop,
+  .draw-comment-input-form {
+    display: none !important;
+  }
+
+  /* Hide custom cursor on mobile */
+  .draw-cursor {
+    display: none !important;
+  }
+}
+
+/* =============================================================================
+   Mobile Toolbar — Tools Mode
+   ============================================================================= */
+
+.mobile-toolbar {
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.mobile-toolbar > * {
+  pointer-events: auto;
+}
+
+/* Comment button — just the icon, no background */
+.mobile-toolbar-comment {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+  padding: 0;
+}
+
+.mobile-toolbar-comment:active {
+  transform: scale(0.93);
+}
+
+/* Center pill — white bg with border, clips bottom so tools protrude upward */
+.mobile-toolbar-center {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 0 16px;
+  clip-path: inset(-200px -20px 0 -20px);
+}
+
+/* Tool tray — flex-end so tools protrude upward */
+.mobile-toolbar-tray {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 40px;
+  padding-top: 12px;
+}
+
+/* Tool buttons — tall containers for protrusion */
+.mobile-tool-btn {
+  position: relative;
+  width: 40px;
+  height: 72px;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s;
+}
+
+/* Tool icons — absolutely positioned, slide up/down */
+.mobile-tool-icon {
+  position: absolute;
+  left: 0;
+  width: 40px;
+  height: 72px;
+  transition: bottom 0.2s, filter 0.2s;
+  filter: drop-shadow(0 8px 4px rgba(0, 0, 0, 0.1));
+  pointer-events: none;
+}
+
+.mobile-tool-icon--selected {
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.2));
+}
+
+/* Style button — simple bg with color swatch inside */
+.mobile-toolbar-style {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+  overflow: hidden;
+}
+
+.mobile-toolbar-style:active {
+  transform: scale(0.93);
+}
+
+.mobile-toolbar-style-color {
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+}
+
+/* =============================================================================
+   Mobile Toolbar — Options Mode
+   ============================================================================= */
+
+/* Options panel — right-aligned column holding dice, colors, sizes+close */
+.mobile-options-panel {
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 20;
+}
+
+/* Dice button — separate from color strip */
+.mobile-dice-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mobile-dice-btn:active {
+  transform: scale(0.93);
+}
+
+/* Floating color strip — rounded all sides */
+.mobile-color-strip {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.mobile-color-swatch {
+  width: 40px;
+  height: 40px;
+  display: block;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, filter 0.11s ease-out;
+  position: relative;
+}
+
+.mobile-color-swatch:active {
+  opacity: 0.8;
+}
+
+.mobile-color-swatch--selected::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2.5px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+}
+
+/* Options bar — pen sizes + close, horizontal strip */
+.mobile-options-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+/* Individual pen size button */
+.mobile-options-size {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s;
+}
+
+.mobile-options-size--active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.mobile-options-size:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Close button in options bar */
+.mobile-options-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s;
+  padding: 0;
+}
+
+.mobile-options-close:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* =============================================================================
+   Mobile Comment Input (bottom-attached bar)
+   ============================================================================= */
+
+.mobile-comment-input-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.mobile-comment-input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 31;
+}
+
+.mobile-comment-input-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(16, 16, 16, 0.05);
+  border-radius: 12px;
+  border: none;
+  padding: 12px;
+  gap: 8px;
+}
+
+.mobile-comment-input-field textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  line-height: 1.4;
+  max-height: 80px;
+  padding: 0;
+  font-family: var(--draw-font, inherit);
+  background: transparent;
+}
+
+.mobile-comment-submit {
+  width: 24px;
+  height: 24px;
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+  padding: 6px;
+}
+
+.mobile-comment-submit--empty {
+  opacity: 0.3;
+}
+
+/* =============================================================================
+   Mobile Comment Sheet (bottom sheet)
+   ============================================================================= */
+
+.mobile-comment-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-comment-sheet {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  max-height: 50vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)),
+              linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8));
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px;
+}
+
+.mobile-comment-sheet-handle {
+  width: 24px;
+  height: 2.5px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.mobile-comment-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.mobile-comment-sheet-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+}
+
+.mobile-comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-comment-item-main,
+.mobile-comment-item-reply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.mobile-comment-item-text {
+  font-size: 16px;
+  line-height: 1.25;
+  color: black;
+  flex: 1;
+}
+
+.mobile-comment-item-reply-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-left: 32px;
+}
+
+.mobile-comment-item-reply-input textarea {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 16px;
+  resize: none;
+  outline: none;
+  max-height: 80px;
+  font-family: var(--draw-font, inherit);
+  background: white;
+}
+
+.mobile-comment-reply-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+  padding: 6px;
+}
+
+.mobile-comment-reply-btn--empty {
+  opacity: 0.3;
+}
+
+.mobile-comment-sheet-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+  gap: 8px;
+}
+
+.mobile-comment-sheet-input textarea {
+  flex: 1;
+  border: none;
+  padding: 0;
+  font-size: 16px; /* Prevents iOS zoom */
+  resize: none;
+  outline: none;
+  max-height: 80px;
+  font-family: var(--draw-font, inherit);
+  background: transparent;
 }

@@ -1,5 +1,8 @@
-import { useState, useCallback, RefObject } from 'react';
+import { useState, useCallback, useRef, useEffect, RefObject } from 'react';
 import { Comment, Point } from '../types';
+import { LOCALSTORAGE_DEBOUNCE_MS } from '../constants';
+
+const COMMENTS_STORAGE_KEY = 'draw-comments';
 
 interface UseCommentsProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -37,6 +40,45 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
   const [replyText, setReplyText] = useState('');
   const [commentInput, setCommentInput] = useState<Point | null>(null);
   const [commentText, setCommentText] = useState('');
+
+  // Load saved comments from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COMMENTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Comment[];
+        // Only restore saved comments (drop temp ones), and clear streaming state
+        const restored = parsed
+          .filter(c => c.status !== 'temp')
+          .map(c => ({
+            ...c,
+            replies: c.replies?.map(r => ({ ...r, isStreaming: false, displayLength: undefined })),
+          }));
+        if (restored.length > 0) setComments(restored);
+      }
+    } catch (e) {
+      console.error('Failed to load comments:', e);
+    }
+  }, []);
+
+  // Save comments to localStorage when they change (debounced)
+  useEffect(() => {
+    // Only save non-temp, saved comments
+    const toSave = comments.filter(c => c.status !== 'temp');
+    if (toSave.length === 0 && comments.length === 0) return;
+    const timeoutId = setTimeout(() => {
+      try {
+        if (toSave.length === 0) {
+          localStorage.removeItem(COMMENTS_STORAGE_KEY);
+        } else {
+          localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(toSave));
+        }
+      } catch (e) {
+        console.error('Failed to save comments:', e);
+      }
+    }, LOCALSTORAGE_DEBOUNCE_MS);
+    return () => clearTimeout(timeoutId);
+  }, [comments]);
 
   const addComment = useCallback((text: string, from: 'human' | 'claude', x?: number, y?: number) => {
     const canvas = canvasRef.current;
@@ -101,9 +143,12 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
           newTempStartedAt = undefined;
         }
 
+        const newReply = from === 'claude'
+          ? { text, from, isStreaming: true, displayLength: 0 }
+          : { text, from };
         return {
           ...comment,
-          replies: [...(comment.replies || []), { text, from }],
+          replies: [...(comment.replies || []), newReply],
           status: newStatus,
           tempStartedAt: newTempStartedAt,
         };
@@ -113,6 +158,43 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
     setReplyingToIndex(null);
     setReplyText('');
   }, []);
+
+  // Streaming interval: increment displayLength on streaming replies
+  const hasStreaming = comments.some(c =>
+    c.replies?.some(r => r.isStreaming)
+  );
+
+  useEffect(() => {
+    if (!hasStreaming) return;
+
+    // Read speed from CSS custom property (default 30ms/char)
+    const speedStr = getComputedStyle(document.documentElement)
+      .getPropertyValue('--comment-stream-speed').trim();
+    const speed = speedStr ? Number(speedStr) : 30;
+
+    const interval = setInterval(() => {
+      setComments(prev => {
+        let changed = false;
+        const next = prev.map(comment => {
+          if (!comment.replies?.some(r => r.isStreaming)) return comment;
+          const updatedReplies = comment.replies!.map(reply => {
+            if (!reply.isStreaming) return reply;
+            const len = (reply.displayLength ?? 0) + 1;
+            if (len >= reply.text.length) {
+              changed = true;
+              return { ...reply, displayLength: reply.text.length, isStreaming: false };
+            }
+            changed = true;
+            return { ...reply, displayLength: len };
+          });
+          return { ...comment, replies: updatedReplies };
+        });
+        return changed ? next : prev;
+      });
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [hasStreaming]);
 
   const handleCommentCancel = useCallback(() => {
     setCommentInput(null);

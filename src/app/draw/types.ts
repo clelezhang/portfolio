@@ -57,6 +57,8 @@ export interface Turn {
 export interface CommentReply {
   text: string;
   from: 'human' | 'claude';
+  isStreaming?: boolean;
+  displayLength?: number;
 }
 
 export interface Comment {

@@ -540,6 +540,22 @@ const DRAW_TOOL: Anthropic.Tool = {
   },
 };
 
+// Comment-only tool — lightweight, no drawing fields
+const COMMENT_TOOL: Anthropic.Tool = {
+  name: 'respond',
+  description: 'Respond to the human\'s comment on the canvas.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      say: { type: 'string', description: 'Your comment response' },
+      sayX: { type: 'number', description: 'X position for new comment (only if not replying)' },
+      sayY: { type: 'number', description: 'Y position for new comment (only if not replying)' },
+      replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed). Use this to reply in-thread.' },
+    },
+    required: ['say'],
+  },
+};
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -550,10 +566,12 @@ export async function POST(req: NextRequest) {
       format = 'diff-only' as FormatMode,
       // Tool calls toggle - when false, use legacy JSON output mode
       useToolCalls = false,
+      // Comment-only mode — skip drawing, just respond to comments
+      commentOnly = false,
     } = await req.json();
 
-    // Image is required unless elements are provided (diff-only mode)
-    if (!image && !elements) {
+    // Image is required unless elements are provided (diff-only mode) or comment-only
+    if (!image && !elements && !commentOnly) {
       return NextResponse.json({ error: 'No image or elements provided' }, { status: 400 });
     }
 
@@ -657,109 +675,138 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
     // Single-stage: Opus sees image directly and draws
     // (twoStage removed - it was causing Opus to draw blind from text descriptions)
     const hasComments = comments && Array.isArray(comments) && comments.length > 0;
-    const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount, useToolCalls);
 
-    // Standard max tokens
-    const defaultMaxTokens = drawMode === 'ascii' ? 512 : drawMode === 'shapes' ? 640 : 768;
-    const requestedMaxTokens = maxTokens || defaultMaxTokens;
+    let messageParams: Anthropic.MessageCreateParams;
 
-    // When thinking is enabled, max_tokens must be greater than thinking budget
-    const effectiveMaxTokens = thinkingEnabled
-      ? Math.max(requestedMaxTokens, thinkingBudget + 1024)
-      : requestedMaxTokens;
+    if (commentOnly) {
+      // ===== COMMENT-ONLY MODE =====
+      // Lightweight path: respond to human's comment, optionally draw if inspired
+      const commentSystemPrompt = `You're drawing on a shared canvas with a human. They just left a comment. Respond naturally — be warm, playful, concise. Use the respond tool to reply. If the comment inspires you to draw something, you can also use the draw tool.`;
 
-    // Build system prompt (cacheable - optimization #3)
-    // This part stays the same across requests, so we cache it
-    const systemPrompt = `${basePrompt}
+      const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
+
+The human just commented. Respond to their comment using the respond tool.`;
+
+      messageParams = {
+        model: selectedModel,
+        max_tokens: 300,
+        system: [
+          {
+            type: 'text' as const,
+            text: commentSystemPrompt,
+            cache_control: { type: 'ephemeral' as const },
+          },
+        ],
+        messages: [
+          {
+            role: 'user' as const,
+            content: [{ type: 'text' as const, text: commentUserMessage }],
+          },
+        ],
+        tools: [COMMENT_TOOL],
+        tool_choice: { type: 'tool' as const, name: 'respond' },
+        temperature: 0.8,
+      };
+
+      console.log(`[DEBUG] commentOnly mode, prompt=${commentUserMessage.length} chars`);
+    } else {
+      // ===== NORMAL DRAWING MODE =====
+      const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount, useToolCalls);
+
+      // Standard max tokens
+      const defaultMaxTokens = drawMode === 'ascii' ? 512 : drawMode === 'shapes' ? 640 : 768;
+      const requestedMaxTokens = maxTokens || defaultMaxTokens;
+
+      // When thinking is enabled, max_tokens must be greater than thinking budget
+      const effectiveMaxTokens = thinkingEnabled
+        ? Math.max(requestedMaxTokens, thinkingBudget + 1024)
+        : requestedMaxTokens;
+
+      // Build system prompt (cacheable - optimization #3)
+      const systemPrompt = `${basePrompt}
 
 ${drawingInstructions}`;
 
-    // Debug: log prompt sizes
-    const toolSchemaSize = JSON.stringify(DRAW_TOOL).length;
-    console.log(`[DEBUG] useToolCalls=${useToolCalls}`);
-    console.log(`[DEBUG] systemPrompt=${systemPrompt.length} chars (~${Math.ceil(systemPrompt.length/4)} tokens)`);
-    console.log(`[DEBUG] drawingInstructions=${drawingInstructions.length} chars`);
-    console.log(`[DEBUG] tool schema=${toolSchemaSize} chars (~${Math.ceil(toolSchemaSize/4)} tokens)`);
+      // Debug: log prompt sizes
+      const toolSchemaSize = JSON.stringify(DRAW_TOOL).length;
+      console.log(`[DEBUG] useToolCalls=${useToolCalls}`);
+      console.log(`[DEBUG] systemPrompt=${systemPrompt.length} chars (~${Math.ceil(systemPrompt.length/4)} tokens)`);
+      console.log(`[DEBUG] drawingInstructions=${drawingInstructions.length} chars`);
+      console.log(`[DEBUG] tool schema=${toolSchemaSize} chars (~${Math.ceil(toolSchemaSize/4)} tokens)`);
 
-    // Build user message - three modes:
-    // 1. sharedObservation provided: Draw based on pre-computed observation (for comparison tests)
-    // 2. Elements without image: Diff-only mode (Claude uses memory + element IDs)
-    // 3. Normal: Image + optional elements context
-    let userMessage: string;
-    let messageContent: Anthropic.MessageCreateParams['messages'][0]['content'];
+      // Build user message - three modes:
+      // 1. sharedObservation provided: Draw based on pre-computed observation (for comparison tests)
+      // 2. Elements without image: Diff-only mode (Claude uses memory + element IDs)
+      // 3. Normal: Image + optional elements context
+      let userMessage: string;
+      let messageContent: Anthropic.MessageCreateParams['messages'][0]['content'];
 
-    if (sharedObservation) {
-      // Drawing-only mode: Use provided observation, just draw (no image needed)
-      userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
+      if (sharedObservation) {
+        userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
 
 CANVAS OBSERVATION (from visual analysis):
 ${sharedObservation}
 ${sharedIntention ? `\nINTENDED ACTION: ${sharedIntention}` : ''}
 
 Based on this observation${sharedIntention ? ' and intended action' : ''}, draw your response. Focus on executing the drawing well.`;
-      messageContent = [
-        {
-          type: 'text' as const,
-          text: userMessage,
-        },
-      ];
-    } else if (elements && !image) {
-      // Diff-only mode: No image, just element IDs and new strokes
-      userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${elementContext}
+        messageContent = [
+          {
+            type: 'text' as const,
+            text: userMessage,
+          },
+        ];
+      } else if (elements && !image) {
+        userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${elementContext}
 
 Based on the element state${diff ? ' and recent changes' : ''}, what would be a good addition? How can that addition be beautiful and inspiring? Draw it.`;
-      messageContent = [
-        {
-          type: 'text' as const,
-          text: userMessage,
-        },
-      ];
-    } else {
-      // Normal mode: Image + optional elements context
-      userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${elementContext}
+        messageContent = [
+          {
+            type: 'text' as const,
+            text: userMessage,
+          },
+        ];
+      } else {
+        userMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${elementContext}
 
 Look at the canvas. What do you see? What could be a good addition? How can that addition be beautiful and inspiring? Draw it.`;
-      messageContent = [
-        {
-          type: 'image' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: mediaType,
-            data: base64Image,
+        messageContent = [
+          {
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: mediaType,
+              data: base64Image,
+            },
           },
-        },
-        {
-          type: 'text' as const,
-          text: userMessage,
-        },
-      ];
-    }
+          {
+            type: 'text' as const,
+            text: userMessage,
+          },
+        ];
+      }
 
-    const messageParams: Anthropic.MessageCreateParams = {
-      model: selectedModel,
-      max_tokens: effectiveMaxTokens,
-      // System prompt with cache_control for prompt caching
-      system: [
-        {
-          type: 'text' as const,
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' as const },
-        },
-      ],
-      messages: [
-        {
-          role: 'user' as const,
-          content: messageContent,
-        },
-      ],
-      // Add the draw tool (only when useToolCalls is enabled)
-      ...(useToolCalls ? { tools: [DRAW_TOOL] } : {}),
-      // Extended thinking - when enabled, temperature must not be set
-      // Early turns (≤2): higher temp for exploration, later: lower for focus
-      ...(thinkingEnabled
-        ? { thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget } }
-        : { temperature: temperature ?? (turnCount <= 3 ? 1.0 : 0.7) }),
-    };
+      messageParams = {
+        model: selectedModel,
+        max_tokens: effectiveMaxTokens,
+        system: [
+          {
+            type: 'text' as const,
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' as const },
+          },
+        ],
+        messages: [
+          {
+            role: 'user' as const,
+            content: messageContent,
+          },
+        ],
+        ...(useToolCalls ? { tools: [DRAW_TOOL] } : {}),
+        ...(thinkingEnabled
+          ? { thinking: { type: 'enabled' as const, budget_tokens: thinkingBudget } }
+          : { temperature: temperature ?? (turnCount <= 3 ? 1.0 : 0.7) }),
+      };
+    }
 
     // Streaming mode
     if (streaming) {
@@ -778,6 +825,9 @@ Look at the canvas. What do you see? What could be a good addition? How can that
           let sentBlocksCount = 0;
           let sentDrawing = false;
           let sentAsciiColor = false;
+          // Comment streaming state (for respond tool)
+          let sentReplyStart = false;
+          let sentSayLength = 0;
 
           // Track current content block type
           let currentBlockType: 'thinking' | 'text' | 'tool_use' | null = null;
@@ -798,7 +848,26 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                   toolInput = '';
                 }
               } else if (event.type === 'content_block_stop') {
-                // When tool call completes, send any remaining items
+                // When comment-only tool call completes
+                if (currentBlockType === 'tool_use' && currentToolName === 'respond') {
+                  try {
+                    const input = JSON.parse(toolInput);
+                    if (input.say && input.say.trim() && !sentReplyStart) {
+                      // Fallback: if streaming didn't work, send full reply
+                      if (input.replyTo) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'say', data: { text: input.say, replyTo: input.replyTo } })}\n\n`));
+                      } else {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'say', data: { text: input.say, replyToLast: true } })}\n\n`));
+                      }
+                    }
+                    // If we streamed, send any remaining text that wasn't captured
+                    if (sentReplyStart && input.say && input.say.length > sentSayLength) {
+                      const remaining = input.say.slice(sentSayLength);
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'sayChunk', data: { text: remaining } })}\n\n`));
+                    }
+                  } catch { /* tool input parsing failed */ }
+                }
+                // When draw tool call completes, send any remaining items
                 if (currentBlockType === 'tool_use' && currentToolName === 'draw') {
                   try {
                     const input = JSON.parse(toolInput);
@@ -933,8 +1002,26 @@ Look at the canvas. What do you see? What could be a good addition? How can that
               }
 
               // Handle tool call input streaming (only when useToolCalls is enabled)
-              if (useToolCalls && event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
+              if ((useToolCalls || commentOnly) && event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
                 toolInput += event.delta.partial_json;
+
+                // Stream comment text as it arrives (respond tool)
+                if (currentToolName === 'respond') {
+                  // Match "say": "..." even if the string isn't terminated yet
+                  const sayMatch = toolInput.match(/"say"\s*:\s*"((?:[^"\\]|\\.)*)/)
+                  if (sayMatch) {
+                    const currentSay = sayMatch[1];
+                    if (!sentReplyStart) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'replyStart', data: { replyToLast: true } })}\n\n`));
+                      sentReplyStart = true;
+                    }
+                    if (currentSay.length > sentSayLength) {
+                      const chunk = currentSay.slice(sentSayLength);
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'sayChunk', data: { text: chunk } })}\n\n`));
+                      sentSayLength = currentSay.length;
+                    }
+                  }
+                }
 
                 // Extract drawing/asciiColor from partial tool input
                 if (!sentDrawing) {

@@ -4,6 +4,193 @@ import { Comment, Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
 import { CloseIcon, CheckmarkIcon, SubmitArrowIcon } from './icons';
 
+// ─── Easing presets for DialKit select controls ─────────────────────────────
+const EASING_OPTIONS = [
+  { value: 'cubic-bezier(0.4, 0, 0.2, 1)', label: 'ease-out (default)' },
+  { value: 'cubic-bezier(0.34, 1.56, 0.64, 1)', label: 'ease-out-back' },
+  { value: 'cubic-bezier(0.22, 1, 0.36, 1)', label: 'ease-out-quint' },
+  { value: 'cubic-bezier(0.16, 1, 0.3, 1)', label: 'ease-out-expo' },
+  { value: 'cubic-bezier(0.33, 1, 0.68, 1)', label: 'ease-out-cubic' },
+  { value: 'cubic-bezier(0.25, 0.1, 0.25, 1)', label: 'ease (CSS default)' },
+  { value: 'cubic-bezier(0.4, 0, 1, 1)', label: 'ease-in' },
+  { value: 'linear', label: 'linear' },
+];
+
+/** Convert a DialKit SpringConfig into a CSS linear() easing function. */
+function springToLinearCSS(spring: { type: 'spring'; stiffness?: number; damping?: number; mass?: number; visualDuration?: number; bounce?: number }, samples = 40): string {
+  let stiffness: number, damping: number, mass: number;
+  if (spring.visualDuration !== undefined) {
+    const dur = spring.visualDuration || 0.5;
+    const dampingRatio = 1 - (spring.bounce || 0);
+    const angularFreq = (2 * Math.PI) / dur;
+    stiffness = angularFreq * angularFreq;
+    damping = 2 * dampingRatio * angularFreq;
+    mass = 1;
+  } else {
+    stiffness = spring.stiffness || 100;
+    damping = spring.damping || 10;
+    mass = spring.mass || 1;
+  }
+  let pos = 0, vel = 0;
+  const dt = 1 / 120;
+  const maxSteps = 720;
+  const raw: number[] = [0];
+  for (let i = 0; i < maxSteps; i++) {
+    const accel = (-stiffness * (pos - 1) - damping * vel) / mass;
+    vel += accel * dt;
+    pos += vel * dt;
+    raw.push(pos);
+    if (i > 20 && Math.abs(pos - 1) < 0.001 && Math.abs(vel) < 0.001) break;
+  }
+  const values: string[] = [];
+  for (let i = 0; i < samples; i++) {
+    const t = i / (samples - 1);
+    const idx = t * (raw.length - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, raw.length - 1);
+    const frac = idx - lo;
+    const val = raw[lo] * (1 - frac) + raw[hi] * frac;
+    values.push((Math.round(val * 1000) / 1000).toString());
+  }
+  return `linear(${values.join(', ')})`;
+}
+
+/** Build a CSS linear() easing: holds near start, then accelerates to end. */
+function fadeCurveCSS(holdPct: number, power: number, samples = 40): string {
+  const hold = Math.max(0, Math.min(holdPct / 100, 0.99));
+  const values: string[] = [];
+  for (let i = 0; i < samples; i++) {
+    const t = i / (samples - 1);
+    let val: number;
+    if (t <= hold) {
+      val = 0; // animation stays at start (opacity: 1)
+    } else {
+      const fadeT = (t - hold) / (1 - hold); // 0→1 within fade region
+      val = Math.pow(fadeT, power); // power > 1 = slow start then fast
+    }
+    values.push((Math.round(val * 1000) / 1000).toString());
+  }
+  return `linear(${values.join(', ')})`;
+}
+
+/** Standalone DialKit panel + CSS var applicator for comment animations. */
+export function CommentDialKit() {
+  const dial = useDialKit('Comments', {
+    '✅ hover (collapsed → preview)': {
+      'duration (ms)': [250, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 160, damping: 100, mass: 8.02 },
+      'delay (ms)': [80, 0, 300] as [number, number, number],
+    },
+    '✅ open (preview → expanded)': {
+      'duration (ms)': [160, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+    },
+    '✅ unhover (preview → collapsed)': {
+      'duration (ms)': [200, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 229, damping: 35, mass: 1.09 },
+      'delay (ms)': [120, 0, 300] as [number, number, number],
+      'scale to': [1, 0.5, 1] as [number, number, number],
+      'blur to (px)': [0, 0, 10] as [number, number, number],
+    },
+    '✅ close (expanded → collapsed)': {
+      'duration (ms)': [179, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+      'scale to': [1, 0.5, 1] as [number, number, number],
+      'blur to (px)': [0, 0, 10] as [number, number, number],
+    },
+    '✅ input (comment box appear/close/send)': {
+      'appear duration (ms)': [185, 50, 600] as [number, number, number],
+      'appear easing': { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+      'appear scale from': [0.90, 0.5, 1] as [number, number, number],
+      'close duration (ms)': [71, 50, 600] as [number, number, number],
+      'close easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 1, 1)' },
+      'send duration (ms)': [215, 50, 600] as [number, number, number],
+      'send easing': { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+    },
+    '✅ temp fade (auto-dismiss lifetime)': {
+      'lifetime (s)': [60, 5, 120] as [number, number, number],
+      'blur max (px)': [1, 0, 5] as [number, number, number],
+      'hold (%)': [10, 0, 90] as [number, number, number],
+      'acceleration': [1.25, 1, 6] as [number, number, number],
+    },
+    '✅ delete (bubble removal)': {
+      'duration (ms)': [160, 50, 600] as [number, number, number],
+      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0, 0, 0.58, 1)' },
+      'scale to': [0.70, 0.5, 1] as [number, number, number],
+    },
+    '✅ temp style (border/outline transition)': {
+      'transition (ms)': [100, 50, 600] as [number, number, number],
+    },
+    '✅ temp buttons (slide in/out)': {
+      'duration (ms)': [120, 50, 400] as [number, number, number],
+      'slide-in easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+      'slide-out easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 1, 1)' },
+    },
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const hover = dial['✅ hover (collapsed → preview)'];
+    const open = dial['✅ open (preview → expanded)'];
+    const unhover = dial['✅ unhover (preview → collapsed)'];
+    const close = dial['✅ close (expanded → collapsed)'];
+    const input = dial['✅ input (comment box appear/close/send)'];
+    const fade = dial['✅ temp fade (auto-dismiss lifetime)'];
+    const del = dial['✅ delete (bubble removal)'];
+    const tempStyle = dial['✅ temp style (border/outline transition)'];
+    const tempButtons = dial['✅ temp buttons (slide in/out)'];
+    const vars: Record<string, string> = {
+      '--comment-hover-duration': `${hover['duration (ms)']}ms`,
+      '--comment-hover-easing': springToLinearCSS(hover.easing),
+      '--comment-open-duration': `${open['duration (ms)']}ms`,
+      '--comment-open-easing': springToLinearCSS(open.easing),
+      '--comment-unhover-duration': `${unhover['duration (ms)']}ms`,
+      '--comment-unhover-easing': springToLinearCSS(unhover.easing),
+      '--comment-unhover-delay': `${unhover['delay (ms)']}ms`,
+      '--comment-unhover-scale-to': String(unhover['scale to']),
+      '--comment-unhover-blur-to': `${unhover['blur to (px)']}px`,
+      '--comment-close-duration': `${close['duration (ms)']}ms`,
+      '--comment-close-easing': springToLinearCSS(close.easing),
+      '--comment-close-scale-to': String(close['scale to']),
+      '--comment-close-blur-to': `${close['blur to (px)']}px`,
+      '--comment-input-duration': `${input['appear duration (ms)']}ms`,
+      '--comment-input-easing': springToLinearCSS(input['appear easing']),
+      '--comment-input-scale-from': String(input['appear scale from']),
+      '--comment-input-close-duration': `${input['close duration (ms)']}ms`,
+      '--comment-input-close-easing': input['close easing'],
+      '--comment-input-send-duration': `${input['send duration (ms)']}ms`,
+      '--comment-input-send-easing': springToLinearCSS(input['send easing']),
+      '--comment-delete-duration': `${del['duration (ms)']}ms`,
+      '--comment-delete-easing': del.easing,
+      '--comment-delete-scale-to': String(del['scale to']),
+      '--comment-fade-total': `${fade['lifetime (s)']}s`,
+      '--comment-fade-blur-max': `${fade['blur max (px)']}px`,
+      '--comment-fade-easing': fadeCurveCSS(fade['hold (%)'], fade.acceleration),
+      '--comment-temp-slide-duration': `${tempButtons['duration (ms)']}ms`,
+      '--comment-temp-slide-in-easing': tempButtons['slide-in easing'],
+      '--comment-temp-slide-out-easing': tempButtons['slide-out easing'],
+      '--comment-temp-style-transition': `${tempStyle['transition (ms)']}ms`,
+    };
+    for (const [key, value] of Object.entries(vars)) {
+      root.style.setProperty(key, value);
+    }
+  }, [dial]);
+
+  // Auto-collapse ✅ folders on mount
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.dialkit-folder-title').forEach(el => {
+        if (el.textContent?.includes('✅')) {
+          const header = el.closest('.dialkit-folder-header');
+          if (header) (header as HTMLElement).click();
+        }
+      });
+    });
+  }, []);
+
+  return null;
+}
+
 interface CommentSystemProps {
   comments: Comment[];
   strokeColor: string;
@@ -100,95 +287,22 @@ export const CommentSystem = memo(function CommentSystem({
   saveComment,
   dismissComment,
 }: CommentSystemProps) {
-  // Easing presets for DialKit select controls
-  const EASING_OPTIONS = [
-    { value: 'cubic-bezier(0.4, 0, 0.2, 1)', label: 'ease-out (default)' },
-    { value: 'cubic-bezier(0.34, 1.56, 0.64, 1)', label: 'ease-out-back' },
-    { value: 'cubic-bezier(0.22, 1, 0.36, 1)', label: 'ease-out-quint' },
-    { value: 'cubic-bezier(0.16, 1, 0.3, 1)', label: 'ease-out-expo' },
-    { value: 'cubic-bezier(0.33, 1, 0.68, 1)', label: 'ease-out-cubic' },
-    { value: 'cubic-bezier(0.25, 0.1, 0.25, 1)', label: 'ease (CSS default)' },
-    { value: 'cubic-bezier(0.4, 0, 1, 1)', label: 'ease-in' },
-    { value: 'linear', label: 'linear' },
-  ];
-
-  // DialKit — animation fine-tuning panel
-  const dial = useDialKit('Comments', {
-    morph: {
-      duration: [200, 50, 600] as [number, number, number],
-      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-      closeDuration: [180, 50, 600] as [number, number, number],
-      closeEasing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-      openScaleFrom: [1, 0.5, 1] as [number, number, number],
-      openBlurFrom: [0, 0, 10] as [number, number, number],
-    },
-    hover: {
-      duration: [200, 50, 600] as [number, number, number],
-      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-      delay: [80, 0, 300] as [number, number, number],
-    },
-    input: {
-      duration: [228, 50, 600] as [number, number, number],
-      easing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
-      scaleFrom: [0.94, 0.5, 1] as [number, number, number],
-      closeDuration: [71, 50, 600] as [number, number, number],
-      closeEasing: { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-    },
-    fade: {
-      total: [60, 5, 120] as [number, number, number],
-      blurMax: [1, 0, 5] as [number, number, number],
-    },
-    details: {
-      deleteDuration: [150, 50, 400] as [number, number, number],
-      tempSlideDuration: [150, 50, 400] as [number, number, number],
-    },
-  });
-
-  // Apply DialKit values as CSS custom properties on :root so they cascade everywhere
-  useEffect(() => {
-    const root = document.documentElement;
-    const vars: Record<string, string> = {
-      '--comment-morph-duration': `${dial.morph.duration}ms`,
-      '--comment-morph-easing': dial.morph.easing,
-      '--comment-open-scale-from': String(dial.morph.openScaleFrom),
-      '--comment-open-blur-from': `${dial.morph.openBlurFrom}px`,
-      '--comment-close-duration': `${dial.morph.closeDuration}ms`,
-      '--comment-close-easing': dial.morph.closeEasing,
-      '--comment-hover-duration': `${dial.hover.duration}ms`,
-      '--comment-hover-easing': dial.hover.easing,
-      '--comment-input-duration': `${dial.input.duration}ms`,
-      '--comment-input-easing': dial.input.easing,
-      '--comment-input-scale-from': String(dial.input.scaleFrom),
-      '--comment-input-close-duration': `${dial.input.closeDuration}ms`,
-      '--comment-input-close-easing': dial.input.closeEasing,
-      '--comment-delete-duration': `${dial.details.deleteDuration}ms`,
-      '--comment-fade-total': `${dial.fade.total}s`,
-      '--comment-fade-blur-max': `${dial.fade.blurMax}px`,
-      '--comment-temp-slide-duration': `${dial.details.tempSlideDuration}ms`,
-    };
-    for (const [key, value] of Object.entries(vars)) {
-      root.style.setProperty(key, value);
-    }
-  }, [dial]);
-
-  // Use DialKit hover delay value
-  const hoverDelay = dial.hover.delay;
+  // Hover delay from CSS var default (80ms)
+  const hoverDelay = 80;
 
   // Ref to track hover timer for debouncing
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced hover handlers to prevent jittering
+  // Hover handlers — enter is instant (so cursor switches immediately),
+  // leave is debounced to prevent jitter when mouse briefly exits
   const handleMouseEnter = useCallback((index: number) => {
     // Clear any pending leave timer
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
-    // Set hover after delay
-    hoverTimerRef.current = setTimeout(() => {
-      setHoveredCommentIndex(index);
-    }, hoverDelay);
-  }, [setHoveredCommentIndex, hoverDelay]);
+    setHoveredCommentIndex(index);
+  }, [setHoveredCommentIndex]);
 
   const handleMouseLeave = useCallback(() => {
     // Clear any pending enter timer
@@ -213,6 +327,7 @@ export const CommentSystem = memo(function CommentSystem({
 
   return (
     <>
+      <CommentDialKit />
       {comments.map((comment, i) => {
         const screenPos = canvasToScreen(comment.x, comment.y);
         const isOpen = openCommentIndex === i;
@@ -318,9 +433,53 @@ export function CommentBubble({
   const handleTextareaResize = useAutoResizeTextarea(80);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [isGridTransitioning, setIsGridTransitioning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const tempActionsRef = useRef<HTMLDivElement>(null);
+  const frozenVisualStateRef = useRef<'collapsed' | 'preview' | 'open' | null>(null);
+  const prevVisualStateRef = useRef(visualState);
+  const closingFromRef = useRef<'preview' | 'open' | null>(null);
+
+  // Freeze visual state when deleting so classes don't change mid-animation
+  if (isDeleting && frozenVisualStateRef.current === null) {
+    frozenVisualStateRef.current = visualState;
+  }
+  const effectiveVisualState = isDeleting && frozenVisualStateRef.current ? frozenVisualStateRef.current : visualState;
+
+  // Track where we're closing from — computed synchronously so the class is present on the same render as the state change
+  const prev = prevVisualStateRef.current;
+  if (effectiveVisualState !== prev) {
+    prevVisualStateRef.current = effectiveVisualState;
+    if (effectiveVisualState === 'collapsed' && (prev === 'preview' || prev === 'open')) {
+      closingFromRef.current = prev;
+    } else if (effectiveVisualState !== 'collapsed') {
+      closingFromRef.current = null;
+    }
+  }
+  const closingFrom = closingFromRef.current;
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+
+  // Track grid open/close transitions for fade overlay
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const onStart = (e: TransitionEvent) => {
+      if (e.target === el && e.propertyName === 'grid-template-rows') setIsGridTransitioning(true);
+    };
+    const onEnd = (e: TransitionEvent) => {
+      if (e.target === el && e.propertyName === 'grid-template-rows') setIsGridTransitioning(false);
+    };
+    el.addEventListener('transitionstart', onStart);
+    el.addEventListener('transitionend', onEnd);
+    return () => {
+      el.removeEventListener('transitionstart', onStart);
+      el.removeEventListener('transitionend', onEnd);
+    };
+  }, []);
 
   // Update scroll fade indicators
   const updateScrollFades = useCallback(() => {
@@ -332,14 +491,14 @@ export function CommentBubble({
 
   // Check fades when visual state changes (content may appear/disappear)
   useEffect(() => {
-    if (visualState === 'open') {
+    if (effectiveVisualState === 'open') {
       // Wait a tick for content to render
       requestAnimationFrame(updateScrollFades);
     } else {
       setCanScrollUp(false);
       setCanScrollDown(false);
     }
-  }, [visualState, isReplying, comment.replies?.length, updateScrollFades]);
+  }, [effectiveVisualState, isReplying, comment.replies?.length, updateScrollFades]);
 
   // Mark as animated after mount to enable transitions
   useEffect(() => {
@@ -349,14 +508,19 @@ export function CommentBubble({
 
   // Scroll to top when collapsing
   useEffect(() => {
-    if (visualState === 'collapsed' && bubbleRef.current) {
+    if (effectiveVisualState === 'collapsed' && bubbleRef.current) {
       bubbleRef.current.scrollTop = 0;
     }
-  }, [visualState]);
+  }, [effectiveVisualState]);
 
   // Auto-dismiss timer for temp comments (60s)
   const handleAutoDismiss = useCallback(() => {
-    if (onDismiss) {
+    if (!onDismiss) return;
+    const el = tempActionsRef.current;
+    if (el) {
+      el.classList.add('draw-comment-temp-actions--exiting');
+      el.addEventListener('animationend', () => onDismiss(), { once: true });
+    } else {
       onDismiss();
     }
   }, [onDismiss]);
@@ -382,18 +546,20 @@ export function CommentBubble({
 
   const authorClass = isUserComment ? 'draw-comment-bubble--user' : 'draw-comment-bubble--claude';
   const stateClass = isTemp ? 'draw-comment-bubble--temp' : 'draw-comment-bubble--saved';
-  const visualStateClass = `draw-comment-bubble--${visualState}`;
+  const visualStateClass = `draw-comment-bubble--${effectiveVisualState}`;
   const animateClass = hasAnimated ? 'draw-comment-bubble--animated' : '';
+  const closingFromClass = closingFrom ? `draw-comment-bubble--closing-from-${closingFrom}` : '';
 
   return (
     <div
-      className={`draw-comment-wrapper ${isTemp ? 'draw-comment-wrapper--temp' : ''}`}
+      ref={wrapperRef}
+      className={`draw-comment-wrapper ${isTemp ? 'draw-comment-wrapper--temp' : ''}${isDeleting ? ' draw-comment-wrapper--deleting' : ''}`}
       style={{
-        animationDelay: comment.tempStartedAt ? `-${(Date.now() - comment.tempStartedAt) / 1000}s` : '0s',
+        animationDelay: isDeleting ? '0s' : comment.tempStartedAt ? `-${(Date.now() - comment.tempStartedAt) / 1000}s` : '0s',
       }}
     >
       <div
-        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass}${canScrollUp ? ' draw-comment-bubble--fade-top' : ''}${canScrollDown ? ' draw-comment-bubble--fade-bottom' : ''}`}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${canScrollUp ? ' draw-comment-bubble--fade-top' : ''}${canScrollDown ? ' draw-comment-bubble--fade-bottom' : ''}`}
         style={{ '--stroke-color': strokeColor } as React.CSSProperties}
         onClick={(e) => {
           e.stopPropagation();
@@ -408,81 +574,106 @@ export function CommentBubble({
               alt=""
               className="draw-comment-row-icon"
             />
-            <div className="draw-comment-row-body">
-              <span className="draw-comment-text">{comment.text}</span>
+            <div className={`draw-comment-text-grid${effectiveVisualState !== 'collapsed' ? ' draw-comment-text-grid--visible' : ''}`}>
+              <div className="draw-comment-text-grid-inner">
+                <div className="draw-comment-row-body">
+                  <span className="draw-comment-text">{comment.text}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Reply items — only in open state */}
-          {visualState === 'open' && comment.replies?.map((reply, ri) => (
-            <div key={ri} className="draw-comment-row draw-comment-row--reply">
-              <img
-                src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
-                alt=""
-                className="draw-comment-row-icon"
-              />
-              <div className="draw-comment-row-body">
-                <span className="draw-comment-text">{reply.text}</span>
-              </div>
-            </div>
-          ))}
+          {/* Open-only content — grid wrapper animates height from 0fr→1fr */}
+          <div ref={gridRef} className={`draw-comment-open-grid${effectiveVisualState === 'open' ? ' draw-comment-open-grid--open' : ''}`}>
+            {isGridTransitioning && <div className="draw-comment-open-grid-fade" />}
+            <div className="draw-comment-open-grid-inner">
+              {/* Reply items */}
+              {comment.replies?.map((reply, ri) => {
+                const displayText = reply.isStreaming
+                  ? reply.text.slice(0, reply.displayLength ?? 0)
+                  : reply.text;
+                return (
+                  <div key={ri} className="draw-comment-row draw-comment-row--reply">
+                    <img
+                      src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
+                      alt=""
+                      className="draw-comment-row-icon"
+                    />
+                    <div className="draw-comment-row-body">
+                      <span className={`draw-comment-text${reply.isStreaming ? ' draw-comment-text--streaming' : ''}`}>{displayText}</span>
+                    </div>
+                  </div>
+                );
+              })}
 
-          {/* Reply input */}
-          {visualState === 'open' && isReplying && (
-            <div className="draw-comment-row draw-comment-row--reply-input">
-              <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-              <div className="draw-comment-row-body">
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Reply..."
-                  className="draw-comment-input draw-comment-input--plain"
-                  rows={1}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') onReplyCancel();
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      onReplySubmit();
-                    }
-                  }}
-                  onInput={handleTextareaResize}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <button
-                  onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
-                  disabled={!replyText?.trim()}
-                  className={`draw-comment-btn draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
-                >
-                  <SubmitArrowIcon />
-                </button>
-              </div>
-            </div>
-          )}
+              {/* Reply input — stays conditional for autoFocus */}
+              {effectiveVisualState === 'open' && isReplying && (
+                <div className="draw-comment-row draw-comment-row--reply-input">
+                  <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+                  <div className="draw-comment-row-body">
+                    <textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Reply..."
+                      className="draw-comment-input draw-comment-input--plain"
+                      rows={1}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') onReplyCancel();
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          onReplySubmit();
+                        }
+                      }}
+                      onInput={handleTextareaResize}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onReplySubmit(); }}
+                      disabled={!replyText?.trim()}
+                      className={`draw-comment-btn draw-comment-submit${replyText?.trim() ? '' : ' draw-comment-submit--empty'}`}
+                    >
+                      <SubmitArrowIcon />
+                    </button>
+                  </div>
+                </div>
+              )}
 
-          {/* Reply button */}
-          {visualState === 'open' && !isReplying && (
-            <div className="draw-comment-row draw-comment-row--reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
-              <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-              <div className="draw-comment-row-body">
-                <span className="draw-comment-reply-btn-text">Reply...</span>
-                <button
-                  type="button"
-                  className="draw-comment-btn draw-comment-submit draw-comment-submit--empty"
-                  tabIndex={-1}
-                >
-                  <SubmitArrowIcon />
-                </button>
-              </div>
+              {/* Reply button */}
+              {(!isReplying || effectiveVisualState !== 'open') && (
+                <div className="draw-comment-row draw-comment-row--reply-btn" onClick={(e) => { e.stopPropagation(); onReplyStart(); }}>
+                  <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
+                  <div className="draw-comment-row-body">
+                    <span className="draw-comment-reply-btn-text">Reply...</span>
+                    <button
+                      type="button"
+                      className="draw-comment-btn draw-comment-submit draw-comment-submit--empty"
+                      tabIndex={-1}
+                    >
+                      <SubmitArrowIcon />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Delete button - positioned outside scrollable bubble so it stays fixed */}
-      {visualState === 'open' && !isTemp && (
+      {effectiveVisualState === 'open' && !isTemp && (
         <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isDeleting) return;
+            setIsDeleting(true);
+            const el = wrapperRef.current;
+            if (el) {
+              el.addEventListener('animationend', () => onDelete(), { once: true });
+            } else {
+              onDelete();
+            }
+          }}
           className="draw-comment-btn draw-comment-delete"
           title="Delete comment"
         >
@@ -492,11 +683,17 @@ export function CommentBubble({
 
       {/* Temp state action buttons (save/dismiss) - outside bubble for flex layout */}
       {isTemp && (onSave || onDismiss) && (
-        <div className="draw-comment-temp-actions">
+        <div
+          ref={tempActionsRef}
+          className="draw-comment-temp-actions"
+        >
           {onSave && (
             <button
               className="draw-comment-btn draw-comment-temp-btn draw-comment-temp-btn--save"
-              onClick={(e) => { e.stopPropagation(); onSave(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSave();
+              }}
               title="Save comment"
             >
               <CheckmarkIcon />
@@ -505,7 +702,17 @@ export function CommentBubble({
           {onDismiss && (
             <button
               className="draw-comment-btn draw-comment-temp-btn draw-comment-temp-btn--dismiss"
-              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isDeleting) return;
+                setIsDeleting(true);
+                const el = wrapperRef.current;
+                if (el) {
+                  el.addEventListener('animationend', () => onDismiss(), { once: true });
+                } else {
+                  onDismiss();
+                }
+              }}
               title="Dismiss comment"
             >
               <CloseIcon />
