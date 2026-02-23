@@ -265,7 +265,7 @@ export function DrawToolbar({
           {/* ASCII and Eraser */}
           {[
             { id: 'ascii', label: 'ASCII art', icon: 'tool-ascii', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
-            { id: 'eraser', label: 'Eraser', icon: 'tool-eraser', isSelected: tool === 'erase', onClick: () => setTool('erase') },
+            { id: 'eraser', label: 'Eraser', icon: 'test-eraser', isSelected: tool === 'erase', onClick: () => setTool('erase') },
           ].map(({ id, label, icon, isSelected, onClick }) => (
             <MaybeTooltip key={id} content={label} placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
               <button onClick={onClick} className="draw-tool-btn">

@@ -133,7 +133,7 @@ export function MobileToolbar({
                 onClick={() => handleToolTap('erase', false)}
               >
                 <img
-                  src="/draw/tool-eraser.svg"
+                  src="/draw/test-eraser.svg"
                   alt=""
                   width={40}
                   height={72}
