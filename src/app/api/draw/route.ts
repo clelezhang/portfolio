@@ -683,9 +683,15 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
       // Lightweight path: respond to human's comment, optionally draw if inspired
       const commentSystemPrompt = `You're drawing on a shared canvas with a human. They just left a comment. Respond naturally — be warm, playful, concise. Use the respond tool to reply. If the comment inspires you to draw something, you can also use the draw tool.`;
 
-      const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}
+      // Find the newest human comment to tell Claude which one to reply to
+      const newestHumanCommentIdx = comments ? (comments as Comment[]).reduce((latest: number, c: Comment, i: number) => c.from === 'human' ? i : latest, -1) : -1;
+      const replyHint = newestHumanCommentIdx >= 0
+        ? `\n\nThe human's most recent comment is #${newestHumanCommentIdx + 1}. Reply to it using replyTo: ${newestHumanCommentIdx + 1}.`
+        : '';
 
-The human just commented. Respond to their comment using the respond tool.`;
+      const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${replyHint}
+
+Respond to the human's latest comment using the respond tool.`;
 
       messageParams = {
         model: selectedModel,

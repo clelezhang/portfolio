@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useCallback, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useCallback, useState } from 'react';
 import { useDialKit } from 'dialkit';
 import { Comment, Point } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
@@ -76,36 +76,36 @@ function fadeCurveCSS(holdPct: number, power: number, samples = 40): string {
 /** Standalone DialKit panel + CSS var applicator for comment animations. */
 export function CommentDialKit() {
   const dial = useDialKit('Comments', {
+    '✅ input (comment box appear/close/send)': {
+      'appear duration (ms)': [380, 50, 600] as [number, number, number],
+      'appear easing': { type: 'spring' as const, stiffness: 278, damping: 21, mass: 1.03 },
+      'appear scale from': [0.83, 0.5, 1] as [number, number, number],
+      'close duration (ms)': [80, 50, 600] as [number, number, number],
+      'close easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 1, 1)' },
+      'send duration (ms)': [325, 50, 600] as [number, number, number],
+      'send easing': { type: 'spring' as const, stiffness: 335, damping: 41, mass: 1.93 },
+    },
     '✅ hover (collapsed → preview)': {
-      'duration (ms)': [250, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, stiffness: 160, damping: 100, mass: 8.02 },
-      'delay (ms)': [80, 0, 300] as [number, number, number],
+      'duration (ms)': [435, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 470, damping: 40, mass: 1.43 },
+      'delay (ms)': [40, 0, 300] as [number, number, number],
     },
     '✅ open (preview → expanded)': {
-      'duration (ms)': [160, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+      'duration (ms)': [320, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 418, damping: 35, mass: 1.29 },
     },
     '✅ unhover (preview → collapsed)': {
-      'duration (ms)': [200, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, stiffness: 229, damping: 35, mass: 1.09 },
-      'delay (ms)': [120, 0, 300] as [number, number, number],
+      'duration (ms)': [380, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 430, damping: 25, mass: 0.62 },
+      'delay (ms)': [10, 0, 300] as [number, number, number],
       'scale to': [1, 0.5, 1] as [number, number, number],
       'blur to (px)': [0, 0, 10] as [number, number, number],
     },
     '✅ close (expanded → collapsed)': {
-      'duration (ms)': [179, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
+      'duration (ms)': [380, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 673, damping: 25, mass: 0.41 },
       'scale to': [1, 0.5, 1] as [number, number, number],
       'blur to (px)': [0, 0, 10] as [number, number, number],
-    },
-    '✅ input (comment box appear/close/send)': {
-      'appear duration (ms)': [185, 50, 600] as [number, number, number],
-      'appear easing': { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
-      'appear scale from': [0.90, 0.5, 1] as [number, number, number],
-      'close duration (ms)': [71, 50, 600] as [number, number, number],
-      'close easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 1, 1)' },
-      'send duration (ms)': [215, 50, 600] as [number, number, number],
-      'send easing': { type: 'spring' as const, visualDuration: 0.3, bounce: 0.2 },
     },
     '✅ temp fade (auto-dismiss lifetime)': {
       'lifetime (s)': [60, 5, 120] as [number, number, number],
@@ -130,11 +130,11 @@ export function CommentDialKit() {
 
   useEffect(() => {
     const root = document.documentElement;
+    const input = dial['✅ input (comment box appear/close/send)'];
     const hover = dial['✅ hover (collapsed → preview)'];
     const open = dial['✅ open (preview → expanded)'];
     const unhover = dial['✅ unhover (preview → collapsed)'];
     const close = dial['✅ close (expanded → collapsed)'];
-    const input = dial['✅ input (comment box appear/close/send)'];
     const fade = dial['✅ temp fade (auto-dismiss lifetime)'];
     const del = dial['✅ delete (bubble removal)'];
     const tempStyle = dial['✅ temp style (border/outline transition)'];
@@ -142,6 +142,7 @@ export function CommentDialKit() {
     const vars: Record<string, string> = {
       '--comment-hover-duration': `${hover['duration (ms)']}ms`,
       '--comment-hover-easing': springToLinearCSS(hover.easing),
+      '--comment-hover-delay': `${hover['delay (ms)']}ms`,
       '--comment-open-duration': `${open['duration (ms)']}ms`,
       '--comment-open-easing': springToLinearCSS(open.easing),
       '--comment-unhover-duration': `${unhover['duration (ms)']}ms`,
@@ -432,16 +433,46 @@ export function CommentBubble({
 }: CommentBubbleProps) {
   const handleTextareaResize = useAutoResizeTextarea(80);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const bubbleOuterRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
-  const [isGridTransitioning, setIsGridTransitioning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tempActionsRef = useRef<HTMLDivElement>(null);
   const frozenVisualStateRef = useRef<'collapsed' | 'preview' | 'open' | null>(null);
   const prevVisualStateRef = useRef(visualState);
   const closingFromRef = useRef<'preview' | 'open' | null>(null);
+  const prevIsTempRef = useRef(isTemp);
+  const gridRef = useRef<HTMLDivElement>(null);
+  // Top scroll fade tracked via ref + direct classList (no re-render lag).
+  // Bottom fade is always-on in CSS (gradient matches bg, invisible without content).
+  const scrollFadeTopRef = useRef(false);
+
+  const updateScrollFadeTop = useCallback(() => {
+    const el = bubbleRef.current;
+    const outer = bubbleOuterRef.current;
+    if (!el || !outer) return;
+    const top = el.scrollTop > 2;
+    scrollFadeTopRef.current = top;
+    outer.classList.toggle('draw-comment-scroll-fade-top', top);
+  }, []);
+
+  // When temp→saved, capture the current (faded) opacity so the CSS transition
+  // can smoothly recover it instead of snapping from the removed animation value.
+  useLayoutEffect(() => {
+    const wasTemp = prevIsTempRef.current;
+    prevIsTempRef.current = isTemp;
+    if (wasTemp && !isTemp) {
+      const el = bubbleOuterRef.current;
+      if (el) {
+        const currentOpacity = getComputedStyle(el).opacity;
+        el.style.opacity = currentOpacity;
+        requestAnimationFrame(() => {
+          el.style.opacity = '';
+        });
+      }
+    }
+  }, [isTemp]);
 
   // Freeze visual state when deleting so classes don't change mid-animation
   if (isDeleting && frozenVisualStateRef.current === null) {
@@ -460,45 +491,8 @@ export function CommentBubble({
     }
   }
   const closingFrom = closingFromRef.current;
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
 
-  // Track grid open/close transitions for fade overlay
-  useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const onStart = (e: TransitionEvent) => {
-      if (e.target === el && e.propertyName === 'grid-template-rows') setIsGridTransitioning(true);
-    };
-    const onEnd = (e: TransitionEvent) => {
-      if (e.target === el && e.propertyName === 'grid-template-rows') setIsGridTransitioning(false);
-    };
-    el.addEventListener('transitionstart', onStart);
-    el.addEventListener('transitionend', onEnd);
-    return () => {
-      el.removeEventListener('transitionstart', onStart);
-      el.removeEventListener('transitionend', onEnd);
-    };
-  }, []);
 
-  // Update scroll fade indicators
-  const updateScrollFades = useCallback(() => {
-    const el = bubbleRef.current;
-    if (!el) return;
-    setCanScrollUp(el.scrollTop > 0);
-    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  }, []);
-
-  // Check fades when visual state changes (content may appear/disappear)
-  useEffect(() => {
-    if (effectiveVisualState === 'open') {
-      // Wait a tick for content to render
-      requestAnimationFrame(updateScrollFades);
-    } else {
-      setCanScrollUp(false);
-      setCanScrollDown(false);
-    }
-  }, [effectiveVisualState, isReplying, comment.replies?.length, updateScrollFades]);
 
   // Mark as animated after mount to enable transitions
   useEffect(() => {
@@ -510,6 +504,50 @@ export function CommentBubble({
   useEffect(() => {
     if (effectiveVisualState === 'collapsed' && bubbleRef.current) {
       bubbleRef.current.scrollTop = 0;
+    }
+  }, [effectiveVisualState]);
+
+  // Top scroll fade — direct DOM via useLayoutEffect. Bottom fade is always-on in CSS.
+  useLayoutEffect(() => {
+    const outer = bubbleOuterRef.current;
+    if (!outer) return;
+
+    if (effectiveVisualState !== 'open') {
+      scrollFadeTopRef.current = false;
+      outer.classList.remove('draw-comment-scroll-fade-top');
+      return;
+    }
+
+    // After settle (overflow-y: auto kicks in), check if scrolled
+    const el = bubbleRef.current;
+    if (!el) return;
+    const handleAnimationEnd = (e: AnimationEvent) => {
+      if (e.animationName === 'comment-settle') {
+        updateScrollFadeTop();
+      }
+    };
+    el.addEventListener('animationend', handleAnimationEnd);
+    return () => el.removeEventListener('animationend', handleAnimationEnd);
+  }, [effectiveVisualState, updateScrollFadeTop]);
+
+  // Grid transition fade — hide ::after precisely when the transition ends.
+  // On open: show fade during transition, hide after transitionend.
+  // On close: remove --settled so fade is visible for the close transition.
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    if (effectiveVisualState === 'open') {
+      grid.classList.remove('draw-comment-open-grid--settled');
+      const handleTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === 'grid-template-rows') {
+          grid.classList.add('draw-comment-open-grid--settled');
+        }
+      };
+      grid.addEventListener('transitionend', handleTransitionEnd);
+      return () => grid.removeEventListener('transitionend', handleTransitionEnd);
+    } else {
+      grid.classList.remove('draw-comment-open-grid--settled');
     }
   }, [effectiveVisualState]);
 
@@ -549,6 +587,9 @@ export function CommentBubble({
   const visualStateClass = `draw-comment-bubble--${effectiveVisualState}`;
   const animateClass = hasAnimated ? 'draw-comment-bubble--animated' : '';
   const closingFromClass = closingFrom ? `draw-comment-bubble--closing-from-${closingFrom}` : '';
+  // Extra animation time for comments with more content (replies add height)
+  const replyCount = comment.replies?.length ?? 0;
+  const extraDurationMs = replyCount * 40; // 40ms per reply row
 
   return (
     <div
@@ -559,14 +600,15 @@ export function CommentBubble({
       }}
     >
       <div
-        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${canScrollUp ? ' draw-comment-bubble--fade-top' : ''}${canScrollDown ? ' draw-comment-bubble--fade-bottom' : ''}`}
-        style={{ '--stroke-color': strokeColor } as React.CSSProperties}
+        ref={bubbleOuterRef}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}`}
+        style={{ '--stroke-color': strokeColor, '--comment-extra-dur': `${extraDurationMs}ms` } as React.CSSProperties}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
         }}
       >
-        <div ref={bubbleRef} className="draw-comment-bubble-inner" onScroll={updateScrollFades}>
+        <div ref={bubbleRef} className="draw-comment-bubble-inner" onScroll={updateScrollFadeTop}>
           {/* Main row */}
           <div className="draw-comment-row draw-comment-row--main">
             <img
@@ -585,7 +627,6 @@ export function CommentBubble({
 
           {/* Open-only content — grid wrapper animates height from 0fr→1fr */}
           <div ref={gridRef} className={`draw-comment-open-grid${effectiveVisualState === 'open' ? ' draw-comment-open-grid--open' : ''}`}>
-            {isGridTransitioning && <div className="draw-comment-open-grid-fade" />}
             <div className="draw-comment-open-grid-inner">
               {/* Reply items */}
               {comment.replies?.map((reply, ri) => {
@@ -692,7 +733,14 @@ export function CommentBubble({
               className="draw-comment-btn draw-comment-temp-btn draw-comment-temp-btn--save"
               onClick={(e) => {
                 e.stopPropagation();
-                onSave();
+                const el = tempActionsRef.current;
+                if (el) {
+                  el.style.setProperty('--comment-temp-slide-duration', '80ms');
+                  el.classList.add('draw-comment-temp-actions--exiting');
+                  el.addEventListener('animationend', () => onSave(), { once: true });
+                } else {
+                  onSave();
+                }
               }}
               title="Save comment"
             >

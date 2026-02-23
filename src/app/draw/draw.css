@@ -52,6 +52,7 @@
   /* Hover: collapsed ↔ preview */
   --comment-hover-duration: 85ms;
   --comment-hover-easing: cubic-bezier(0.4, 0, 1, 1);
+  --comment-hover-delay: 80ms;
   /* Open: preview → open */
   --comment-open-duration: 85ms;
   --comment-open-easing: cubic-bezier(0.4, 0, 1, 1);
@@ -224,6 +225,20 @@
   cursor: none !important;
 }
 
+/* Prevent selecting SVGs/icons on draw page and comment components */
+.draw-page,
+.draw-comment-wrapper,
+.draw-comment-input-form {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.draw-comment-input,
+.draw-comment-reply-input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Also hide on ALL elements in the document (including layout siblings,
    portals, and library-injected elements outside .draw-page) */
 html:has(.draw-page),
@@ -282,12 +297,12 @@ html:has(.draw-page) * {
 /* Hover: arriving at preview from collapsed. */
 .draw-comment-bubble.draw-comment-bubble--animated {
   transition:
-    width var(--comment-hover-duration) var(--comment-hover-easing),
-    padding var(--comment-hover-duration) var(--comment-hover-easing),
-    border-radius var(--comment-hover-duration) ease-out,
-    transform var(--comment-hover-duration) var(--comment-hover-easing),
-    filter var(--comment-hover-duration) var(--comment-hover-easing),
-    opacity var(--comment-hover-duration) var(--comment-hover-easing),
+    width var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
+    padding var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
+    border-radius var(--comment-hover-duration) ease-out var(--comment-hover-delay),
+    transform var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
+    filter var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
+    opacity var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
     border-color var(--comment-temp-style-transition) ease-in,
     outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
@@ -296,12 +311,12 @@ html:has(.draw-page) * {
 /* Open: arriving at open from preview/collapsed. */
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--open {
   transition:
-    width var(--comment-open-duration) var(--comment-open-easing),
-    padding var(--comment-open-duration) var(--comment-open-easing),
-    border-radius var(--comment-open-duration) ease-out,
-    transform var(--comment-open-duration) var(--comment-open-easing),
-    filter var(--comment-open-duration) var(--comment-open-easing),
-    opacity var(--comment-open-duration) var(--comment-open-easing),
+    width calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
+    padding calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
+    border-radius calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) ease-out,
+    transform calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
+    filter calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
+    opacity calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
     border-color var(--comment-temp-style-transition) ease-in,
     outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
@@ -310,12 +325,12 @@ html:has(.draw-page) * {
 /* Close: arriving at collapsed (fallback) */
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed {
   transition:
-    width var(--comment-close-duration) var(--comment-close-easing),
-    padding var(--comment-close-duration) var(--comment-close-easing),
-    border-radius var(--comment-close-duration) ease-out,
-    transform var(--comment-close-duration) var(--comment-close-easing),
-    filter var(--comment-close-duration) var(--comment-close-easing),
-    opacity var(--comment-close-duration) var(--comment-close-easing),
+    width calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    padding calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    border-radius calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) ease-out,
+    transform calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    filter calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    opacity calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     border-color var(--comment-temp-style-transition) ease-in,
     outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
@@ -338,12 +353,12 @@ html:has(.draw-page) * {
 /* Close: open → collapsed */
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed.draw-comment-bubble--closing-from-open {
   transition:
-    width var(--comment-close-duration) var(--comment-close-easing),
-    padding var(--comment-close-duration) var(--comment-close-easing),
-    border-radius var(--comment-close-duration) ease-out,
-    transform var(--comment-close-duration) var(--comment-close-easing),
-    filter var(--comment-close-duration) var(--comment-close-easing),
-    opacity var(--comment-close-duration) var(--comment-close-easing),
+    width calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    padding calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    border-radius calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) ease-out,
+    transform calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    filter calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    opacity calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     border-color var(--comment-temp-style-transition) ease-in,
     outline-color var(--comment-temp-style-transition) ease-in;
   transform-origin: 0 0;
@@ -375,8 +390,8 @@ html:has(.draw-page) * {
   grid-template-rows: 0fr;
   opacity: 0;
   transition:
-    grid-template-rows var(--comment-close-duration) var(--comment-close-easing),
-    opacity var(--comment-close-duration) var(--comment-close-easing);
+    grid-template-rows calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    opacity calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing);
   overflow: hidden;
 }
 
@@ -428,7 +443,19 @@ html:has(.draw-page) * {
   width: 130px;
 }
 
-/* OPEN: Full content - 260px wide, max 300px tall */
+/* Same fix for close-from-open: lock row bodies at open-state width to prevent
+   text reflow jitter as bubble width transitions from 260px → 42px */
+.draw-comment-bubble--closing-from-open .draw-comment-row--main .draw-comment-row-body {
+  flex: none;
+  width: 220px;
+  padding-right: 32px;
+}
+.draw-comment-bubble--closing-from-open .draw-comment-open-grid-inner .draw-comment-row-body {
+  flex: none;
+  width: 212px;
+}
+
+/* OPEN: Full content visible, 260px wide, height capped at 300px */
 .draw-comment-bubble--open {
   position: relative;
   width: 260px;
@@ -438,51 +465,44 @@ html:has(.draw-page) * {
   filter: blur(0px);
 }
 
-/* Scroll fade indicators */
-.draw-comment-bubble--open::before,
+/* Bottom fade — always present when open. Gradient matches bubble bg so it's
+   invisible when content doesn't reach it; only visible over actual content. */
 .draw-comment-bubble--open::after {
   content: '';
   position: absolute;
   left: 8px;
   right: 8px;
+  bottom: 7.5px;
   height: 12px;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.1s;
   z-index: 1;
 }
-
-.draw-comment-bubble--open::before {
-  top: 7.5px;
-}
-
-.draw-comment-bubble--open::after {
-  bottom: 7.5px;
-}
-
-.draw-comment-bubble--user.draw-comment-bubble--open::before {
-  background: linear-gradient(to bottom, #000, transparent);
-}
-
 .draw-comment-bubble--user.draw-comment-bubble--open::after {
   background: linear-gradient(to top, #000, transparent);
 }
-
-.draw-comment-bubble--claude.draw-comment-bubble--open::before {
-  background: linear-gradient(to bottom, #fff, transparent);
-}
-
 .draw-comment-bubble--claude.draw-comment-bubble--open::after {
   background: linear-gradient(to top, #fff, transparent);
 }
 
-.draw-comment-bubble--fade-top::before {
-  opacity: 1;
+/* Top scroll fade — JS toggles draw-comment-scroll-fade-top when scrolled down */
+.draw-comment-bubble--open::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
 }
-
-.draw-comment-bubble--fade-bottom::after {
-  opacity: 1;
+.draw-comment-bubble--user.draw-comment-bubble--open::before {
+  background: linear-gradient(to bottom, #000, transparent);
 }
+.draw-comment-bubble--claude.draw-comment-bubble--open::before {
+  background: linear-gradient(to bottom, #fff, transparent);
+}
+.draw-comment-scroll-fade-top::before { opacity: 1; }
 
 /* Inner scroller — lives inside padding, scrollbar doesn't clip on rounded corners */
 .draw-comment-bubble-inner {
@@ -495,11 +515,22 @@ html:has(.draw-page) * {
 
 .draw-comment-bubble--open .draw-comment-bubble-inner {
   gap: 8px;
-  max-height: calc(300px - 18px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 8px;
+}
+
+/* Scroll constraints — applied after a delay matching the open animation so
+   overflow-y: auto doesn't interfere with the grid 0fr→1fr transition. */
+@keyframes comment-settle {
+  to {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(300px - 18px);
+    overscroll-behavior: contain;
+    padding-right: 8px;
+  }
+}
+
+.draw-comment-bubble--open .draw-comment-bubble-inner {
+  animation: comment-settle 0s calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) forwards;
 }
 
 /* User (dark bubble): light scrollbar */
@@ -516,7 +547,7 @@ html:has(.draw-page) * {
 .draw-comment-open-grid {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--comment-close-duration) var(--comment-close-easing);
+  transition: grid-template-rows calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing);
   flex-basis: 100%;
   width: 100%;
   position: relative;
@@ -525,7 +556,7 @@ html:has(.draw-page) * {
 
 .draw-comment-open-grid--open {
   grid-template-rows: 1fr;
-  transition: grid-template-rows var(--comment-open-duration) var(--comment-open-easing);
+  transition: grid-template-rows calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing);
 }
 
 .draw-comment-open-grid-inner {
@@ -536,10 +567,16 @@ html:has(.draw-page) * {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 8px;
+  /* Lock width to open-state content area so text doesn't reflow during the
+     bubble width transition — prevents discrete height jumps in the grid
+     animation. The grid's overflow:hidden clips when the bubble is narrow. */
+  min-width: 250px;
 }
 
-/* Fade overlay — rendered as a real DOM element, shown only during grid transition */
-.draw-comment-open-grid-fade {
+/* Grid transition fade — visible during 0fr→1fr / 1fr→0fr, then fades out
+   after the open transition completes so it doesn't linger on short content. */
+.draw-comment-open-grid::after {
+  content: '';
   position: absolute;
   bottom: 0;
   left: 0;
@@ -548,6 +585,12 @@ html:has(.draw-page) * {
   background: linear-gradient(to bottom, transparent, var(--comment-bubble-bg));
   pointer-events: none;
   z-index: 1;
+  transition: opacity 150ms;
+}
+
+/* After grid transition ends, JS adds --settled — fades out smoothly */
+.draw-comment-open-grid--settled::after {
+  opacity: 0;
 }
 
 
@@ -555,6 +598,14 @@ html:has(.draw-page) * {
   flex: none;
   width: 220px;
   padding-right: 32px;
+}
+
+/* Lock reply body widths in open state to prevent text reflow during
+   the bubble width transition (same pattern as closing-from-open).
+   212px = 252px content area − 24px icon − 8px gap − 8px scrollbar padding */
+.draw-comment-bubble--open .draw-comment-open-grid-inner .draw-comment-row-body {
+  flex: none;
+  width: 212px;
 }
 
 /* -----------------------------------------------------------------------------
@@ -936,11 +987,9 @@ html:has(.draw-page) * {
 @keyframes commentFadeOut {
   from {
     opacity: 1;
-    filter: blur(0px);
   }
   to {
     opacity: 0;
-    filter: blur(var(--comment-fade-blur-max));
   }
 }
 
@@ -973,17 +1022,15 @@ html:has(.draw-page) * {
   width: 42px;
   padding: 8px 0px 8px 8px;
   overflow: hidden;
-  opacity: 0;
   transition:
     width var(--comment-input-send-duration) var(--comment-input-send-easing),
     padding var(--comment-input-send-duration) var(--comment-input-send-easing),
-    border-radius var(--comment-input-send-duration) ease-out,
-    opacity var(--comment-input-send-duration) var(--comment-input-send-easing);
+    border-radius var(--comment-input-send-duration) ease-out;
 }
 
 .draw-comment-input-form--sending .draw-comment-submit {
   opacity: 0;
-  transition: opacity var(--comment-input-send-duration) var(--comment-input-send-easing);
+  transition: opacity 50ms ease-out;
 }
 
 /* Comment input cursor handled by React CustomCursor */
