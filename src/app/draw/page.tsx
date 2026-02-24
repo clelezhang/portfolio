@@ -94,6 +94,12 @@ export default function DrawPage() {
     setIsSafari(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
   }, []);
 
+  // Add class to <html> for cursor hiding — avoids expensive :has() re-evaluation
+  useEffect(() => {
+    document.documentElement.classList.add('draw-active');
+    return () => document.documentElement.classList.remove('draw-active');
+  }, []);
+
   // Auth state
   const { user } = useUser();
   const { saveDrawing: saveToCloud } = useDrawings();

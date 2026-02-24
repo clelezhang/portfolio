@@ -219,28 +219,28 @@
   z-index: 9999;
 }
 
-/* Hide native cursor everywhere when .draw-page is present.
-   IMPORTANT: Vendor-prefixed pseudo-elements MUST be in separate rules —
-   mixing -webkit- and -moz- in one selector list causes browsers to
-   reject the unknown vendor prefix and drop the ENTIRE rule. */
-html:has(.draw-page),
-html:has(.draw-page) *,
-html:has(.draw-page) *::before,
-html:has(.draw-page) *::after {
+/* Hide native cursor everywhere on the draw page.
+   Uses html.draw-active (set via useEffect) instead of :has() —
+   :has() is re-evaluated on every cursor move which causes flicker in Arc.
+   IMPORTANT: Vendor-prefixed pseudo-elements MUST be in separate rules. */
+html.draw-active,
+html.draw-active *,
+html.draw-active *::before,
+html.draw-active *::after {
   cursor: none !important;
 }
 
 /* Webkit slider thumbs + scrollbars (Chrome, Safari, Edge) */
-html:has(.draw-page) *::-webkit-slider-thumb {
+html.draw-active *::-webkit-slider-thumb {
   cursor: none !important;
 }
-html:has(.draw-page) *::-webkit-scrollbar,
-html:has(.draw-page) *::-webkit-scrollbar-thumb {
+html.draw-active *::-webkit-scrollbar,
+html.draw-active *::-webkit-scrollbar-thumb {
   cursor: none !important;
 }
 
 /* Mozilla slider thumbs (Firefox) */
-html:has(.draw-page) *::-moz-range-thumb {
+html.draw-active *::-moz-range-thumb {
   cursor: none !important;
 }
 

@@ -657,6 +657,7 @@ export default function CursorTestPage() {
   // Page-level cursor tracking (same as main draw page)
   const [pageCursorPos, setPageCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [isHoveringInteractive, setIsHoveringInteractive] = useState(false);
+  const cursorRef = useRef<HTMLDivElement>(null);
 
   // Zone-level cursor overrides
   const [zoneCursorOverride, setZoneCursorOverride] = useState<CursorMode | null>(null);
@@ -688,11 +689,13 @@ export default function CursorTestPage() {
       }}
       onMouseMove={(e) => {
         setPageCursorPos({ x: e.clientX, y: e.clientY });
+        const el = cursorRef.current;
+        if (el) { el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px'; el.style.display = ''; }
         const target = e.target as HTMLElement;
         const interactive = target.closest('button, a, label, [role="button"], .cursor-pointer, input[type="range"]');
         setIsHoveringInteractive(interactive !== null);
       }}
-      onMouseLeave={() => setPageCursorPos(null)}
+      onMouseLeave={() => { setPageCursorPos(null); const el = cursorRef.current; if (el) el.style.display = 'none'; }}
     >
       {/* CommentDialKit for CSS variables */}
       <CommentDialKit />
@@ -1092,7 +1095,7 @@ export default function CursorTestPage() {
       {/* Page-level custom cursor — same as main draw page */}
       {!showClaudeCursor && (
         <CustomCursor
-          position={pageCursorPos}
+          ref={cursorRef}
           mode={cursorMode}
           strokeColor="#2F3557"
         />
