@@ -25,7 +25,6 @@ interface MobileToolbarProps {
   setPaletteIndex: (index: number) => void;
   mode: MobileToolbarMode;
   setMode: (mode: MobileToolbarMode) => void;
-  onCommentOpen: () => void;
 }
 
 export function MobileToolbar({
@@ -41,7 +40,6 @@ export function MobileToolbar({
   setPaletteIndex,
   mode,
   setMode,
-  onCommentOpen,
 }: MobileToolbarProps) {
   const currentPalette = COLOR_PALETTES[paletteIndex];
 
@@ -86,14 +84,8 @@ export function MobileToolbar({
       {/* ========== TOOLS MODE ========== */}
       {mode === 'tools' && (
         <div className="mobile-toolbar">
-          {/* Left: Comment button — no bg/border, just blur */}
-          <button
-            className="mobile-toolbar-comment"
-            onClick={onCommentOpen}
-            aria-label="Comments"
-          >
-            <img src="/draw/mobile-comment.svg" alt="" draggable={false} width={40} height={40} />
-          </button>
+          {/* Left: Spacer where comment morph button lives (positioned fixed) */}
+          <div className="mobile-toolbar-comment-spacer" />
 
           {/* Center: Tool pill — clips bottom, allows top protrusion */}
           <div className="mobile-toolbar-center">

@@ -71,7 +71,7 @@ import { CommentSystem } from './components/CommentSystem';
 import { CommentInput } from './components/CommentInput';
 import { MobileToolbar, MobileToolbarMode } from './components/MobileToolbar';
 import { MobileCommentInput } from './components/MobileCommentInput';
-import { MobileCommentSheet } from './components/MobileCommentSheet';
+import { MobileCommentMorph } from './components/MobileCommentMorph';
 import { ClaudeIcon } from './components/ClaudeIcon';
 
 // Auth components
@@ -2787,7 +2787,6 @@ export default function DrawPage() {
           setPaletteIndex={setPaletteIndex}
           mode={mobileToolbarMode}
           setMode={setMobileToolbarMode}
-          onCommentOpen={() => setMobileCommentSheetOpen(true)}
         />
       ) : (
         <DrawToolbar
@@ -2834,8 +2833,9 @@ export default function DrawPage() {
       {/* Mobile comment system */}
       {isMobile && (
         <>
-          <MobileCommentSheet
+          <MobileCommentMorph
             isOpen={mobileCommentSheetOpen}
+            onToggle={() => setMobileCommentSheetOpen(true)}
             onClose={() => setMobileCommentSheetOpen(false)}
             comments={comments}
             replyingToIndex={replyingToIndex}
@@ -2844,7 +2844,7 @@ export default function DrawPage() {
             setReplyText={setReplyText}
             addReplyToComment={addReplyToComment}
             deleteComment={deleteComment}
-            onUserReply={(_index, _text) => {
+            onUserReply={(_index: number, _text: string) => {
               setHumanHasCommented(true);
               // Trigger comment-only response (no drawing)
               handleCommentResponse();

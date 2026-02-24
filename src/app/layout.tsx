@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Miss_Fajardose, Caveat } from "next/font/google";
 import localFont from "next/font/local";
 import Header from "./components/Header";
-import AgentationWrapper from "./components/AgentationWrapper";
 import { DialRoot } from "dialkit";
 import "./globals.css";
 import "dialkit/styles.css";
@@ -194,7 +193,6 @@ export default function RootLayout({
         />
         <Header />
         {children}
-        <AgentationWrapper />
         <DialRoot position="top-right" />
       </body>
     </html>
