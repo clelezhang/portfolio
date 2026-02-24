@@ -452,7 +452,7 @@ html:has(.draw-page) * {
 }
 .draw-comment-bubble--closing-from-open .draw-comment-open-grid-inner .draw-comment-row-body {
   flex: none;
-  width: 212px;
+  width: 210px;
 }
 
 /* OPEN: Full content visible, 260px wide, height capped at 300px */
@@ -465,8 +465,9 @@ html:has(.draw-page) * {
   filter: blur(0px);
 }
 
-/* Bottom fade — always present when open. Gradient matches bubble bg so it's
-   invisible when content doesn't reach it; only visible over actual content. */
+/* Bottom fade — hidden by default, JS toggles draw-comment-scroll-fade-bottom
+   immediately when overflow is predicted (before first paint). Stays visible
+   as long as content overflows. Non-overflow messages get no overlay. */
 .draw-comment-bubble--open::after {
   content: '';
   position: absolute;
@@ -476,6 +477,7 @@ html:has(.draw-page) * {
   height: 12px;
   pointer-events: none;
   z-index: 1;
+  opacity: 0;
 }
 .draw-comment-bubble--user.draw-comment-bubble--open::after {
   background: linear-gradient(to top, #000, transparent);
@@ -483,6 +485,7 @@ html:has(.draw-page) * {
 .draw-comment-bubble--claude.draw-comment-bubble--open::after {
   background: linear-gradient(to top, #fff, transparent);
 }
+.draw-comment-scroll-fade-bottom::after { opacity: 1; }
 
 /* Top scroll fade — JS toggles draw-comment-scroll-fade-top when scrolled down */
 .draw-comment-bubble--open::before {
@@ -573,8 +576,9 @@ html:has(.draw-page) * {
   min-width: 250px;
 }
 
-/* Grid transition fade — visible during 0fr→1fr / 1fr→0fr, then fades out
-   after the open transition completes so it doesn't linger on short content. */
+/* Grid transition fade — visible during 0fr→1fr / 1fr→0fr.
+   The --open animation fades it out during the last half of the transition.
+   When --open is removed (close), animation is removed → opacity snaps to 1. */
 .draw-comment-open-grid::after {
   content: '';
   position: absolute;
@@ -585,12 +589,14 @@ html:has(.draw-page) * {
   background: linear-gradient(to bottom, transparent, var(--comment-bubble-bg));
   pointer-events: none;
   z-index: 1;
-  transition: opacity 150ms;
 }
-
-/* After grid transition ends, JS adds --settled — fades out smoothly */
-.draw-comment-open-grid--settled::after {
-  opacity: 0;
+.draw-comment-open-grid--open::after {
+  animation: grid-overlay-fade calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) forwards;
+}
+@keyframes grid-overlay-fade {
+  0%, 10% { opacity: 1; }
+  55% { opacity: 0; }
+  100% { opacity: 0; }
 }
 
 
@@ -605,7 +611,7 @@ html:has(.draw-page) * {
    212px = 252px content area − 24px icon − 8px gap − 8px scrollbar padding */
 .draw-comment-bubble--open .draw-comment-open-grid-inner .draw-comment-row-body {
   flex: none;
-  width: 212px;
+  width: 210px;
 }
 
 /* -----------------------------------------------------------------------------

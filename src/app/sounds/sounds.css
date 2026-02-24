@@ -312,41 +312,61 @@
   opacity: 1;
 }
 
-/* Like button */
-.like-btn {
-  position: absolute;
-  top: 0.6rem;
-  left: 0.6rem;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: none;
-  background: none;
-  color: #444;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  line-height: 1;
+/* Drag and drop */
+.preset-card[draggable] {
+  cursor: grab;
+}
+
+.preset-card[draggable]:active {
+  cursor: grabbing;
+}
+
+.preset-card.dragging {
+  opacity: 0.3;
+}
+
+.presets-grid.drag-over {
+  outline: 2px dashed #6366f1;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.preset-card.empty-drop {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #444;
+  font-size: 0.75rem;
+  border-style: dashed;
+  min-height: 60px;
+  cursor: default;
 }
 
-.like-btn:hover {
-  color: #f87171;
-  transform: scale(1.15);
+/* Comment input */
+.preset-comment {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #1e1e30;
+  background: #0a0a12;
+  color: #aaa;
+  font-size: 0.7rem;
+  font-family: var(--font-geist-mono), monospace;
+  outline: none;
+  transition: border-color 0.15s;
 }
 
-.like-btn.active {
-  color: #f87171;
+.preset-comment::placeholder {
+  color: #333;
 }
 
-.preset-card.liked {
-  border-color: rgba(248, 113, 113, 0.25);
+.preset-comment:focus {
+  border-color: #6366f1;
+  color: #ddd;
 }
 
-/* Liked sounds bar */
+/* Export / bottom bar */
 .liked-bar {
   position: fixed;
   bottom: 0;
@@ -365,7 +385,7 @@
 
 .liked-bar-count {
   font-size: 0.8rem;
-  color: #f87171;
+  color: #888;
   font-weight: 500;
 }
 
