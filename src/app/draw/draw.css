@@ -3267,8 +3267,8 @@ html.draw-active *::-moz-range-thumb {
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   left: 12px;
   width: 40px;
-  height: auto;
-  border-radius: 20px 20px 20px 4px;
+  height: 40px;
+  border-radius: 12px;
   background: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)), rgba(255, 255, 255, 0.7);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
@@ -3279,10 +3279,8 @@ html.draw-active *::-moz-range-thumb {
   -webkit-tap-highlight-color: transparent;
   transition:
     width 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    min-height 340ms cubic-bezier(0.22, 1, 0.36, 1),
     border-radius 340ms cubic-bezier(0.22, 1, 0.36, 1),
     background 340ms cubic-bezier(0.22, 1, 0.36, 1);
-  min-height: 40px;
 }
 
 .mobile-comment-morph:active:not(.mobile-comment-morph--expanded) {
@@ -3293,7 +3291,7 @@ html.draw-active *::-moz-range-thumb {
 /* Expanded state — input bar only (no comments) */
 .mobile-comment-morph--expanded {
   width: calc(100vw - 24px);
-  min-height: 58px;
+  height: auto;
   border-radius: 12px;
   background: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)),
               linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85));
@@ -3303,7 +3301,7 @@ html.draw-active *::-moz-range-thumb {
 
 /* Expanded state — has comments, fills available space */
 .mobile-comment-morph--has-comments {
-  min-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px) - 24px);
+  height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px) - 24px);
 }
 
 /* Button icon — fades out fast on expand */
@@ -3326,10 +3324,8 @@ html.draw-active *::-moz-range-thumb {
   transition: opacity 100ms ease-out;
 }
 
-/* Sheet content — fades in with delay after geometry starts */
+/* Sheet content — normal flow so it sizes the parent height */
 .mobile-comment-morph-content {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -3432,6 +3428,7 @@ html.draw-active *::-moz-range-thumb {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  min-width: 0;
   border-radius: 8px;
   padding: 12px;
   background: white;
@@ -3440,6 +3437,7 @@ html.draw-active *::-moz-range-thumb {
 
 .mobile-comment-sheet-input textarea {
   flex: 1;
+  min-width: 0;
   border: none;
   padding: 0;
   font-size: 16px; /* Prevents iOS zoom */
@@ -3448,4 +3446,6 @@ html.draw-active *::-moz-range-thumb {
   max-height: 80px;
   font-family: var(--draw-font, inherit);
   background: transparent;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }

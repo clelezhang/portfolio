@@ -441,6 +441,7 @@ export function CommentBubble({
   const prevIsTempRef = useRef(isTemp);
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollFadeTopRef = useRef(false);
+  const scrollFadeBottomRef = useRef(false);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   const updateScrollFades = useCallback(() => {
@@ -448,8 +449,11 @@ export function CommentBubble({
     const outer = bubbleOuterRef.current;
     if (!el || !outer) return;
     const top = el.scrollTop > 2;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight > 2;
     scrollFadeTopRef.current = top;
+    scrollFadeBottomRef.current = bottom;
     outer.classList.toggle('draw-comment-scroll-fade-top', top);
+    outer.classList.toggle('draw-comment-scroll-fade-bottom', bottom);
   }, []);
 
   // When temp→saved, capture the current (faded) opacity so the CSS transition
@@ -507,12 +511,28 @@ export function CommentBubble({
 
     if (effectiveVisualState !== 'open') {
       scrollFadeTopRef.current = false;
+      scrollFadeBottomRef.current = false;
       outer.classList.remove('draw-comment-scroll-fade-top');
+      outer.classList.remove('draw-comment-scroll-fade-bottom');
       return;
     }
 
     const el = bubbleRef.current;
-    if (!el) return;
+    const gridEl = gridRef.current;
+    if (!el || !gridEl) return;
+
+    // Predict overflow BEFORE the grid transition completes so the bottom
+    // fade is present from the very first painted frame.  The grid is still
+    // at 0fr, but the grid-inner's scrollHeight reflects its natural height.
+    const gridInnerEl = gridEl.firstElementChild as HTMLElement | null;
+    const gridContentHeight = gridInnerEl?.scrollHeight || 0;
+    const mainRow = el.querySelector('.draw-comment-row--main') as HTMLElement | null;
+    const mainRowHeight = mainRow?.offsetHeight || 0;
+    const gap = 8; // matches CSS gap on .draw-comment-bubble-inner when open
+    const maxInnerHeight = 282; // calc(300px - 18px)
+    const willOverflow = (mainRowHeight + gap + gridContentHeight) > maxInnerHeight;
+    scrollFadeBottomRef.current = willOverflow;
+    outer.classList.toggle('draw-comment-scroll-fade-bottom', willOverflow);
 
     // After settle (overflow-y: auto kicks in), check actual overflow
     const handleAnimationEnd = (e: AnimationEvent) => {
@@ -581,7 +601,7 @@ export function CommentBubble({
     >
       <div
         ref={bubbleOuterRef}
-        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}`}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}${scrollFadeBottomRef.current ? ' draw-comment-scroll-fade-bottom' : ''}`}
         style={{ '--stroke-color': strokeColor, '--comment-extra-dur': `${extraDurationMs}ms` } as React.CSSProperties}
         onMouseEnter={onBubbleMouseEnter}
         onMouseLeave={onBubbleMouseLeave}
