@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Comment } from '../types';
-import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
 
 type AnimState = 'collapsed' | 'expanding' | 'expanded' | 'collapsing';
@@ -47,7 +46,6 @@ export function MobileCommentMorph({
   const [animState, setAnimState] = useState<AnimState>('collapsed');
   const morphRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const handleTextareaResize = useAutoResizeTextarea(160);
   const contentWrapperRef = useRef<HTMLDivElement>(null);
 
   const hasComments = comments.length > 0;
@@ -179,7 +177,6 @@ export function MobileCommentMorph({
               }}
               placeholder={hasComments ? 'Reply...' : 'Add your comment'}
               rows={1}
-              onInput={handleTextareaResize}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') onClose();
                 if (e.key === 'Enter' && !e.shiftKey) {

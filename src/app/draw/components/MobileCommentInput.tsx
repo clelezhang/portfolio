@@ -1,4 +1,3 @@
-import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
 
 interface MobileCommentInputProps {
@@ -14,8 +13,6 @@ export function MobileCommentInput({
   onSubmit,
   onCancel,
 }: MobileCommentInputProps) {
-  const handleTextareaResize = useAutoResizeTextarea(80);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -43,7 +40,6 @@ export function MobileCommentInput({
                 if (commentText.trim()) handleSubmit(e);
               }
             }}
-            onInput={handleTextareaResize}
           />
           <button
             type="submit"

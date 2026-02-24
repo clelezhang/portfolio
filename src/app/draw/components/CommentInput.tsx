@@ -1,6 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
 import { Point } from '../types';
-import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
 
 interface CommentInputProps {
@@ -25,7 +24,6 @@ export function CommentInput({
   onMouseEnterBubble,
   onMouseLeaveBubble,
 }: CommentInputProps) {
-  const handleTextareaResize = useAutoResizeTextarea(100);
   const formRef = useRef<HTMLFormElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const fieldWrapperRef = useRef<HTMLDivElement>(null);
@@ -123,7 +121,7 @@ export function CommentInput({
                   }
                 }
               }}
-              onInput={(e) => { handleTextareaResize(e); requestAnimationFrame(() => updateOverflow(e.target as HTMLTextAreaElement)); }}
+              onInput={(e) => requestAnimationFrame(() => updateOverflow(e.target as HTMLTextAreaElement))}
               onScroll={(e) => updateOverflow(e.currentTarget)}
             />
             <button

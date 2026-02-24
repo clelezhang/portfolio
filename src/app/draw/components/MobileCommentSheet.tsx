@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import { Comment } from '../types';
-import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
 
 interface MobileCommentSheetProps {
@@ -41,7 +40,6 @@ export function MobileCommentSheet({
   onUserReply,
 }: MobileCommentSheetProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const handleTextareaResize = useAutoResizeTextarea(80);
 
   // Scroll to bottom when sheet opens
   useEffect(() => {
@@ -103,7 +101,6 @@ export function MobileCommentSheet({
                           handleReplySubmit(index);
                         }
                       }}
-                      onInput={handleTextareaResize}
                     />
                     <button
                       onClick={() => handleReplySubmit(index)}
@@ -131,7 +128,6 @@ export function MobileCommentSheet({
             }}
             placeholder="Reply..."
             rows={1}
-            onInput={handleTextareaResize}
             onFocus={() => {
               if (replyingToIndex === null && comments.length > 0) {
                 setReplyingToIndex(comments.length - 1);

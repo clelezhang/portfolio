@@ -96,8 +96,6 @@
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  height: calc(100vh - env(safe-area-inset-bottom, 0px));
-  max-height: -webkit-fill-available;
   background-color: var(--draw-bg-canvas);
   overflow: hidden;
   touch-action: none;
@@ -530,6 +528,10 @@ html.draw-active *::-moz-range-thumb {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 0px;
+  scrollbar-width: none;
+}
+.draw-comment-bubble-inner::-webkit-scrollbar {
+  display: none;
 }
 
 .draw-comment-bubble--open .draw-comment-bubble-inner {
@@ -552,14 +554,10 @@ html.draw-active *::-moz-range-thumb {
   animation: comment-settle 0s calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) forwards;
 }
 
-/* User (dark bubble): light scrollbar */
-.draw-comment-bubble--user .draw-comment-bubble-inner {
-  scrollbar-color: var(--comment-white-medium) transparent;
-}
-
-/* Claude (white bubble): grey scrollbar */
-.draw-comment-bubble--claude .draw-comment-bubble-inner {
-  scrollbar-color: var(--comment-black-medium) transparent;
+/* Scrollbar colors per author */
+.draw-comment-bubble-inner {
+  .draw-comment-bubble--user & { scrollbar-color: var(--comment-white-medium) transparent; }
+  .draw-comment-bubble--claude & { scrollbar-color: var(--comment-black-medium) transparent; }
 }
 
 /* Grid wrapper for open-only content — animates height from 0 to auto */
@@ -670,7 +668,7 @@ html.draw-active *::-moz-range-thumb {
 }
 
 /* User icon hover wobble */
-.draw-comment-bubble--user .draw-comment-row-icon:hover {
+.draw-comment-bubble--user .draw-comment-row-icon:not([src*="claude"]):hover {
   filter: invert(1) url(#wobbleFilterBtn);
 }
 
@@ -699,28 +697,28 @@ html.draw-active *::-moz-range-thumb {
   border-color: var(--comment-white-medium);
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
   color: #fff;
-}
 
-.draw-comment-bubble--user .draw-comment-row-icon {
-  filter: invert(1);
-}
+  & .draw-comment-row-icon {
+    filter: invert(1);
+  }
 
-.draw-comment-bubble--user .draw-comment-input {
-  background: transparent;
-}
+  & .draw-comment-input {
+    background: transparent;
+  }
 
-.draw-comment-bubble--user .draw-comment-submit:not(.draw-comment-submit--empty) {
-  background-color: #fff;
-  color: #000;
-}
+  & .draw-comment-submit:not(.draw-comment-submit--empty) {
+    background-color: #fff;
+    color: #000;
+  }
 
-/* Delete button lives outside .draw-comment-bubble (sibling), so use ~ combinator */
-.draw-comment-bubble--user ~ .draw-comment-delete {
-  color: var(--comment-white-strong);
-}
+  /* Delete button lives outside .draw-comment-bubble (sibling), so use ~ combinator */
+  & ~ .draw-comment-delete {
+    color: var(--comment-white-strong);
 
-.draw-comment-bubble--user ~ .draw-comment-delete:hover {
-  background-color: #ffffff29;
+    &:hover {
+      background-color: #ffffff29;
+    }
+  }
 }
 
 /* CLAUDE comments - WHITE background, black text */
@@ -730,18 +728,18 @@ html.draw-active *::-moz-range-thumb {
   border-color: var(--comment-black-light);
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
   color: #000;
-}
 
-.draw-comment-bubble--claude .draw-comment-input {
-  background: transparent;
-}
+  & .draw-comment-input {
+    background: transparent;
+  }
 
-.draw-comment-bubble--claude ~ .draw-comment-delete {
-  color: var(--comment-black-strong);
-}
+  & ~ .draw-comment-delete {
+    color: var(--comment-black-strong);
 
-.draw-comment-bubble--claude ~ .draw-comment-delete:hover {
-  background-color: var(--comment-black-subtle);
+    &:hover {
+      background-color: var(--comment-black-subtle);
+    }
+  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -751,14 +749,14 @@ html.draw-active *::-moz-range-thumb {
 /* TEMP state - inset dashed outline (outline never affects layout, so zero shift) */
 .draw-comment-bubble--temp {
   border-color: transparent !important;
-}
 
-.draw-comment-bubble--temp.draw-comment-bubble--user {
-  outline-color: var(--comment-white-strong);
-}
+  &.draw-comment-bubble--user {
+    outline-color: var(--comment-white-strong);
+  }
 
-.draw-comment-bubble--temp.draw-comment-bubble--claude {
-  outline-color: var(--comment-black-medium);
+  &.draw-comment-bubble--claude {
+    outline-color: var(--comment-black-medium);
+  }
 }
 
 /* SAVED state - solid border */
@@ -817,16 +815,34 @@ html.draw-active *::-moz-range-thumb {
   top: 9px;
   right: 9px;
   z-index: 1;
-  opacity: 0;
-  animation: fadeIn var(--comment-delete-duration) ease-out forwards;
+  opacity: 1;
+  transition: opacity var(--comment-delete-duration) ease-out;
+}
+
+@starting-style {
+  .draw-comment-delete {
+    opacity: 0;
+  }
 }
 
 .draw-comment-delete:hover {
   background-color: var(--comment-black-subtle);
 }
 
-@keyframes fadeIn {
-  to { opacity: 1; }
+/* New reply appear animation */
+.draw-comment-row--reply-new {
+  animation: replyAppear 250ms var(--comment-input-easing) both;
+}
+
+@keyframes replyAppear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Reply input body needs position for submit button */
@@ -845,8 +861,14 @@ html.draw-active *::-moz-range-thumb {
   outline: none;
   resize: none;
   display: block;
+  field-sizing: content;
   max-height: 80px;
   line-height: 20px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.draw-comment-input::-webkit-scrollbar {
+  display: none;
 }
 
 .draw-comment-input--plain {
@@ -894,20 +916,30 @@ html.draw-active *::-moz-range-thumb {
   background-color: var(--stroke-color, #888);
   color: #fff;
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+
+  &:not(.draw-comment-submit--empty) {
+    &:hover .draw-icon-mask {
+      transform: scale(1.1);
+    }
+
+    &:active .draw-icon-mask {
+      transform: scale(0.85);
+    }
+  }
 }
 
 /* Empty state — no background, muted color from tier variables */
 .draw-comment-submit--empty {
   background-color: transparent;
-}
 
-.draw-comment-bubble--user .draw-comment-submit--empty,
-.draw-comment-input-bubble .draw-comment-submit--empty {
-  color: var(--comment-white-strong);
-}
+  .draw-comment-bubble--user &,
+  .draw-comment-input-bubble & {
+    color: var(--comment-white-strong);
+  }
 
-.draw-comment-bubble--claude .draw-comment-submit--empty {
-  color: var(--comment-black-strong);
+  .draw-comment-bubble--claude & {
+    color: var(--comment-black-strong);
+  }
 }
 
 /* Absolute positioning in input contexts (textarea overlay) */
@@ -950,17 +982,17 @@ html.draw-active *::-moz-range-thumb {
   align-items: center;
   padding: 8px;
   flex-shrink: 0;
-  animation: tempActionsSlideIn var(--comment-temp-slide-duration) var(--comment-temp-slide-in-easing) forwards;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--comment-temp-slide-duration) var(--comment-temp-slide-in-easing),
+    transform var(--comment-temp-slide-duration) var(--comment-temp-slide-in-easing);
 }
 
-@keyframes tempActionsSlideIn {
-  from {
+@starting-style {
+  .draw-comment-temp-actions {
     opacity: 0;
     transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -1045,8 +1077,19 @@ html.draw-active *::-moz-range-thumb {
 }
 
 .draw-comment-input-form {
-  animation: commentInputAppear var(--comment-input-duration) var(--comment-input-easing) forwards;
   transform-origin: 0 0;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--comment-input-duration) var(--comment-input-easing),
+    transform var(--comment-input-duration) var(--comment-input-easing);
+}
+
+@starting-style {
+  .draw-comment-input-form {
+    opacity: 0;
+    transform: scale(var(--comment-input-scale-from));
+  }
 }
 
 /* Close animation for comment input (cancel/escape/backdrop) */
@@ -1077,17 +1120,6 @@ html.draw-active *::-moz-range-thumb {
 }
 
 /* Comment input cursor handled by React CustomCursor */
-
-@keyframes commentInputAppear {
-  from {
-    opacity: 0;
-    transform: scale(var(--comment-input-scale-from));
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
 @keyframes commentInputClose {
   from {
@@ -1167,6 +1199,15 @@ html.draw-active *::-moz-range-thumb {
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
   width: 280px;
   max-height: 130px;
+
+  & .draw-comment-input {
+    background: transparent;
+  }
+
+  & .draw-comment-submit:not(.draw-comment-submit--empty) {
+    background-color: #fff;
+    color: #000;
+  }
 }
 
 .draw-comment-input-icon {
@@ -1174,10 +1215,10 @@ html.draw-active *::-moz-range-thumb {
   height: 24px;
   flex-shrink: 0;
   filter: invert(1);
-}
 
-.draw-comment-input-icon:hover {
-  filter: invert(1) url(#wobbleFilterBtn);
+  &:hover {
+    filter: invert(1) url(#wobbleFilterBtn);
+  }
 }
 
 .draw-comment-input-field-wrapper {
@@ -1185,14 +1226,60 @@ html.draw-active *::-moz-range-thumb {
   position: relative;
 }
 
-.draw-comment-input-bubble .draw-comment-input {
-  background: transparent;
+/* Input scroll fade — toggles via JS data-overflow-top / data-overflow-bottom attributes.
+   Used on .draw-comment-input-field-wrapper (standalone CommentInput)
+   and .draw-comment-row--reply-input .draw-comment-row-body (reply input in CommentBubble). */
+.draw-comment-input-field-wrapper::before,
+.draw-comment-row--reply-input .draw-comment-row-body::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 2rem;
+  top: 0;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+}
+.draw-comment-input-field-wrapper::after,
+.draw-comment-row--reply-input .draw-comment-row-body::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 2rem;
+  bottom: 0;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
 }
 
-.draw-comment-input-bubble .draw-comment-submit:not(.draw-comment-submit--empty) {
-  background-color: #fff;
-  color: #000;
+/* Standalone CommentInput — always black bubble bg */
+.draw-comment-input-field-wrapper::before {
+  background: linear-gradient(to bottom, #000, transparent);
 }
+.draw-comment-input-field-wrapper::after {
+  background: linear-gradient(to top, #000, transparent);
+}
+.draw-comment-input-field-wrapper[data-overflow-top]::before { opacity: 1; }
+.draw-comment-input-field-wrapper[data-overflow-bottom]::after { opacity: 1; }
+
+/* Reply input inside user comment (black bg) */
+.draw-comment-bubble--user .draw-comment-row--reply-input .draw-comment-row-body::before {
+  background: linear-gradient(to bottom, #000, transparent);
+}
+.draw-comment-bubble--user .draw-comment-row--reply-input .draw-comment-row-body::after {
+  background: linear-gradient(to top, #000, transparent);
+}
+/* Reply input inside Claude comment (white bg) */
+.draw-comment-bubble--claude .draw-comment-row--reply-input .draw-comment-row-body::before {
+  background: linear-gradient(to bottom, #fff, transparent);
+}
+.draw-comment-bubble--claude .draw-comment-row--reply-input .draw-comment-row-body::after {
+  background: linear-gradient(to top, #fff, transparent);
+}
+.draw-comment-row--reply-input .draw-comment-row-body[data-overflow-top]::before { opacity: 1; }
+.draw-comment-row--reply-input .draw-comment-row-body[data-overflow-bottom]::after { opacity: 1; }
 
 /* Utility: disable image animations */
 .draw-img-no-anim {
@@ -1603,7 +1690,7 @@ html.draw-active *::-moz-range-thumb {
 /* -----------------------------------------------------------------------------
    Wiggle Filter Effects
    ----------------------------------------------------------------------------- */
-.draw-comment-row-icon:hover,
+.draw-comment-row-icon:not([src*="claude"]):hover,
 .draw-user-icon:hover,
 .draw-stroke-icon:hover {
   filter: url(#wobbleFilterBtn);
@@ -3238,6 +3325,7 @@ html.draw-active *::-moz-range-thumb {
   border: none;
   outline: none;
   resize: none;
+  field-sizing: content;
   font-size: 16px; /* Prevents iOS zoom on focus */
   line-height: 1.4;
   max-height: 80px;
@@ -3421,6 +3509,7 @@ html.draw-active *::-moz-range-thumb {
   font-size: 16px;
   resize: none;
   outline: none;
+  field-sizing: content;
   max-height: 80px;
   font-family: var(--draw-font, inherit);
   background: white;
@@ -3463,6 +3552,7 @@ html.draw-active *::-moz-range-thumb {
   font-size: 16px; /* Prevents iOS zoom */
   resize: none;
   outline: none;
+  field-sizing: content;
   max-height: 80px;
   font-family: var(--draw-font, inherit);
   background: transparent;

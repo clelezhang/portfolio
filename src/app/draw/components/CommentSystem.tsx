@@ -1,7 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useRef, useCallback, useState } from 'react';
 import { useDialKit } from 'dialkit';
 import { Comment, Point } from '../types';
-import { useAutoResizeTextarea } from '../hooks';
 import { CloseIcon, CheckmarkIcon, SubmitArrowIcon } from './icons';
 
 // ─── Easing presets for DialKit select controls ─────────────────────────────
@@ -211,6 +210,7 @@ interface CommentSystemProps {
   onUserReply?: (index: number, text: string) => void;
   saveComment?: (index: number) => void;
   dismissComment?: (index: number) => void;
+  isDrawing?: boolean;
 }
 
 // Animation duration matches CSS transition (0.2s)
@@ -279,6 +279,7 @@ export const CommentSystem = memo(function CommentSystem({
   onUserReply,
   saveComment,
   dismissComment,
+  isDrawing,
 }: CommentSystemProps) {
   // Hover delay from CSS var default (80ms)
   const hoverDelay = 80;
@@ -289,13 +290,14 @@ export const CommentSystem = memo(function CommentSystem({
   // Hover handlers — enter is instant (so cursor switches immediately),
   // leave is debounced to prevent jitter when mouse briefly exits
   const handleMouseEnter = useCallback((index: number) => {
+    if (isDrawing) return;
     // Clear any pending leave timer
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
     setHoveredCommentIndex(index);
-  }, [setHoveredCommentIndex]);
+  }, [setHoveredCommentIndex, isDrawing]);
 
   const handleMouseLeave = useCallback(() => {
     // Clear any pending enter timer
@@ -427,7 +429,6 @@ export function CommentBubble({
   onBubbleMouseEnter,
   onBubbleMouseLeave,
 }: CommentBubbleProps) {
-  const handleTextareaResize = useAutoResizeTextarea(80);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleOuterRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -443,6 +444,16 @@ export function CommentBubble({
   const scrollFadeTopRef = useRef(false);
   const scrollFadeBottomRef = useRef(false);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
+  const prevReplyCountRef = useRef(comment.replies?.length ?? 0);
+  const [newReplyIndex, setNewReplyIndex] = useState<number | null>(null);
+  const replyRowBodyRef = useRef<HTMLDivElement>(null);
+
+  const updateInputOverflow = useCallback((textarea: HTMLTextAreaElement) => {
+    const wrapper = replyRowBodyRef.current;
+    if (!wrapper) return;
+    wrapper.toggleAttribute('data-overflow-top', textarea.scrollTop > 0);
+    wrapper.toggleAttribute('data-overflow-bottom', textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight > 1);
+  }, []);
 
   const updateScrollFades = useCallback(() => {
     const el = bubbleRef.current;
@@ -504,12 +515,35 @@ export function CommentBubble({
     }
   }, [effectiveVisualState]);
 
-  // Scroll fades — direct DOM via useLayoutEffect.
+  // Scroll fades + grid height management — direct DOM via useLayoutEffect.
+  //
+  // The CSS 0fr→1fr grid transition resolves 1fr to the item's full content
+  // height.  For overflow comments (content > bubble max-height), the easing
+  // curve plays out beyond the visible clip, making the open animation snap.
+  //
+  // Fix: use explicit pixel values for grid-template-rows so the browser
+  // interpolates only the visible range.  We pin the grid at 0px in the
+  // current frame (useLayoutEffect, before paint), then set the capped
+  // target height in the NEXT frame (requestAnimationFrame).  This two-frame
+  // approach is necessary because the CSS transition system compares values
+  // between rendering frames — a mid-frame forced reflow doesn't reset its
+  // baseline.  After the settle animation, we remove the inline override
+  // so CSS 1fr takes over (enabling scrolling).  On close, if the inline
+  // pixel value is still set (closed before settle), we transition it to
+  // 0px; otherwise CSS handles the native 1fr→0fr transition.
   useLayoutEffect(() => {
     const outer = bubbleOuterRef.current;
+    const gridEl = gridRef.current;
     if (!outer) return;
+    let rafId = 0;
 
     if (effectiveVisualState !== 'open') {
+      // If the grid still has an inline pixel value from the open phase
+      // (user closed before settle), transition it to 0px.
+      // If inline was already removed (after settle), CSS handles 1fr→0fr.
+      if (gridEl && gridEl.style.gridTemplateRows) {
+        gridEl.style.gridTemplateRows = '0px';
+      }
       scrollFadeTopRef.current = false;
       scrollFadeBottomRef.current = false;
       outer.classList.remove('draw-comment-scroll-fade-top');
@@ -518,33 +552,73 @@ export function CommentBubble({
     }
 
     const el = bubbleRef.current;
-    const gridEl = gridRef.current;
     if (!el || !gridEl) return;
 
-    // Predict overflow so the bottom fade is present from the first frame.
-    // The grid is still at 0fr, but the grid-inner's scrollHeight reflects
-    // its natural height even when compressed.
+    // Pin grid at 0px so this frame commits a pixel value as the
+    // transition baseline (the CSS 0fr is a <flex> type and can't
+    // interpolate to a <length>).
+    gridEl.style.gridTemplateRows = '0px';
+
+    // Measure content and compute the capped target height.
     const gridInnerEl = gridEl.firstElementChild as HTMLElement | null;
     const gridContentHeight = gridInnerEl?.scrollHeight || 0;
     const mainRow = el.querySelector('.draw-comment-row--main') as HTMLElement | null;
     const mainRowHeight = mainRow?.offsetHeight || 0;
-    const gap = 8; // matches CSS gap on .draw-comment-bubble-inner when open
-    const maxInnerHeight = 282; // calc(300px - 18px)
+    const gap = 8; // CSS gap on .draw-comment-bubble-inner when open
+    const maxInnerHeight = 282; // calc(300px bubble max-height − 18px border+padding)
+    const maxVisibleGrid = maxInnerHeight - mainRowHeight - gap;
+    const targetGridHeight = Math.min(gridContentHeight, maxVisibleGrid);
+
+    // Set the target on the NEXT rendering frame so the browser can
+    // transition from the committed 0px baseline to the target.
+    rafId = requestAnimationFrame(() => {
+      gridEl.style.gridTemplateRows = `${targetGridHeight}px`;
+    });
+
+    // Predict overflow for bottom scroll fade (present from first frame).
     const willOverflow = (mainRowHeight + gap + gridContentHeight) > maxInnerHeight;
     scrollFadeBottomRef.current = willOverflow;
     outer.classList.toggle('draw-comment-scroll-fade-bottom', willOverflow);
 
-    // After settle (overflow-y: auto kicks in), pin scroll to top
-    // and update scroll fades based on actual scroll position.
+    // After settle (overflow-y: auto kicks in):
+    // - Remove inline grid height so CSS 1fr takes over (enables scrolling)
+    // - Suppress transition during the switch to avoid a visible jump
+    // - Pin scroll to top and update fades
     const handleAnimationEnd = (e: AnimationEvent) => {
       if (e.animationName === 'comment-settle') {
+        gridEl.style.transition = 'none';
+        gridEl.style.gridTemplateRows = '';  // CSS 1fr takes over
+        void gridEl.offsetHeight;            // commit without transition
+        gridEl.style.transition = '';         // restore CSS transition
         el.scrollTop = 0;
         updateScrollFades();
       }
     };
     el.addEventListener('animationend', handleAnimationEnd);
-    return () => el.removeEventListener('animationend', handleAnimationEnd);
+    return () => {
+      cancelAnimationFrame(rafId);
+      el.removeEventListener('animationend', handleAnimationEnd);
+    };
   }, [effectiveVisualState, updateScrollFades]);
+
+  // Scroll to bottom and animate new reply when reply count increases
+  useEffect(() => {
+    const count = comment.replies?.length ?? 0;
+    const prev = prevReplyCountRef.current;
+    prevReplyCountRef.current = count;
+    if (count > prev && effectiveVisualState === 'open') {
+      setNewReplyIndex(count - 1);
+      const el = bubbleRef.current;
+      if (el) {
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight;
+          updateScrollFades();
+        });
+      }
+      const timer = setTimeout(() => setNewReplyIndex(null), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [comment.replies?.length, effectiveVisualState, updateScrollFades]);
 
   // Focus reply input without scrolling (autoFocus causes scroll-into-view)
   useEffect(() => {
@@ -600,13 +674,13 @@ export function CommentBubble({
       style={{
         animationDelay: isDeleting ? '0s' : comment.tempStartedAt ? `-${(Date.now() - comment.tempStartedAt) / 1000}s` : '0s',
       }}
+      onMouseEnter={onBubbleMouseEnter}
+      onMouseLeave={onBubbleMouseLeave}
     >
       <div
         ref={bubbleOuterRef}
         className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}${scrollFadeBottomRef.current ? ' draw-comment-scroll-fade-bottom' : ''}`}
         style={{ '--stroke-color': strokeColor, '--comment-extra-dur': `${extraDurationMs}ms` } as React.CSSProperties}
-        onMouseEnter={onBubbleMouseEnter}
-        onMouseLeave={onBubbleMouseLeave}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -638,7 +712,7 @@ export function CommentBubble({
                   ? reply.text.slice(0, reply.displayLength ?? 0)
                   : reply.text;
                 return (
-                  <div key={ri} className="draw-comment-row draw-comment-row--reply">
+                  <div key={ri} className={`draw-comment-row draw-comment-row--reply${ri === newReplyIndex ? ' draw-comment-row--reply-new' : ''}`}>
                     <img
                       src={reply.from === 'human' ? '/draw/user-icon.svg' : '/draw/claude.svg'}
                       alt=""
@@ -655,7 +729,7 @@ export function CommentBubble({
               {effectiveVisualState === 'open' && isReplying && (
                 <div className="draw-comment-row draw-comment-row--reply-input">
                   <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-                  <div className="draw-comment-row-body">
+                  <div ref={replyRowBodyRef} className="draw-comment-row-body">
                     <textarea
                       ref={replyInputRef}
                       value={replyText}
@@ -670,7 +744,8 @@ export function CommentBubble({
                           onReplySubmit();
                         }
                       }}
-                      onInput={handleTextareaResize}
+                      onInput={(e) => requestAnimationFrame(() => updateInputOverflow(e.target as HTMLTextAreaElement))}
+                      onScroll={(e) => updateInputOverflow(e.currentTarget)}
                       onClick={(e) => e.stopPropagation()}
                     />
                     <button

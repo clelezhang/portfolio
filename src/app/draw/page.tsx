@@ -155,6 +155,12 @@ export default function DrawPage() {
   const [strokeColor, setStrokeColor] = useState<string>(COLOR_PALETTES[4][0]);
   const [paletteIndex, setPaletteIndex] = useState(4);
 
+  // Wrap setStrokeColor: switch to pen if currently erasing
+  const handleSetStrokeColor = useCallback((color: string) => {
+    setStrokeColor(color);
+    setTool(prev => prev === 'erase' ? 'draw' : prev);
+  }, []);
+
   // Mobile state
   const { isMobile } = useIsMobile();
   const [mobileToolbarMode, setMobileToolbarMode] = useState<MobileToolbarMode>('tools');
@@ -225,7 +231,7 @@ export default function DrawPage() {
   const [isTouch, setIsTouch] = useState(false);
   const [isHoveringCommentInput, setIsHoveringCommentInput] = useState(false);
   const [isHoveringInteractive, setIsHoveringInteractive] = useState(false);
-  const isOnCanvasRef = useRef(false);
+  const [isOnCanvas, setIsOnCanvas] = useState(false);
 
   // Test mode for cursor animation debugging
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -406,7 +412,7 @@ export default function DrawPage() {
     if (isPanning) return 'grabbing';
     if (spaceHeld) return 'grab';
     if (hoveredCommentIndex !== null || isHoveringCommentInput) return 'user';
-    if (isOnCanvasRef.current && tool !== 'select') {
+    if (isOnCanvas && tool !== 'select') {
       if (tool === 'comment') return 'comment';
       if (tool === 'erase') return 'eraser';
       if (tool === 'draw') return asciiStroke ? 'ascii' : 'pencil';
@@ -1864,7 +1870,7 @@ export default function DrawPage() {
               startDrawing(e);
             }
           }}
-          onMouseEnter={() => { isOnCanvasRef.current = true; }}
+          onMouseEnter={() => { setIsOnCanvas(true); }}
           onMouseMove={(e) => {
             setIsTouch(false); // Switch back to mouse mode
             if (isPanning) {
@@ -1897,7 +1903,7 @@ export default function DrawPage() {
             }
           }}
           onMouseLeave={() => {
-            isOnCanvasRef.current = false;
+            setIsOnCanvas(false);
             commentDragStart.current = null;
             handleImageMouseUp();
             if (isPanning) {
@@ -2364,6 +2370,7 @@ export default function DrawPage() {
               }}
               saveComment={saveComment}
               dismissComment={dismissComment}
+              isDrawing={isDrawing}
             />
           )}
 
@@ -2780,7 +2787,7 @@ export default function DrawPage() {
           asciiStroke={asciiStroke}
           setAsciiStroke={handleSetAsciiStroke}
           strokeColor={strokeColor}
-          setStrokeColor={setStrokeColor}
+          setStrokeColor={handleSetStrokeColor}
           strokeSize={strokeSize}
           setStrokeSize={setStrokeSize}
           paletteIndex={paletteIndex}
@@ -2795,7 +2802,7 @@ export default function DrawPage() {
           asciiStroke={asciiStroke}
           setAsciiStroke={handleSetAsciiStroke}
           strokeColor={strokeColor}
-          setStrokeColor={setStrokeColor}
+          setStrokeColor={handleSetStrokeColor}
           strokeSize={strokeSize}
           setStrokeSize={setStrokeSize}
           paletteIndex={paletteIndex}
