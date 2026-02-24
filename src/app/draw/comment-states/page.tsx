@@ -87,40 +87,43 @@ function ShowcaseBubble({ comment, initialState = 'collapsed', isReplying: initi
     }
   }
 
+  const isTemp = localComment.status === 'temp';
+  const isHoveredEffective = isHovered && !isTemp;
   const visualState: 'collapsed' | 'preview' | 'open' = isOpen
     ? 'open'
-    : isHovered || initialState === 'preview'
+    : isHoveredEffective || initialState === 'preview'
       ? 'preview'
       : 'collapsed';
 
+  const handleBubbleMouseEnter = () => {
+    if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
+    setIsHovered(true);
+  };
+  const handleBubbleMouseLeave = () => {
+    leaveTimer.current = setTimeout(() => {
+      setIsHovered(false);
+      if (isOpen) {
+        setIsOpen(false);
+        setIsReplying(false);
+        setReplyText('');
+      }
+    }, 80);
+  };
+
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      onMouseEnter={() => {
-        if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
-        setIsHovered(true);
-      }}
-      onMouseLeave={() => {
-        leaveTimer.current = setTimeout(() => {
-          setIsHovered(false);
-          if (isOpen) {
-            setIsOpen(false);
-            setIsReplying(false);
-            setReplyText('');
-          }
-        }, 80);
-      }}
-    >
+    <div onClick={(e) => e.stopPropagation()}>
       <CommentBubble
         comment={localComment}
         commentIndex={0}
         visualState={visualState}
         isUserComment={localComment.from === 'human'}
-        isTemp={localComment.status === 'temp'}
+        isTemp={isTemp}
         isReplying={isReplying}
         replyText={replyText}
         setReplyText={setReplyText}
         strokeColor="#888"
+        onBubbleMouseEnter={handleBubbleMouseEnter}
+        onBubbleMouseLeave={handleBubbleMouseLeave}
         onOpen={() => setIsOpen(true)}
         onDelete={() => {}}
         onReplyStart={() => setIsReplying(true)}
@@ -135,8 +138,8 @@ function ShowcaseBubble({ comment, initialState = 'collapsed', isReplying: initi
             setIsReplying(false);
           }
         }}
-        onSave={localComment.status === 'temp' ? () => setLocalComment(prev => ({ ...prev, status: 'saved' })) : undefined}
-        onDismiss={localComment.status === 'temp' ? () => {} : undefined}
+        onSave={isTemp ? () => setLocalComment(prev => ({ ...prev, status: 'saved' })) : undefined}
+        onDismiss={isTemp ? () => {} : undefined}
       />
     </div>
   );

@@ -419,7 +419,7 @@ function getDrawingInstructions(drawMode: DrawMode, sayEnabled: boolean, palette
 
   // Comment guidance
   const commentGuide = sayEnabled
-    ? `You can optionally add a comment with say/sayX/sayY${hasComments ? ' or reply to existing comment with replyTo' : ''}.`
+    ? `Comment occasionally to share your thoughts, react to what the human drew, or narrate what you're adding. Use say/sayX/sayY${hasComments ? ' or reply to existing comments with replyTo. Use dismissComments to clear addressed comments' : ''}.`
     : '';
 
   // Output format differs based on tool calls vs JSON mode
@@ -532,6 +532,7 @@ const DRAW_TOOL: Anthropic.Tool = {
       sayX: { type: 'number', description: 'X position for comment' },
       sayY: { type: 'number', description: 'Y position for comment' },
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
+      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Comment indices to dismiss/resolve (1-indexed). Use to clear addressed or stale comments.' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
       interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
       loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: '5 short loading messages about the drawing with ASCII/unicode art (see <style>). Vary wildly.' },
@@ -551,6 +552,8 @@ const COMMENT_TOOL: Anthropic.Tool = {
       sayX: { type: 'number', description: 'X position for new comment (only if not replying)' },
       sayY: { type: 'number', description: 'Y position for new comment (only if not replying)' },
       replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed). Use this to reply in-thread.' },
+      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Comment indices to dismiss/resolve (1-indexed).' },
+      needsCanvas: { type: 'boolean', description: 'Set true if you need to see the canvas to respond (e.g. the human asked you to draw something, or asked about what\'s on the canvas). Do NOT set for normal conversation.' },
     },
     required: ['say'],
   },
@@ -636,9 +639,11 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
       messageContext = `\n\nComments on the canvas (UI appears bottom-right of coordinates, max width 240px):\n`;
       (comments as Comment[]).forEach((comment, i) => {
         const speaker = comment.from === 'human' ? 'Human' : 'You';
-        messageContext += `${i + 1}. ${speaker} at (${Math.round(comment.x)}, ${Math.round(comment.y)}): "${comment.text}"\n`;
-        if (comment.replies && comment.replies.length > 0) {
-          comment.replies.forEach((reply) => {
+        const hasReply = comment.replies && comment.replies.length > 0;
+        const unanswered = comment.from === 'human' && !hasReply ? ' [unanswered]' : '';
+        messageContext += `${i + 1}. ${speaker}${unanswered} at (${Math.round(comment.x)}, ${Math.round(comment.y)}): "${comment.text}"\n`;
+        if (hasReply) {
+          comment.replies!.forEach((reply) => {
             const replySpeaker = reply.from === 'human' ? 'Human' : 'You';
             messageContext += `   ↳ ${replySpeaker} replied: "${reply.text}"\n`;
           });
@@ -680,22 +685,32 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
 
     if (commentOnly) {
       // ===== COMMENT-ONLY MODE =====
-      // Lightweight path: respond to human's comment, optionally draw if inspired
-      const commentSystemPrompt = `You're drawing on a shared canvas with a human. They just left a comment. Respond naturally — be warm, playful, concise. Use the respond tool to reply. If the comment inspires you to draw something, you can also use the draw tool.`;
+      // Respond to human's comment; optionally draw if inspired and image is available
+      const canDraw = !!image;
+      const commentSystemPrompt = `You're drawing on a shared canvas with a human. They just left a comment. Respond naturally — be warm, playful, concise. Use the respond tool to reply.${canDraw ? ' If the comment asks you to draw something, use the draw tool.' : ''}`;
 
-      // Find the newest human comment to tell Claude which one to reply to
-      const newestHumanCommentIdx = comments ? (comments as Comment[]).reduce((latest: number, c: Comment, i: number) => c.from === 'human' ? i : latest, -1) : -1;
-      const replyHint = newestHumanCommentIdx >= 0
-        ? `\n\nThe human's most recent comment is #${newestHumanCommentIdx + 1}. Reply to it using replyTo: ${newestHumanCommentIdx + 1}.`
+      // Include drawing instructions when Claude can draw
+      const drawInstructions = canDraw
+        ? `\n\n${getDrawingInstructions('all' as DrawMode, true, paletteColors, paletteIndex, totalPalettes, hasComments, undefined as unknown as DrawingRole, turnCount, true)}`
         : '';
 
-      const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${replyHint}
+      const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${drawInstructions}
 
-Respond to the human's latest comment using the respond tool.`;
+Respond to the human's comment using the respond tool. Use replyTo to reply in-thread.`;
+
+      // Build user content — include image if available so Claude can see the canvas
+      const userContent: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [];
+      if (canDraw) {
+        userContent.push({
+          type: 'image' as const,
+          source: { type: 'base64' as const, media_type: mediaType, data: base64Image },
+        });
+      }
+      userContent.push({ type: 'text' as const, text: commentUserMessage });
 
       messageParams = {
         model: selectedModel,
-        max_tokens: 300,
+        max_tokens: canDraw ? 768 : 300,
         system: [
           {
             type: 'text' as const,
@@ -706,15 +721,15 @@ Respond to the human's latest comment using the respond tool.`;
         messages: [
           {
             role: 'user' as const,
-            content: [{ type: 'text' as const, text: commentUserMessage }],
+            content: userContent,
           },
         ],
-        tools: [COMMENT_TOOL],
-        tool_choice: { type: 'tool' as const, name: 'respond' },
+        tools: canDraw ? [COMMENT_TOOL, DRAW_TOOL] : [COMMENT_TOOL],
+        ...(canDraw ? {} : { tool_choice: { type: 'tool' as const, name: 'respond' } }),
         temperature: 0.8,
       };
 
-      console.log(`[DEBUG] commentOnly mode, prompt=${commentUserMessage.length} chars`);
+      console.log(`[DEBUG] commentOnly mode, canDraw=${canDraw}, prompt=${commentUserMessage.length} chars`);
     } else {
       // ===== NORMAL DRAWING MODE =====
       const drawingInstructions = getDrawingInstructions(drawMode as DrawMode, sayEnabled, paletteColors, paletteIndex, totalPalettes, hasComments, drawingRole as DrawingRole, turnCount, useToolCalls);
@@ -871,6 +886,17 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                       const remaining = input.say.slice(sentSayLength);
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'sayChunk', data: { text: remaining } })}\n\n`));
                     }
+                    // Send dismiss events (descending order to avoid index shift issues)
+                    if (input.dismissComments && Array.isArray(input.dismissComments)) {
+                      const sorted = [...input.dismissComments].sort((a: number, b: number) => b - a);
+                      for (const idx of sorted) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'dismiss', data: { index: idx } })}\n\n`));
+                      }
+                    }
+                    // Signal that Claude needs to see the canvas (triggers second call with image)
+                    if (input.needsCanvas) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'needsCanvas' })}\n\n`));
+                    }
                   } catch { /* tool input parsing failed */ }
                 }
                 // When draw tool call completes, send any remaining items
@@ -916,6 +942,13 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                     // Send next-turn preview teaser
                     if (input.loadingMessages) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'preview', data: input.loadingMessages })}\n\n`));
+                    }
+                    // Send dismiss events (descending order to avoid index shift issues)
+                    if (input.dismissComments && Array.isArray(input.dismissComments)) {
+                      const sorted = [...input.dismissComments].sort((a: number, b: number) => b - a);
+                      for (const idx of sorted) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'dismiss', data: { index: idx } })}\n\n`));
+                      }
                     }
                   } catch { /* tool input parsing failed */ }
                 }
@@ -1018,7 +1051,14 @@ Look at the canvas. What do you see? What could be a good addition? How can that
                   if (sayMatch) {
                     const currentSay = sayMatch[1];
                     if (!sentReplyStart) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'replyStart', data: { replyToLast: true } })}\n\n`));
+                      // Try to extract replyTo from partial tool input so we target the right comment
+                      const replyToMatch = toolInput.match(/"replyTo"\s*:\s*(\d+)/);
+                      const replyTo = replyToMatch ? parseInt(replyToMatch[1]) : undefined;
+                      if (replyTo) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'replyStart', data: { replyTo } })}\n\n`));
+                      } else {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'replyStart', data: { replyToLast: true } })}\n\n`));
+                      }
                       sentReplyStart = true;
                     }
                     if (currentSay.length > sentSayLength) {

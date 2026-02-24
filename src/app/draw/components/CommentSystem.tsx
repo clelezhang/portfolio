@@ -220,14 +220,10 @@ const TRANSITION_MS = 210;
 function CommentAnchor({
   screenPos,
   desiredZIndex,
-  onMouseEnter,
-  onMouseLeave,
   children,
 }: {
   screenPos: Point;
   desiredZIndex: number;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   children: React.ReactNode;
 }) {
   const [zIndex, setZIndex] = useState(desiredZIndex);
@@ -244,10 +240,8 @@ function CommentAnchor({
     }
 
     if (desiredZIndex >= prev) {
-      // Increasing or same: apply immediately so the element rises above others
       setZIndex(desiredZIndex);
     } else {
-      // Decreasing: wait for the CSS transition to finish before dropping z-index
       timerRef.current = setTimeout(() => setZIndex(desiredZIndex), TRANSITION_MS);
     }
 
@@ -260,8 +254,6 @@ function CommentAnchor({
     <div
       className="draw-comment-anchor"
       style={{ position: 'absolute', left: screenPos.x, top: screenPos.y, zIndex, pointerEvents: 'auto' }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
     >
       {children}
     </div>
@@ -332,10 +324,10 @@ export const CommentSystem = memo(function CommentSystem({
       {comments.map((comment, i) => {
         const screenPos = canvasToScreen(comment.x, comment.y);
         const isOpen = openCommentIndex === i;
-        const isHovered = hoveredCommentIndex === i && !isOpen;
         const isReplying = replyingToIndex === i;
         const isUserComment = comment.from === 'human';
         const isTemp = comment.status === 'temp';
+        const isHovered = hoveredCommentIndex === i && !isOpen && !isTemp;
 
         // Determine visual state
         const visualState = isOpen ? 'open' : isHovered ? 'preview' : 'collapsed';
@@ -348,8 +340,6 @@ export const CommentSystem = memo(function CommentSystem({
             key={i}
             screenPos={screenPos}
             desiredZIndex={zIndex}
-            onMouseEnter={() => handleMouseEnter(i)}
-            onMouseLeave={handleMouseLeave}
           >
             <CommentBubble
               comment={comment}
@@ -361,6 +351,8 @@ export const CommentSystem = memo(function CommentSystem({
               replyText={replyText}
               setReplyText={setReplyText}
               strokeColor={strokeColor}
+              onBubbleMouseEnter={() => handleMouseEnter(i)}
+              onBubbleMouseLeave={handleMouseLeave}
               onOpen={() => {
                 if (hasCommentInput && onCloseCommentInput) {
                   onCloseCommentInput();
@@ -411,6 +403,8 @@ export interface CommentBubbleProps {
   onReplySubmit: () => void;
   onSave?: () => void;
   onDismiss?: () => void;
+  onBubbleMouseEnter?: () => void;
+  onBubbleMouseLeave?: () => void;
 }
 
 export function CommentBubble({
@@ -430,6 +424,8 @@ export function CommentBubble({
   onReplySubmit,
   onSave,
   onDismiss,
+  onBubbleMouseEnter,
+  onBubbleMouseLeave,
 }: CommentBubbleProps) {
   const handleTextareaResize = useAutoResizeTextarea(80);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -444,21 +440,16 @@ export function CommentBubble({
   const closingFromRef = useRef<'preview' | 'open' | null>(null);
   const prevIsTempRef = useRef(isTemp);
   const gridRef = useRef<HTMLDivElement>(null);
-  // Scroll fades tracked via ref + direct classList (no re-render lag).
-  // Both top and bottom are hidden by default, toggled when content overflows.
   const scrollFadeTopRef = useRef(false);
-  const scrollFadeBottomRef = useRef(false);
+  const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   const updateScrollFades = useCallback(() => {
     const el = bubbleRef.current;
     const outer = bubbleOuterRef.current;
     if (!el || !outer) return;
     const top = el.scrollTop > 2;
-    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight > 2;
     scrollFadeTopRef.current = top;
-    scrollFadeBottomRef.current = bottom;
     outer.classList.toggle('draw-comment-scroll-fade-top', top);
-    outer.classList.toggle('draw-comment-scroll-fade-bottom', bottom);
   }, []);
 
   // When temp→saved, capture the current (faded) opacity so the CSS transition
@@ -496,8 +487,6 @@ export function CommentBubble({
   }
   const closingFrom = closingFromRef.current;
 
-
-
   // Mark as animated after mount to enable transitions
   useEffect(() => {
     const timer = setTimeout(() => setHasAnimated(true), 50);
@@ -518,29 +507,14 @@ export function CommentBubble({
 
     if (effectiveVisualState !== 'open') {
       scrollFadeTopRef.current = false;
-      scrollFadeBottomRef.current = false;
       outer.classList.remove('draw-comment-scroll-fade-top');
-      outer.classList.remove('draw-comment-scroll-fade-bottom');
       return;
     }
 
-    // Predict overflow immediately (before first paint). The bubble-inner's
-    // scrollHeight only reflects the collapsed grid at this point, so we sum
-    // the main row height + grid-inner's full content height instead.
     const el = bubbleRef.current;
     if (!el) return;
-    const mainRow = el.querySelector('.draw-comment-row--main') as HTMLElement | null;
-    const gridInner = gridRef.current?.firstElementChild as HTMLElement | null;
-    if (mainRow && gridInner) {
-      const totalHeight = mainRow.offsetHeight + gridInner.scrollHeight;
-      // 282 = calc(300px - 18px) from CSS max-height in comment-settle
-      if (totalHeight > 270) {
-        scrollFadeBottomRef.current = true;
-        outer.classList.add('draw-comment-scroll-fade-bottom');
-      }
-    }
 
-    // After settle (overflow-y: auto kicks in), re-check for edge cases
+    // After settle (overflow-y: auto kicks in), check actual overflow
     const handleAnimationEnd = (e: AnimationEvent) => {
       if (e.animationName === 'comment-settle') {
         updateScrollFades();
@@ -550,6 +524,12 @@ export function CommentBubble({
     return () => el.removeEventListener('animationend', handleAnimationEnd);
   }, [effectiveVisualState, updateScrollFades]);
 
+  // Focus reply input without scrolling (autoFocus causes scroll-into-view)
+  useEffect(() => {
+    if (isReplying && replyInputRef.current) {
+      replyInputRef.current.focus({ preventScroll: true });
+    }
+  }, [isReplying]);
 
   // Auto-dismiss timer for temp comments (60s)
   const handleAutoDismiss = useCallback(() => {
@@ -601,8 +581,10 @@ export function CommentBubble({
     >
       <div
         ref={bubbleOuterRef}
-        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}${scrollFadeBottomRef.current ? ' draw-comment-scroll-fade-bottom' : ''}`}
+        className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}`}
         style={{ '--stroke-color': strokeColor, '--comment-extra-dur': `${extraDurationMs}ms` } as React.CSSProperties}
+        onMouseEnter={onBubbleMouseEnter}
+        onMouseLeave={onBubbleMouseLeave}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -653,12 +635,12 @@ export function CommentBubble({
                   <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
                   <div className="draw-comment-row-body">
                     <textarea
+                      ref={replyInputRef}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       placeholder="Reply..."
                       className="draw-comment-input draw-comment-input--plain"
                       rows={1}
-                      autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Escape') onReplyCancel();
                         if (e.key === 'Enter' && !e.shiftKey) {

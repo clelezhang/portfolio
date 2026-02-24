@@ -312,6 +312,36 @@
   opacity: 1;
 }
 
+/* Like button */
+.like-btn {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+  opacity: 0;
+}
+
+.preset-card:hover .like-btn {
+  opacity: 1;
+}
+
+.like-btn.liked {
+  color: #f43f5e;
+  opacity: 1;
+}
+
+.like-btn:hover {
+  color: #f43f5e;
+  transform: scale(1.2);
+}
+
 /* Drag and drop */
 .preset-card[draggable] {
   cursor: grab;
@@ -467,9 +497,46 @@
   gap: 0.5rem 1rem;
 }
 
+/* Drawing sound canvas */
+.draw-sound-canvas {
+  width: 100%;
+  height: 180px;
+  display: block;
+  border-radius: 8px;
+  background: #0e0e1a;
+  border: 1px solid #1e1e30;
+  margin-bottom: 1rem;
+  cursor: crosshair;
+  touch-action: none;
+}
+
 /* Full width card */
 .sound-card.full-width {
   grid-column: 1 / -1;
+}
+
+/* Tick timeline visualization */
+.tick-timeline {
+  background: #0e0e1a;
+  border: 1px solid #1e1e30;
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.25rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.tick-timeline svg {
+  width: 100%;
+  height: 40px;
+  display: block;
+}
+
+.tick-timeline-label {
+  font-size: 0.65rem;
+  color: #555;
+  font-family: var(--font-geist-mono), monospace;
+  text-align: right;
+  margin-top: 0.15rem;
 }
 
 /* Category labels in presets */

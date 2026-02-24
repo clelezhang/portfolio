@@ -2,7 +2,9 @@
 // Drop shadow is handled by CSS filter on the parent wrapper
 export function OpusLabel() {
   return (
-    <svg width="40" height="20" viewBox="16 2 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="40" height="20" viewBox="16 2 40 20" fill="none" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+      {/* White outline halo — same pattern as cursor icon white strokes */}
+      <path fill="#fff" stroke="#fff" strokeWidth="3.5" d="M45.248 2.69h-19a9.31 9.31 0 1 0 0 18.62h19a9.31 9.31 0 1 0 0-18.62Z"/>
       {/* Pill background + border */}
       <path fill="#fff" stroke="#000" strokeWidth="1.38" d="M45.248 2.69h-19a9.31 9.31 0 1 0 0 18.62h19a9.31 9.31 0 1 0 0-18.62Z"/>
       {/* "opus" text */}

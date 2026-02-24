@@ -214,8 +214,8 @@ export default function DrawPage() {
   const [panSensitivity] = useState(DEFAULT_PAN_SENSITIVITY);
   const [zoomSensitivity] = useState(DEFAULT_ZOOM_SENSITIVITY);
 
-  // Cursor tracking — page-level viewport coordinates for React cursor
-  const [pageCursorPos, setPageCursorPos] = useState<{ x: number; y: number } | null>(null);
+  // Cursor tracking — ref-based to avoid re-rendering entire component on every mouse move
+  const cursorRef = useRef<HTMLDivElement>(null);
   const [isTouch, setIsTouch] = useState(false);
   const [isHoveringCommentInput, setIsHoveringCommentInput] = useState(false);
   const [isHoveringInteractive, setIsHoveringInteractive] = useState(false);
@@ -1153,6 +1153,12 @@ export default function DrawPage() {
                   addReplyToComment(commentIndex, event.data.text, 'claude');
                   claudeCommented = true;
                 }
+              } else if (event.type === 'dismiss') {
+                // Claude dismissed a comment (1-indexed)
+                const commentIndex = event.data.index - 1;
+                if (commentIndex >= 0) {
+                  dismissComment(commentIndex);
+                }
               } else if (event.type === 'wish') {
                 setWish(event.data);
                 console.log('claude wishes:', event.data);
@@ -1362,12 +1368,13 @@ export default function DrawPage() {
     }, AUTO_DRAW_DELAY);
   }, []);
 
-  // Lightweight comment-only API call — doesn't trigger drawing
+  // Lightweight comment-only API call — no canvas capture by default.
+  // If Claude signals needsCanvas, a second call is made with the image + draw tool.
   // Accepts optional updatedComments to avoid stale closure (React state not yet updated)
   const handleCommentResponse = useCallback(async (updatedComments?: DrawComment[]) => {
     const commentsToSend = updatedComments || comments;
-    // Track which comment we're streaming a reply into
     let streamingTarget: number | null = null;
+    let needsCanvas = false;
 
     try {
       const response = await fetch('/api/draw', {
@@ -1406,7 +1413,6 @@ export default function DrawPage() {
             const event = JSON.parse(line.slice(6));
 
             if (event.type === 'replyStart') {
-              // Find target comment index
               let targetIdx: number | undefined;
               if (event.data.replyTo) {
                 targetIdx = event.data.replyTo - 1;
@@ -1415,7 +1421,6 @@ export default function DrawPage() {
               }
               if (targetIdx !== undefined && targetIdx >= 0) {
                 streamingTarget = targetIdx;
-                // Create empty reply in temp state (chunks appended directly)
                 setComments((prev) => {
                   if (targetIdx >= prev.length) return prev;
                   const updated = [...prev];
@@ -1430,7 +1435,6 @@ export default function DrawPage() {
                 setOpenCommentIndex(targetIdx);
               }
             } else if (event.type === 'sayChunk' && streamingTarget !== null) {
-              // Append chunk to the streaming reply
               const target = streamingTarget;
               setComments((prev) => {
                 if (target >= prev.length) return prev;
@@ -1448,7 +1452,6 @@ export default function DrawPage() {
                 return updated;
               });
             } else if (event.type === 'say') {
-              // Fallback: full reply at once (if streaming didn't work)
               if (event.data.replyTo) {
                 const commentIndex = event.data.replyTo - 1;
                 if (commentIndex >= 0) {
@@ -1464,14 +1467,120 @@ export default function DrawPage() {
               } else if (event.data.sayX !== undefined && event.data.sayY !== undefined) {
                 addComment(event.data.text, 'claude', event.data.sayX, event.data.sayY);
               }
+            } else if (event.type === 'dismiss') {
+              const commentIndex = event.data.index - 1;
+              if (commentIndex >= 0) {
+                dismissComment(commentIndex);
+              }
+            } else if (event.type === 'needsCanvas') {
+              needsCanvas = true;
+            }
+          } catch { /* skip parse errors */ }
+        }
+      }
+
+      // Second call: Claude requested the canvas — capture image and call with draw tool
+      if (needsCanvas) {
+        handleCommentDrawResponse(commentsToSend);
+      }
+    } catch (error) {
+      console.error('Comment response error:', error);
+    }
+  }, [history, comments, userSettings, addComment, addReplyToComment, setOpenCommentIndex, setComments, dismissComment]);
+
+  // Second-stage call: comment triggered drawing — captures canvas and sends with draw tool
+  const handleCommentDrawResponse = useCallback(async (commentsToSend: DrawComment[]) => {
+    const streamedShapes: Shape[] = [];
+    const streamedBlocks: AsciiBlock[] = [];
+
+    const image = await captureFullCanvas();
+    if (!image) return;
+
+    const container = containerRef.current;
+    const containerRect = container?.getBoundingClientRect();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/draw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentOnly: true,
+          image,
+          canvasWidth: containerRect?.width || 800,
+          canvasHeight: containerRect?.height || 600,
+          history: history.length > 0 ? history : undefined,
+          comments: commentsToSend.length > 0 ? commentsToSend : undefined,
+          sayEnabled: true,
+          streaming: true,
+          model: 'opus',
+          paletteColors: COLOR_PALETTES[paletteIndex],
+          paletteIndex,
+          totalPalettes: COLOR_PALETTES.length,
+          turnCount: history.filter(t => t.who === 'claude').length + 1,
+          userApiKey: userSettings?.anthropic_api_key || undefined,
+        }),
+      });
+
+      if (!response.ok) { setIsLoading(false); return; }
+      const reader = response.body?.getReader();
+      if (!reader) { setIsLoading(false); return; }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+
+            if (event.type === 'shape') {
+              streamedShapes.push(event.data);
+              enqueueShape(event.data as Shape);
+              processClaudeAnimationQueue();
+            } else if (event.type === 'block') {
+              streamedBlocks.push(event.data);
+              enqueueAscii(event.data as AsciiBlock);
+              processClaudeAnimationQueue();
+            } else if (event.type === 'say' && event.data.text) {
+              if (event.data.replyTo) {
+                addReplyToComment(event.data.replyTo - 1, event.data.text, 'claude');
+              } else if (event.data.sayX !== undefined) {
+                addComment(event.data.text, 'claude', event.data.sayX, event.data.sayY);
+              }
+            } else if (event.type === 'dismiss') {
+              const commentIndex = event.data.index - 1;
+              if (commentIndex >= 0) dismissComment(commentIndex);
+            } else if (event.type === 'drawing') {
+              setClaudeDrawing(event.data);
+            } else if (event.type === 'done') {
+              if (streamedShapes.length > 0 || streamedBlocks.length > 0) {
+                setHistory(prev => [...prev, {
+                  who: 'claude' as const,
+                  description: '[comment-triggered drawing]',
+                  shapes: streamedShapes.length > 0 ? [...streamedShapes] : undefined,
+                  blocks: streamedBlocks.length > 0 ? [...streamedBlocks] : undefined,
+                }]);
+                finishClaudeAnimation();
+              }
+              setIsLoading(false);
             }
           } catch { /* skip parse errors */ }
         }
       }
     } catch (error) {
-      console.error('Comment response error:', error);
+      console.error('Comment draw response error:', error);
+      setIsLoading(false);
     }
-  }, [history, comments, userSettings, addComment, addReplyToComment, setOpenCommentIndex, setComments]);
+  }, [history, userSettings, captureFullCanvas, paletteIndex, addComment, addReplyToComment, dismissComment, enqueueShape, enqueueAscii, processClaudeAnimationQueue, finishClaudeAnimation, setClaudeDrawing, setIsLoading, setHistory]);
 
   const handleCommentSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -1586,7 +1695,13 @@ export default function DrawPage() {
       className={`draw-page ${isPanning ? 'is-panning' : ''}`}
       onMouseMove={(e) => {
         if (CUSTOM_CURSORS_ENABLED) {
-          setPageCursorPos({ x: e.clientX, y: e.clientY });
+          // Position cursor via DOM ref — avoids re-rendering entire component
+          const el = cursorRef.current;
+          if (el) {
+            el.style.left = e.clientX + 'px';
+            el.style.top = e.clientY + 'px';
+            el.style.display = '';
+          }
           // Detect if hovering an interactive element (button, link, label, [role=button])
           const target = e.target as HTMLElement;
           const interactive = target.closest('button, a, label, [role="button"], .cursor-pointer, input[type="range"]');
@@ -1595,7 +1710,8 @@ export default function DrawPage() {
       }}
       onMouseLeave={() => {
         if (CUSTOM_CURSORS_ENABLED) {
-          setPageCursorPos(null);
+          const el = cursorRef.current;
+          if (el) el.style.display = 'none';
         }
       }}
     >
@@ -2159,7 +2275,7 @@ export default function DrawPage() {
             {images.map((img) => (
               <div
                 key={img.id}
-                className={`absolute ${tool === 'select' ? 'cursor-move' : 'pointer-events-none'} ${selectedImageId === img.id ? 'ring-2 ring-blue-500' : ''}`}
+                className={`absolute ${tool !== 'select' ? 'pointer-events-none' : ''} ${selectedImageId === img.id ? 'ring-2 ring-blue-500' : ''}`}
                 style={{
                   left: img.x,
                   top: img.y,
@@ -2599,7 +2715,7 @@ export default function DrawPage() {
                   disabled={claudeIsDrawing}
                   className={`w-full py-1.5 rounded-lg text-xs font-medium transition-all ${
                     claudeIsDrawing
-                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                      ? 'bg-white/10 text-white/30'
                       : 'bg-blue-500 hover:bg-blue-600 text-white'
                   }`}
                 >
@@ -2695,17 +2811,19 @@ export default function DrawPage() {
         />
       )}
 
-      {/* Settings button - bottom right */}
-      <button
-        onClick={() => setShowSettings(!showSettings)}
-        className={`absolute bottom-4 right-4 z-30 draw-header-icon-btn ${showSettings ? 'draw-header-icon-btn--active' : ''}`}
-        title="Settings"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
-      </button>
+      {/* Settings button - bottom right (hidden on mobile) */}
+      {!isMobile && (
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`absolute bottom-4 right-4 z-30 draw-header-icon-btn ${showSettings ? 'draw-header-icon-btn--active' : ''}`}
+          title="Settings"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+        </button>
+      )}
 
       {/* Mobile comment system */}
       {isMobile && (
@@ -2753,7 +2871,7 @@ export default function DrawPage() {
       {/* Page-level custom cursor — renders all cursor types as React SVG components */}
       {CUSTOM_CURSORS_ENABLED && !isTouch && (
         <CustomCursor
-          position={pageCursorPos}
+          ref={cursorRef}
           mode={cursorMode}
           strokeColor={strokeColor}
         />

@@ -219,9 +219,28 @@
   z-index: 9999;
 }
 
-/* Hide native cursor on entire draw page and all children */
-.draw-page,
-.draw-page * {
+/* Hide native cursor everywhere when .draw-page is present.
+   IMPORTANT: Vendor-prefixed pseudo-elements MUST be in separate rules —
+   mixing -webkit- and -moz- in one selector list causes browsers to
+   reject the unknown vendor prefix and drop the ENTIRE rule. */
+html:has(.draw-page),
+html:has(.draw-page) *,
+html:has(.draw-page) *::before,
+html:has(.draw-page) *::after {
+  cursor: none !important;
+}
+
+/* Webkit slider thumbs + scrollbars (Chrome, Safari, Edge) */
+html:has(.draw-page) *::-webkit-slider-thumb {
+  cursor: none !important;
+}
+html:has(.draw-page) *::-webkit-scrollbar,
+html:has(.draw-page) *::-webkit-scrollbar-thumb {
+  cursor: none !important;
+}
+
+/* Mozilla slider thumbs (Firefox) */
+html:has(.draw-page) *::-moz-range-thumb {
   cursor: none !important;
 }
 
@@ -237,13 +256,6 @@
 .draw-comment-reply-input {
   user-select: text;
   -webkit-user-select: text;
-}
-
-/* Also hide on ALL elements in the document (including layout siblings,
-   portals, and library-injected elements outside .draw-page) */
-html:has(.draw-page),
-html:has(.draw-page) * {
-  cursor: none !important;
 }
 
 /* -----------------------------------------------------------------------------
@@ -287,7 +299,7 @@ html:has(.draw-page) * {
   border: 1px solid;
   outline: 1px dashed transparent;
   outline-offset: -2px;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   transform-origin: top left;
   border-radius: 4px 21px 21px 21px;
 }
@@ -463,29 +475,26 @@ html:has(.draw-page) * {
   overflow: hidden;
   transform: scale(1);
   filter: blur(0px);
+  padding-bottom: 0;
 }
 
-/* Bottom fade — hidden by default, JS toggles draw-comment-scroll-fade-bottom
-   immediately when overflow is predicted (before first paint). Stays visible
-   as long as content overflows. Non-overflow messages get no overlay. */
+/* Bottom padding bar — solid overlay that creates fixed bottom spacing.
+   Always present in open state. For non-overflow comments, it covers the
+   outer's own padding area (same bg color → invisible). For overflow
+   comments, it covers the bottom of scrollable content, creating the
+   appearance of padding that doesn't pop in at settle. */
 .draw-comment-bubble--open::after {
   content: '';
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 7.5px;
-  height: 12px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: var(--comment-bubble-bg);
+  border-radius: 0 0 20px 20px;
   pointer-events: none;
   z-index: 1;
-  opacity: 0;
 }
-.draw-comment-bubble--user.draw-comment-bubble--open::after {
-  background: linear-gradient(to top, #000, transparent);
-}
-.draw-comment-bubble--claude.draw-comment-bubble--open::after {
-  background: linear-gradient(to top, #fff, transparent);
-}
-.draw-comment-scroll-fade-bottom::after { opacity: 1; }
 
 /* Top scroll fade — JS toggles draw-comment-scroll-fade-top when scrolled down */
 .draw-comment-bubble--open::before {
@@ -518,6 +527,8 @@ html:has(.draw-page) * {
 
 .draw-comment-bubble--open .draw-comment-bubble-inner {
   gap: 8px;
+  padding-right: 8px;
+  padding-bottom: 8px;
 }
 
 /* Scroll constraints — applied after a delay matching the open animation so
@@ -526,9 +537,8 @@ html:has(.draw-page) * {
   to {
     overflow-x: hidden;
     overflow-y: auto;
-    max-height: calc(300px - 18px);
+    max-height: calc(300px - 10px);
     overscroll-behavior: contain;
-    padding-right: 8px;
   }
 }
 
@@ -772,7 +782,7 @@ html:has(.draw-page) * {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   transition: background-color 0.15s ease;
 }
 
@@ -886,10 +896,6 @@ html:has(.draw-page) * {
   top: 0;
 }
 
-/* Reply button row */
-.draw-comment-row--reply-btn {
-  cursor: pointer;
-}
 
 .draw-comment-row--reply-btn .draw-comment-row-body {
   position: relative;
@@ -939,6 +945,13 @@ html:has(.draw-page) * {
 .draw-comment-temp-btn {
   position: relative;
   padding: 4px;
+}
+
+/* Larger touch target around small temp buttons */
+.draw-comment-temp-btn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 /* Hover overlay — fades in over the base background */
@@ -1026,10 +1039,12 @@ html:has(.draw-page) * {
 
 .draw-comment-input-form--sending .draw-comment-input-bubble {
   width: 42px;
+  max-height: 42px;
   padding: 8px 0px 8px 8px;
   overflow: hidden;
   transition:
     width var(--comment-input-send-duration) var(--comment-input-send-easing),
+    max-height var(--comment-input-send-duration) var(--comment-input-send-easing),
     padding var(--comment-input-send-duration) var(--comment-input-send-easing),
     border-radius var(--comment-input-send-duration) ease-out;
 }
@@ -1129,6 +1144,7 @@ html:has(.draw-page) * {
   border-radius: 4px 21px 21px 21px;
   box-shadow: 1px 2px 8px var(--comment-black-subtle);
   width: 280px;
+  max-height: 130px;
 }
 
 .draw-comment-input-icon {
@@ -1240,10 +1256,14 @@ html:has(.draw-page) * {
   filter: drop-shadow(0 10px 4px rgba(0, 0, 0, 0.12));
 }
 
-.draw-tool-icon--selected,
-.draw-tool-icon--selected:hover {
+.draw-tool-icon--selected {
   transform: none;
   filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.2));
+}
+
+.draw-tool-icon--selected:hover {
+  transform: none;
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.28));
 }
 
 .draw-tool-icon--select {
@@ -1363,7 +1383,7 @@ html:has(.draw-page) * {
   background-color: transparent;
   border: none;
   border-radius: 0.5rem;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   color: var(--draw-text-primary);
   transition: all 0.2s, transform 0.1s;
 }
@@ -1391,7 +1411,7 @@ html:has(.draw-page) * {
   background-color: #1a1a1a;
   border: none;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   transition: all 0.2s;
 }
 
@@ -1496,7 +1516,7 @@ html:has(.draw-page) * {
   height: 12px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: none;
 }
 
@@ -1505,7 +1525,7 @@ html:has(.draw-page) * {
   height: 12px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: none;
 }
 
@@ -1530,7 +1550,7 @@ html:has(.draw-page) * {
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 6px;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   position: relative;
   flex-shrink: 0;
 }
@@ -1631,7 +1651,7 @@ html:has(.draw-page) * {
   height: 10px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
 }
 
 .draw-curve-duration-slider::-moz-range-thumb {
@@ -1639,7 +1659,7 @@ html:has(.draw-page) * {
   height: 10px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: none;
 }
 
@@ -1727,7 +1747,7 @@ html:has(.draw-page) * {
   height: 12px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
 }
 
 .draw-curve-slider::-moz-range-thumb {
@@ -1735,7 +1755,7 @@ html:has(.draw-page) * {
   height: 12px;
   background: white;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: none;
 }
 
@@ -1776,7 +1796,7 @@ html:has(.draw-page) * {
   height: 14px;
   background: #0f1931;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: 2px solid white;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
@@ -1786,7 +1806,7 @@ html:has(.draw-page) * {
   height: 14px;
   background: #0f1931;
   border-radius: 50%;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   border: 2px solid white;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
@@ -1841,7 +1861,7 @@ html:has(.draw-page) * {
   width: var(--draw-icon-size);
   height: var(--draw-icon-size);
   perspective: 150px;
-  cursor: pointer;
+  /* cursor hidden globally by .draw-page cursor:none rule */
   overflow: hidden;
   margin-left: -0.5px;
   mix-blend-mode: multiply;

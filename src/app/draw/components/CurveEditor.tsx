@@ -146,7 +146,7 @@ export function CurveEditor({ onCurveChange }: CurveEditorProps) {
             cy={Math.max(5, Math.min(95, 80 - 60 * (1 + (stiffness - 100) / 200)))}
             r="6"
             fill="#0f1931"
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            /* native cursor hidden globally; custom cursor handles modes */
             onMouseDown={handleMouseDown}
           />
         </svg>

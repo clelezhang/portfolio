@@ -318,94 +318,6 @@ gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
 osc.start();
 osc.stop(ctx.currentTime + 0.025);`,
     },
-        {
-      name: 'Hover',
-      desc: 'Mouse hover hint',
-      technique: 'sine + very short',
-      play: () => {
-        const c = getCtx();
-        const now = c.currentTime;
-        const o = c.createOscillator();
-        const g = c.createGain();
-        o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(1400, now);
-        g.gain.setValueAtTime(0.4, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-        o.start(now); o.stop(now + 0.03);
-      },
-      code: `const ctx = new AudioContext();
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.connect(gain);
-gain.connect(ctx.destination);
-
-osc.frequency.setValueAtTime(1400, ctx.currentTime);
-gain.gain.setValueAtTime(0.4, ctx.currentTime);
-gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
-
-osc.start();
-osc.stop(ctx.currentTime + 0.03);`,
-    },
-        {
-      name: 'Soft Click',
-      desc: 'Subtle tap feedback',
-      technique: 'sine + fast decay',
-      play: () => {
-        const c = getCtx();
-        const now = c.currentTime;
-        const o = c.createOscillator();
-        const g = c.createGain();
-        o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(1200, now);
-        o.frequency.exponentialRampToValueAtTime(800, now + 0.03);
-        g.gain.setValueAtTime(0.4, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-        o.start(now); o.stop(now + 0.04);
-      },
-      code: `const ctx = new AudioContext();
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.connect(gain);
-gain.connect(ctx.destination);
-
-osc.frequency.setValueAtTime(1200, ctx.currentTime);
-osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.03);
-gain.gain.setValueAtTime(0.4, ctx.currentTime);
-gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
-
-osc.start();
-osc.stop(ctx.currentTime + 0.04);`,
-    },
-        {
-      name: 'Click',
-      desc: 'Standard button click',
-      technique: 'sine + pitch sweep',
-      play: () => {
-        const c = getCtx();
-        const now = c.currentTime;
-        const o = c.createOscillator();
-        const g = c.createGain();
-        o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(800, now);
-        o.frequency.exponentialRampToValueAtTime(600, now + 0.05);
-        g.gain.setValueAtTime(0.4, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-        o.start(now); o.stop(now + 0.06);
-      },
-      code: `const ctx = new AudioContext();
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.connect(gain);
-gain.connect(ctx.destination);
-
-osc.frequency.setValueAtTime(800, ctx.currentTime);
-osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.05);
-gain.gain.setValueAtTime(0.4, ctx.currentTime);
-gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-
-osc.start();
-osc.stop(ctx.currentTime + 0.06);`,
-    },
   ],
 
   'Tones': [
@@ -485,30 +397,6 @@ gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
 
 osc.start();
 osc.stop(ctx.currentTime + 0.06);`,
-    },
-        {
-      name: 'Thud',
-      desc: 'Soft low bump',
-      technique: 'sine, low, 40ms',
-      play: () => {
-        const c = getCtx(); const now = c.currentTime;
-        const o = c.createOscillator(); const g = c.createGain();
-        o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(180, now); o.frequency.exponentialRampToValueAtTime(120, now + 0.04);
-        g.gain.setValueAtTime(0.4, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-        o.start(now); o.stop(now + 0.08);
-      },
-      code: `const ctx = new AudioContext();
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.connect(gain);
-gain.connect(ctx.destination);
-osc.frequency.setValueAtTime(180, ctx.currentTime);
-osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
-gain.gain.setValueAtTime(0.4, ctx.currentTime);
-gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-osc.start();
-osc.stop(ctx.currentTime + 0.08);`,
     },
         {
       name: 'Pop',
@@ -699,41 +587,6 @@ const gain = ctx.createGain();
 gain.gain.setValueAtTime(1.2, now);
 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
 src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
-src.start();`,
-    },
-        {
-      name: 'Nudge',
-      desc: 'Quiet low-end nudge',
-      technique: 'brown noise, lowpass, 40ms',
-      play: () => {
-        const c = getCtx(); const now = c.currentTime;
-        const buf = createNoiseBuffer(c, 'brown', 0.04);
-        const src = c.createBufferSource(); src.buffer = buf;
-        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(400, now);
-        const g = c.createGain(); g.gain.setValueAtTime(1.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-        src.connect(lp); lp.connect(g); g.connect(getAnalyser()); src.start(now);
-      },
-      code: `const ctx = new AudioContext();
-const now = ctx.currentTime;
-const sr = ctx.sampleRate;
-const len = sr * 0.04;
-const buf = ctx.createBuffer(1, len, sr);
-const data = buf.getChannelData(0);
-let last = 0;
-for (let i = 0; i < len; i++) {
-  const w = Math.random() * 2 - 1;
-  data[i] = (last + 0.02 * w) / 1.02;
-  last = data[i]; data[i] *= 3.5;
-}
-const src = ctx.createBufferSource();
-src.buffer = buf;
-const lp = ctx.createBiquadFilter();
-lp.type = 'lowpass';
-lp.frequency.setValueAtTime(400, now);
-const gain = ctx.createGain();
-gain.gain.setValueAtTime(1.2, now);
-gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-src.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
 src.start();`,
     },
         {
@@ -1006,38 +859,6 @@ src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
 src.start();`,
     },
         {
-      name: 'Whisper',
-      desc: 'Barely audible air movement',
-      technique: 'white noise, very quiet, highpass, 120ms',
-      play: () => {
-        const c = getCtx(); const now = c.currentTime;
-        const buf = createNoiseBuffer(c, 'white', 0.12);
-        const src = c.createBufferSource(); src.buffer = buf;
-        const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(3000, now);
-        const g = c.createGain(); g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.4, now + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        src.connect(hp); hp.connect(g); g.connect(getAnalyser()); src.start(now);
-      },
-      code: `const ctx = new AudioContext();
-const now = ctx.currentTime;
-const sr = ctx.sampleRate;
-const buf = ctx.createBuffer(1, sr * 0.12, sr);
-const data = buf.getChannelData(0);
-for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-const src = ctx.createBufferSource();
-src.buffer = buf;
-const hp = ctx.createBiquadFilter();
-hp.type = 'highpass';
-hp.frequency.setValueAtTime(3000, now);
-const gain = ctx.createGain();
-gain.gain.setValueAtTime(0, now);
-gain.gain.linearRampToValueAtTime(0.4, now + 0.03);
-gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-src.connect(hp); hp.connect(gain); gain.connect(ctx.destination);
-src.start();`,
-    },
-        {
       name: 'Exhale',
       desc: 'Soft breath outward',
       technique: 'noise breath, gentle rise, 180ms',
@@ -1248,7 +1069,7 @@ osc.stop(now + 0.05);`,
         const buf = createNoiseBuffer(c, 'brown', 0.025);
         const src = c.createBufferSource(); src.buffer = buf;
         const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, now);
-        const g1 = c.createGain(); g1.gain.setValueAtTime(0.4, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+        const g1 = c.createGain(); g1.gain.setValueAtTime(1.0, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
         src.connect(lp); lp.connect(g1); g1.connect(getAnalyser()); src.start(now);
         const o = c.createOscillator(); const g2 = c.createGain();
         o.connect(g2); g2.connect(getAnalyser());
@@ -1276,7 +1097,7 @@ const lp = ctx.createBiquadFilter();
 lp.type = 'lowpass';
 lp.frequency.setValueAtTime(600, now);
 const gain1 = ctx.createGain();
-gain1.gain.setValueAtTime(0.4, now);
+gain1.gain.setValueAtTime(1.0, now);
 gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
 src.connect(lp); lp.connect(gain1); gain1.connect(ctx.destination);
 src.start();
@@ -1329,55 +1150,6 @@ const now = ctx.currentTime;
   osc.stop(now + i * 0.12 + 0.16);
 });`,
     },
-        {
-      name: 'Notification',
-      desc: 'Bell-like alert',
-      technique: 'FM synthesis',
-      play: () => {
-        const c = getCtx();
-        const now = c.currentTime;
-        const carrier = c.createOscillator();
-        const mod = c.createOscillator();
-        const modG = c.createGain();
-        const g = c.createGain();
-        mod.frequency.setValueAtTime(880, now);
-        modG.gain.setValueAtTime(200, now);
-        modG.gain.exponentialRampToValueAtTime(0.5, now + 0.5);
-        carrier.frequency.setValueAtTime(880, now);
-        mod.connect(modG); modG.connect(carrier.frequency);
-        carrier.connect(g); g.connect(getAnalyser());
-        g.gain.setValueAtTime(0.4, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-        carrier.start(now); mod.start(now);
-        carrier.stop(now + 0.55); mod.stop(now + 0.55);
-      },
-      code: `const ctx = new AudioContext();
-const now = ctx.currentTime;
-
-const carrier = ctx.createOscillator();
-const mod = ctx.createOscillator();
-const modGain = ctx.createGain();
-const gain = ctx.createGain();
-
-// FM: modulator -> modGain -> carrier.frequency
-mod.frequency.setValueAtTime(880, now);
-modGain.gain.setValueAtTime(200, now);
-modGain.gain.exponentialRampToValueAtTime(0.5, now + 0.5);
-carrier.frequency.setValueAtTime(880, now);
-
-mod.connect(modGain);
-modGain.connect(carrier.frequency);
-carrier.connect(gain);
-gain.connect(ctx.destination);
-
-gain.gain.setValueAtTime(0.4, now);
-gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-carrier.start(now);
-mod.start(now);
-carrier.stop(now + 0.55);
-mod.stop(now + 0.55);`,
-    },
   ],
 };
 
@@ -1422,6 +1194,166 @@ export default function SoundsPlayground() {
 
   // Copied state
   const [copiedPreset, setCopiedPreset] = useState<string | null>(null);
+
+  // Palette tick designer — slow→fast→slow curve
+  const [tickDuration, setTickDuration] = useState(500);
+  const [tickCount, setTickCount] = useState(12);
+  const [tickCurve, setTickCurve] = useState(0.33);
+  const [tickNoiseType, setTickNoiseType] = useState<'white' | 'pink' | 'brown'>('white');
+  const [tickFilterType, setTickFilterType] = useState<'highpass' | 'bandpass'>('bandpass');
+  const [tickFilterFreq, setTickFilterFreq] = useState(5250);
+  const [tickFilterQ, setTickFilterQ] = useState(0.2);
+  const [tickLandFilterFreq, setTickLandFilterFreq] = useState(700);
+  const [tickStartVol, setTickStartVol] = useState(0.4);
+  const [tickVolDecay, setTickVolDecay] = useState(0.08);
+  const [tickLandVol, setTickLandVol] = useState(0.36);
+  const [tickLen, setTickLen] = useState(11);
+  const [tickLandLen, setTickLandLen] = useState(13);
+
+  // Drawing sound prototype — granular approach
+  // Fire tiny noise bursts at intervals driven by pointer speed
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lastPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastGrainRef = useRef<number>(0);
+  const [drawNoiseType, setDrawNoiseType] = useState<'white' | 'pink' | 'brown'>('brown');
+  const [drawFilterType, setDrawFilterType] = useState<'lowpass' | 'bandpass'>('bandpass');
+  const [drawFilterBase, setDrawFilterBase] = useState(800);
+  const [drawFilterRange, setDrawFilterRange] = useState(3000);
+  const [drawFilterQ, setDrawFilterQ] = useState(0.6);
+  const [drawGrainLen, setDrawGrainLen] = useState(6);
+  const [drawGrainVol, setDrawGrainVol] = useState(0.3);
+  const [drawGrainMinInterval, setDrawGrainMinInterval] = useState(8);
+  const [drawGrainMaxInterval, setDrawGrainMaxInterval] = useState(60);
+
+  // Fire a single grain
+  const fireGrain = useCallback((speed: number) => {
+    const c = getCtx();
+    const now = c.currentTime;
+    const len = drawGrainLen / 1000;
+
+    const buf = createNoiseBuffer(c, drawNoiseType, len);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+
+    const filt = c.createBiquadFilter();
+    filt.type = drawFilterType;
+    // Faster = brighter filter
+    const freq = drawFilterBase + speed * drawFilterRange;
+    filt.frequency.setValueAtTime(freq, now);
+    filt.Q.setValueAtTime(drawFilterQ, now);
+
+    const g = c.createGain();
+    // Faster = slightly louder
+    const vol = drawGrainVol * (0.5 + speed * 0.5);
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + len);
+
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(getAnalyser());
+    src.start(now);
+  }, [drawNoiseType, drawFilterType, drawFilterBase, drawFilterRange, drawFilterQ, drawGrainLen, drawGrainVol]);
+
+  // Drawing canvas handlers
+  const drawingRef = useRef(false);
+  const drawCanvasHandler = useMemo(() => ({
+    onPointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => {
+      drawingRef.current = true;
+      const canvas = drawCanvasRef.current;
+      if (!canvas) return;
+      canvas.setPointerCapture(e.pointerId);
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      lastPosRef.current = { x, y, time: performance.now() };
+      lastGrainRef.current = 0;
+
+      // Fire initial contact grain
+      fireGrain(0.1);
+
+      const ctx2d = canvas.getContext('2d');
+      if (ctx2d) {
+        ctx2d.strokeStyle = '#6366f1';
+        ctx2d.lineWidth = 3;
+        ctx2d.lineCap = 'round';
+        ctx2d.lineJoin = 'round';
+        ctx2d.beginPath();
+        ctx2d.moveTo(x * 2, y * 2);
+      }
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!drawingRef.current) return;
+      const canvas = drawCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Calculate speed
+      const last = lastPosRef.current;
+      if (last) {
+        const dx = x - last.x;
+        const dy = y - last.y;
+        const dt = Math.max(performance.now() - last.time, 1);
+        const speed = Math.sqrt(dx * dx + dy * dy) / dt; // px/ms
+        const normalizedSpeed = Math.min(speed / 2, 1); // 0-1
+
+        // Grain interval: fast = short intervals, slow = long intervals
+        const interval = drawGrainMaxInterval - normalizedSpeed * (drawGrainMaxInterval - drawGrainMinInterval);
+        const timeSinceLastGrain = performance.now() - lastGrainRef.current;
+
+        if (timeSinceLastGrain >= interval) {
+          fireGrain(normalizedSpeed);
+          lastGrainRef.current = performance.now();
+        }
+      }
+
+      lastPosRef.current = { x, y, time: performance.now() };
+
+      const ctx2d = canvas.getContext('2d');
+      if (ctx2d) {
+        ctx2d.lineTo(x * 2, y * 2);
+        ctx2d.stroke();
+      }
+    },
+    onPointerUp: () => {
+      drawingRef.current = false;
+      lastPosRef.current = null;
+    },
+    onPointerLeave: () => {
+      if (drawingRef.current) {
+        drawingRef.current = false;
+        lastPosRef.current = null;
+      }
+    },
+  }), [fireGrain, drawGrainMinInterval, drawGrainMaxInterval]);
+
+  // Init draw canvas size
+  useEffect(() => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    const obs = new ResizeObserver(() => {
+      const r = canvas.getBoundingClientRect();
+      canvas.width = r.width * 2;
+      canvas.height = r.height * 2;
+    });
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  // Liked presets
+  const [likedPresets, setLikedPresets] = useState<Set<string>>(new Set());
+  const toggleLike = useCallback((name: string) => {
+    setLikedPresets(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
 
   // Mutable category layout: category name → array of preset names
   const [layout, setLayout] = useState<Record<string, string[]>>(() => {
@@ -1615,6 +1547,97 @@ export default function SoundsPlayground() {
     setCopiedPreset('__export');
     setTimeout(() => setCopiedPreset(null), 1500);
   }, [layout, comments]);
+
+  // Tick schedule: slow→fast→slow using sine curve
+  // tickCurve controls bunching: 0 = even spacing, 1 = max bunching in middle
+  const tickSchedule = useMemo(() => {
+    const times: number[] = [];
+    for (let i = 0; i < tickCount; i++) {
+      const t = i / (tickCount - 1); // 0 to 1
+      const pos = t + tickCurve * Math.sin(2 * Math.PI * t) / (2 * Math.PI);
+      times.push(Math.round(pos * tickDuration));
+    }
+    return times;
+  }, [tickDuration, tickCount, tickCurve]);
+
+  const handlePlayTick = useCallback(() => {
+    const c = getCtx();
+    const now = c.currentTime;
+    const n = tickSchedule.length;
+
+    tickSchedule.forEach((ms, i) => {
+      const at = now + ms / 1000;
+      const isLanding = i === n - 1;
+      const len = (isLanding ? tickLandLen : tickLen) / 1000;
+
+      // Create noise buffer for this tick
+      const buf = createNoiseBuffer(c, tickNoiseType, len);
+      const src = c.createBufferSource();
+      src.buffer = buf;
+
+      // Filter
+      const filt = c.createBiquadFilter();
+      filt.type = tickFilterType;
+      const freq = isLanding ? tickLandFilterFreq : tickFilterFreq;
+      filt.frequency.setValueAtTime(freq, at);
+      filt.Q.setValueAtTime(tickFilterQ, at);
+
+      // Gain envelope
+      const g = c.createGain();
+      const vol = isLanding ? tickLandVol : Math.max(0.02, tickStartVol - i * tickVolDecay);
+      g.gain.setValueAtTime(vol, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + len);
+
+      src.connect(filt);
+      filt.connect(g);
+      g.connect(getAnalyser());
+      src.start(at);
+    });
+  }, [tickSchedule, tickNoiseType, tickFilterType, tickFilterFreq, tickFilterQ, tickLandFilterFreq, tickStartVol, tickVolDecay, tickLandVol, tickLen, tickLandLen]);
+
+  const tickCode = useMemo(() => {
+    const noiseFunc = tickNoiseType === 'white'
+      ? 'for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;'
+      : tickNoiseType === 'pink'
+        ? `let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;\nfor (let i = 0; i < data.length; i++) {\n  const w = Math.random() * 2 - 1;\n  b0 = 0.99886*b0 + w*0.0555179; b1 = 0.99332*b1 + w*0.0750759;\n  b2 = 0.969*b2 + w*0.153852; b3 = 0.8665*b3 + w*0.3104856;\n  b4 = 0.55*b4 + w*0.5329522; b5 = -0.7616*b5 - w*0.016898;\n  data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6 = w*0.115926;\n}`
+        : `let last = 0;\nfor (let i = 0; i < data.length; i++) {\n  const w = Math.random() * 2 - 1;\n  data[i] = (last + 0.02 * w) / 1.02; last = data[i]; data[i] *= 3.5;\n}`;
+
+    const lines = [
+      `const ctx = new AudioContext();`,
+      `const now = ctx.currentTime;`,
+      `const sr = ctx.sampleRate;`,
+      ``,
+      `// Decelerating tick schedule (ms)`,
+      `const ticks = [${tickSchedule.map(t => Math.round(t)).join(', ')}];`,
+      ``,
+      `function makeNoise(duration) {`,
+      `  const buf = ctx.createBuffer(1, sr * duration, sr);`,
+      `  const data = buf.getChannelData(0);`,
+      `  ${noiseFunc}`,
+      `  return buf;`,
+      `}`,
+      ``,
+      `ticks.forEach((ms, i) => {`,
+      `  const at = now + ms / 1000;`,
+      `  const isLanding = i === ticks.length - 1;`,
+      `  const len = isLanding ? ${tickLandLen / 1000} : ${tickLen / 1000};`,
+      ``,
+      `  const src = ctx.createBufferSource();`,
+      `  src.buffer = makeNoise(len);`,
+      `  const filt = ctx.createBiquadFilter();`,
+      `  filt.type = '${tickFilterType}';`,
+      `  filt.frequency.setValueAtTime(isLanding ? ${tickLandFilterFreq} : ${tickFilterFreq}, at);`,
+      `  filt.Q.setValueAtTime(${tickFilterQ}, at);`,
+      `  const g = ctx.createGain();`,
+      `  g.gain.setValueAtTime(isLanding ? ${tickLandVol} : Math.max(0.02, ${tickStartVol} - i * ${tickVolDecay}), at);`,
+      `  g.gain.exponentialRampToValueAtTime(0.001, at + len);`,
+      ``,
+      `  src.connect(filt); filt.connect(g); g.connect(ctx.destination);`,
+      `  src.start(at);`,
+      `});`,
+    ];
+    return lines.join('\n');
+  }, [tickSchedule, tickNoiseType, tickFilterType, tickFilterFreq, tickFilterQ, tickLandFilterFreq, tickStartVol, tickVolDecay, tickLandVol, tickLen, tickLandLen]);
 
   // ADSR SVG path
   const adsrPath = useCallback(() => {
@@ -1986,6 +2009,252 @@ export default function SoundsPlayground() {
             </button>
           </div>
         </div>
+
+        {/* Palette Tick Designer */}
+        <div className="sound-card full-width">
+          <h2>Palette Tick</h2>
+          <p className="card-desc">Noise ticks with slow→fast→slow timing for color palette reel</p>
+
+          {/* Timeline visualization */}
+          <div className="tick-timeline">
+            <svg viewBox={`0 0 ${tickDuration + 20} 40`} preserveAspectRatio="none">
+              {/* Base line */}
+              <line x1="0" y1="30" x2={tickDuration} y2="30" stroke="#2a2a3e" strokeWidth="1" />
+              {/* Tick markers */}
+              {tickSchedule.map((ms, i) => {
+                const isLanding = i === tickSchedule.length - 1;
+                const vol = isLanding ? tickLandVol : Math.max(0.02, tickStartVol - i * tickVolDecay);
+                const h = 4 + (vol / Math.max(tickStartVol, tickLandVol)) * 20;
+                return (
+                  <g key={i}>
+                    <line
+                      x1={ms} y1={30 - h} x2={ms} y2={30}
+                      stroke={isLanding ? '#22c55e' : '#6366f1'}
+                      strokeWidth={isLanding ? 3 : 2}
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx={ms} cy={30 - h}
+                      r={isLanding ? 3 : 2}
+                      fill={isLanding ? '#22c55e' : '#6366f1'}
+                    />
+                  </g>
+                );
+              })}
+              {/* Time labels */}
+              <text x="0" y="39" fill="#555" fontSize="8" fontFamily="monospace">0</text>
+              <text x={tickDuration} y="39" fill="#555" fontSize="8" fontFamily="monospace" textAnchor="end">{tickDuration}ms</text>
+            </svg>
+            <div className="tick-timeline-label">{tickSchedule.length} ticks &middot; gaps: {tickSchedule.slice(1).map((ms, i) => ms - tickSchedule[i]).join(', ')}ms</div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <div>
+              <div className="slider-label" style={{ marginBottom: '0.35rem' }}><span>Noise</span></div>
+              <div className="toggle-row" style={{ marginBottom: 0 }}>
+                {(['white', 'pink', 'brown'] as const).map((t) => (
+                  <button key={t} className={`toggle-btn ${tickNoiseType === t ? 'active' : ''}`} onClick={() => setTickNoiseType(t)}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="slider-label" style={{ marginBottom: '0.35rem' }}><span>Filter</span></div>
+              <div className="toggle-row" style={{ marginBottom: 0 }}>
+                {(['highpass', 'bandpass'] as const).map((t) => (
+                  <button key={t} className={`toggle-btn ${tickFilterType === t ? 'active' : ''}`} onClick={() => setTickFilterType(t)}>{t}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="adsr-row">
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Duration</span>
+                <span>{tickDuration} ms</span>
+              </div>
+              <input type="range" min={200} max={1200} step={10} value={tickDuration} onChange={(e) => setTickDuration(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Ticks</span>
+                <span>{tickCount}</span>
+              </div>
+              <input type="range" min={4} max={20} step={1} value={tickCount} onChange={(e) => setTickCount(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Curve</span>
+                <span>{tickCurve.toFixed(2)}</span>
+              </div>
+              <input type="range" min={0} max={0.95} step={0.01} value={tickCurve} onChange={(e) => setTickCurve(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Filter freq</span>
+                <span>{tickFilterFreq} Hz</span>
+              </div>
+              <input type="range" min={500} max={8000} step={50} value={tickFilterFreq} onChange={(e) => setTickFilterFreq(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Filter Q</span>
+                <span>{tickFilterQ.toFixed(1)}</span>
+              </div>
+              <input type="range" min={0.1} max={5} step={0.1} value={tickFilterQ} onChange={(e) => setTickFilterQ(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Landing filter freq</span>
+                <span>{tickLandFilterFreq} Hz</span>
+              </div>
+              <input type="range" min={200} max={6000} step={50} value={tickLandFilterFreq} onChange={(e) => setTickLandFilterFreq(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Start volume</span>
+                <span>{tickStartVol.toFixed(2)}</span>
+              </div>
+              <input type="range" min={0.05} max={1.5} step={0.01} value={tickStartVol} onChange={(e) => setTickStartVol(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Vol decay/tick</span>
+                <span>{tickVolDecay.toFixed(3)}</span>
+              </div>
+              <input type="range" min={0} max={0.15} step={0.002} value={tickVolDecay} onChange={(e) => setTickVolDecay(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Landing volume</span>
+                <span>{tickLandVol.toFixed(2)}</span>
+              </div>
+              <input type="range" min={0.05} max={1.5} step={0.01} value={tickLandVol} onChange={(e) => setTickLandVol(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Tick length</span>
+                <span>{tickLen} ms</span>
+              </div>
+              <input type="range" min={2} max={30} step={1} value={tickLen} onChange={(e) => setTickLen(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Landing length</span>
+                <span>{tickLandLen} ms</span>
+              </div>
+              <input type="range" min={5} max={50} step={1} value={tickLandLen} onChange={(e) => setTickLandLen(+e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button className="play-btn" style={{ flex: 1 }} onClick={handlePlayTick}>
+              Play Tick
+            </button>
+            <button
+              className={`play-btn ${copiedPreset === '__tick' ? 'copied' : ''}`}
+              style={{ flex: 0, padding: '0.6rem 1.5rem', background: copiedPreset === '__tick' ? '#22c55e' : '#1a1a2a', border: '1px solid #2a2a3e' }}
+              onClick={() => handleCopy('__tick', tickCode)}
+            >
+              {copiedPreset === '__tick' ? 'copied!' : 'copy code'}
+            </button>
+          </div>
+        </div>
+
+        {/* Drawing Sound Prototype */}
+        <div className="sound-card full-width">
+          <h2>Drawing Sound</h2>
+          <p className="card-desc">Granular noise bursts driven by pointer speed — draw below to hear</p>
+
+          <canvas
+            ref={drawCanvasRef}
+            className="draw-sound-canvas"
+            {...drawCanvasHandler}
+          />
+
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <div>
+              <div className="slider-label" style={{ marginBottom: '0.35rem' }}><span>Noise</span></div>
+              <div className="toggle-row" style={{ marginBottom: 0 }}>
+                {(['white', 'pink', 'brown'] as const).map((t) => (
+                  <button key={t} className={`toggle-btn ${drawNoiseType === t ? 'active' : ''}`} onClick={() => setDrawNoiseType(t)}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="slider-label" style={{ marginBottom: '0.35rem' }}><span>Filter</span></div>
+              <div className="toggle-row" style={{ marginBottom: 0 }}>
+                {(['lowpass', 'bandpass'] as const).map((t) => (
+                  <button key={t} className={`toggle-btn ${drawFilterType === t ? 'active' : ''}`} onClick={() => setDrawFilterType(t)}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <button
+              className="play-btn"
+              style={{ width: 'auto', padding: '0.4rem 1rem', alignSelf: 'flex-end' }}
+              onClick={() => {
+                const canvas = drawCanvasRef.current;
+                if (!canvas) return;
+                const ctx2d = canvas.getContext('2d');
+                if (ctx2d) ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+              }}
+            >
+              clear canvas
+            </button>
+          </div>
+
+          <div className="adsr-row">
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Filter base</span>
+                <span>{drawFilterBase} Hz</span>
+              </div>
+              <input type="range" min={50} max={2000} step={10} value={drawFilterBase} onChange={(e) => setDrawFilterBase(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Filter range</span>
+                <span>+{drawFilterRange} Hz</span>
+              </div>
+              <input type="range" min={0} max={6000} step={50} value={drawFilterRange} onChange={(e) => setDrawFilterRange(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Filter Q</span>
+                <span>{drawFilterQ.toFixed(1)}</span>
+              </div>
+              <input type="range" min={0.1} max={5} step={0.1} value={drawFilterQ} onChange={(e) => setDrawFilterQ(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Grain length</span>
+                <span>{drawGrainLen} ms</span>
+              </div>
+              <input type="range" min={2} max={30} step={1} value={drawGrainLen} onChange={(e) => setDrawGrainLen(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Grain volume</span>
+                <span>{drawGrainVol.toFixed(2)}</span>
+              </div>
+              <input type="range" min={0.05} max={1} step={0.01} value={drawGrainVol} onChange={(e) => setDrawGrainVol(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Min interval</span>
+                <span>{drawGrainMinInterval} ms</span>
+              </div>
+              <input type="range" min={2} max={30} step={1} value={drawGrainMinInterval} onChange={(e) => setDrawGrainMinInterval(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Max interval</span>
+                <span>{drawGrainMaxInterval} ms</span>
+              </div>
+              <input type="range" min={20} max={200} step={5} value={drawGrainMaxInterval} onChange={(e) => setDrawGrainMaxInterval(+e.target.value)} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Presets */}
@@ -2014,6 +2283,15 @@ export default function SoundsPlayground() {
                     onDragEnd={handleDragEnd}
                     onClick={p.play}
                   >
+                    <button
+                      className={`like-btn ${likedPresets.has(name) ? 'liked' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLike(name);
+                      }}
+                    >
+                      {likedPresets.has(name) ? '♥' : '♡'}
+                    </button>
                     <button
                       className={`copy-btn ${copiedPreset === name ? 'copied' : ''}`}
                       onClick={(e) => {

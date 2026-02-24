@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { PencilCursor } from './icons/pencil-cursor';
 import { CommentCursor } from './icons/comment-cursor';
 import { UserCursor } from './icons/user-cursor';
@@ -17,8 +17,6 @@ export type CursorMode =
   | 'comment';
 
 interface CustomCursorProps {
-  /** Viewport coordinates (clientX/clientY) */
-  position: { x: number; y: number } | null;
   mode: CursorMode;
   /** Pencil stroke color — only used when mode is 'pencil' */
   strokeColor?: string;
@@ -36,22 +34,19 @@ const HOTSPOTS: Record<CursorMode, { x: number; y: number }> = {
   comment: { x: -3, y: -21 },
 };
 
-export const CustomCursor = memo(function CustomCursor({
-  position,
+export const CustomCursor = memo(forwardRef<HTMLDivElement, CustomCursorProps>(function CustomCursor({
   mode,
   strokeColor = '#000',
-}: CustomCursorProps) {
-  if (!position) return null;
-
+}, ref) {
   const hotspot = HOTSPOTS[mode];
 
   return (
     <div
+      ref={ref}
       className="draw-cursor"
       style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        display: 'none',
         filter: 'drop-shadow(0px 0.5px 2px rgba(0, 0, 0, 0.25))',
       }}
     >
@@ -83,4 +78,4 @@ export const CustomCursor = memo(function CustomCursor({
       </div>
     </div>
   );
-});
+}));
