@@ -327,7 +327,7 @@ export const CommentSystem = memo(function CommentSystem({
         const isReplying = replyingToIndex === i;
         const isUserComment = comment.from === 'human';
         const isTemp = comment.status === 'temp';
-        const isHovered = hoveredCommentIndex === i && !isOpen && !isTemp;
+        const isHovered = hoveredCommentIndex === i && !isOpen;
 
         // Determine visual state
         const visualState = isOpen ? 'open' : isHovered ? 'preview' : 'collapsed';
@@ -434,6 +434,14 @@ export function CommentBubble({
   const [hasAnimated, setHasAnimated] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const replyBodyRef = useRef<HTMLDivElement>(null);
+
+  const updateReplyOverflow = useCallback((textarea: HTMLTextAreaElement) => {
+    const wrapper = replyBodyRef.current;
+    if (!wrapper) return;
+    wrapper.toggleAttribute('data-overflow-top', textarea.scrollTop > 0);
+    wrapper.toggleAttribute('data-overflow-bottom', textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight > 1);
+  }, []);
   const tempActionsRef = useRef<HTMLDivElement>(null);
   const frozenVisualStateRef = useRef<'collapsed' | 'preview' | 'open' | null>(null);
   const prevVisualStateRef = useRef(visualState);
@@ -504,7 +512,7 @@ export function CommentBubble({
     }
   }, [effectiveVisualState]);
 
-  // Scroll fades — direct DOM via useLayoutEffect. Both hidden until overflow detected.
+  // Scroll fades + overflow animation cap — direct DOM via useLayoutEffect.
   useLayoutEffect(() => {
     const outer = bubbleOuterRef.current;
     if (!outer) return;
@@ -521,9 +529,18 @@ export function CommentBubble({
     const gridEl = gridRef.current;
     if (!el || !gridEl) return;
 
-    // Predict overflow BEFORE the grid transition completes so the bottom
-    // fade is present from the very first painted frame.  The grid is still
-    // at 0fr, but the grid-inner's scrollHeight reflects its natural height.
+    // Cap the grid CONTAINER's max-height BEFORE reading any layout props.
+    // Reading layout (scrollHeight, offsetHeight) forces a reflow which
+    // locks in the 0fr→1fr transition endpoint.  If the grid is uncapped,
+    // 1fr resolves to the full content height (e.g. 400px) even though only
+    // ~240px is visible — the rest of the easing curve plays out invisibly,
+    // making the animation feel jerky/truncated.  By capping the container
+    // first, 1fr resolves to the cap, keeping the full easing curve visible.
+    // 250px is a safe initial cap (≈ 282px inner max − ~24px main row − 8px gap).
+    // For non-overflow comments (content < 250px) this has no effect.
+    gridEl.style.maxHeight = '250px';
+
+    // Now safe to read layout — the forced reflow sees the capped grid.
     const gridInnerEl = gridEl.firstElementChild as HTMLElement | null;
     const gridContentHeight = gridInnerEl?.scrollHeight || 0;
     const mainRow = el.querySelector('.draw-comment-row--main') as HTMLElement | null;
@@ -531,17 +548,31 @@ export function CommentBubble({
     const gap = 8; // matches CSS gap on .draw-comment-bubble-inner when open
     const maxInnerHeight = 282; // calc(300px - 18px)
     const willOverflow = (mainRowHeight + gap + gridContentHeight) > maxInnerHeight;
+
+    // Refine to exact available space, or remove if no overflow.
+    if (willOverflow) {
+      const availableGridHeight = maxInnerHeight - mainRowHeight - gap;
+      gridEl.style.maxHeight = `${availableGridHeight}px`;
+    } else {
+      gridEl.style.maxHeight = '';
+    }
+
     scrollFadeBottomRef.current = willOverflow;
     outer.classList.toggle('draw-comment-scroll-fade-bottom', willOverflow);
 
-    // After settle (overflow-y: auto kicks in), check actual overflow
+    // After settle (overflow-y: auto kicks in), remove the grid cap
+    // so full content is scrollable, then update scroll fades.
     const handleAnimationEnd = (e: AnimationEvent) => {
       if (e.animationName === 'comment-settle') {
+        gridEl.style.maxHeight = '';
         updateScrollFades();
       }
     };
     el.addEventListener('animationend', handleAnimationEnd);
-    return () => el.removeEventListener('animationend', handleAnimationEnd);
+    return () => {
+      el.removeEventListener('animationend', handleAnimationEnd);
+      gridEl.style.maxHeight = '';
+    };
   }, [effectiveVisualState, updateScrollFades]);
 
   // Focus reply input without scrolling (autoFocus causes scroll-into-view)
@@ -653,7 +684,7 @@ export function CommentBubble({
               {effectiveVisualState === 'open' && isReplying && (
                 <div className="draw-comment-row draw-comment-row--reply-input">
                   <img src="/draw/user-icon.svg" alt="" draggable={false} className="draw-comment-row-icon draw-img-no-anim" />
-                  <div className="draw-comment-row-body">
+                  <div ref={replyBodyRef} className="draw-comment-row-body">
                     <textarea
                       ref={replyInputRef}
                       value={replyText}
@@ -668,7 +699,8 @@ export function CommentBubble({
                           onReplySubmit();
                         }
                       }}
-                      onInput={handleTextareaResize}
+                      onInput={(e) => { handleTextareaResize(e); requestAnimationFrame(() => updateReplyOverflow(e.target as HTMLTextAreaElement)); }}
+                      onScroll={(e) => updateReplyOverflow(e.currentTarget)}
                       onClick={(e) => e.stopPropagation()}
                     />
                     <button
@@ -729,6 +761,8 @@ export function CommentBubble({
         <div
           ref={tempActionsRef}
           className="draw-comment-temp-actions"
+          onMouseEnter={onBubbleMouseEnter}
+          onMouseLeave={onBubbleMouseLeave}
         >
           {onSave && (
             <button

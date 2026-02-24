@@ -28,8 +28,16 @@ export function CommentInput({
   const handleTextareaResize = useAutoResizeTextarea(100);
   const formRef = useRef<HTMLFormElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const fieldWrapperRef = useRef<HTMLDivElement>(null);
   const isHoveredRef = useRef(false);
   const [closingAs, setClosingAs] = useState<'close' | 'send' | null>(null);
+
+  const updateOverflow = useCallback((textarea: HTMLTextAreaElement) => {
+    const wrapper = fieldWrapperRef.current;
+    if (!wrapper) return;
+    wrapper.toggleAttribute('data-overflow-top', textarea.scrollTop > 0);
+    wrapper.toggleAttribute('data-overflow-bottom', textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight > 1);
+  }, []);
 
   // Animate out before calling a callback
   const animateOut = useCallback((type: 'close' | 'send', callback: () => void) => {
@@ -98,7 +106,7 @@ export function CommentInput({
             alt=""
             className="draw-comment-input-icon"
           />
-          <div className="draw-comment-input-field-wrapper">
+          <div ref={fieldWrapperRef} className="draw-comment-input-field-wrapper">
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
@@ -115,7 +123,8 @@ export function CommentInput({
                   }
                 }
               }}
-              onInput={handleTextareaResize}
+              onInput={(e) => { handleTextareaResize(e); requestAnimationFrame(() => updateOverflow(e.target as HTMLTextAreaElement)); }}
+              onScroll={(e) => updateOverflow(e.currentTarget)}
             />
             <button
               type="submit"

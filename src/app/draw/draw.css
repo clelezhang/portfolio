@@ -827,6 +827,22 @@ html.draw-active *::-moz-range-thumb {
   display: block;
   max-height: 80px;
   line-height: 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+}
+
+.draw-comment-input::-webkit-scrollbar {
+  width: 4px;
+}
+
+.draw-comment-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.draw-comment-input::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 2px;
 }
 
 .draw-comment-input--plain {
@@ -874,6 +890,14 @@ html.draw-active *::-moz-range-thumb {
   background-color: var(--stroke-color, #888);
   color: #fff;
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.draw-comment-submit:hover {
+  transform: scale(1.05);
+}
+
+.draw-comment-submit:active {
+  transform: scale(0.95);
 }
 
 /* Empty state — no background, muted color from tier variables */
@@ -1163,6 +1187,51 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-input-field-wrapper {
   flex: 1;
   position: relative;
+  --textarea-overlay-color: #000;
+}
+
+/* Textarea overflow gradient overlays */
+.draw-comment-input-field-wrapper::before,
+.draw-comment-input-field-wrapper::after,
+.draw-comment-row--reply-input .draw-comment-row-body::before,
+.draw-comment-row--reply-input .draw-comment-row-body::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+.draw-comment-input-field-wrapper::before,
+.draw-comment-row--reply-input .draw-comment-row-body::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--textarea-overlay-color), transparent);
+}
+
+.draw-comment-input-field-wrapper::after,
+.draw-comment-row--reply-input .draw-comment-row-body::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--textarea-overlay-color), transparent);
+}
+
+/* Show overlays when content overflows */
+.draw-comment-input-field-wrapper[data-overflow-top]::before,
+.draw-comment-row--reply-input .draw-comment-row-body[data-overflow-top]::before {
+  opacity: 1;
+}
+
+.draw-comment-input-field-wrapper[data-overflow-bottom]::after,
+.draw-comment-row--reply-input .draw-comment-row-body[data-overflow-bottom]::after {
+  opacity: 1;
+}
+
+/* Reply input overlay color inherits from bubble background */
+.draw-comment-row--reply-input .draw-comment-row-body {
+  --textarea-overlay-color: var(--comment-bubble-bg, #000);
 }
 
 .draw-comment-input-bubble .draw-comment-input {
@@ -1335,12 +1404,13 @@ html.draw-active *::-moz-range-thumb {
   transition: background-color 0.2s, transform 0.1s;
 }
 
-.draw-icon-btn:active {
-  transform: scale(0.95);
-}
-
 .draw-icon-btn:hover {
   background-color: var(--draw-hover-bg);
+  transform: scale(1.05);
+}
+
+.draw-icon-btn:active {
+  transform: scale(0.95);
 }
 
 .draw-icon-btn--no-hover:hover {
@@ -1367,6 +1437,10 @@ html.draw-active *::-moz-range-thumb {
   transition: all 0.2s, transform 0.1s;
 }
 
+.draw-toolbar-comment-btn:hover {
+  transform: scale(1.05);
+}
+
 .draw-toolbar-comment-btn:active {
   transform: scale(0.95);
 }
@@ -1390,12 +1464,13 @@ html.draw-active *::-moz-range-thumb {
   transition: all 0.2s, transform 0.1s;
 }
 
-.draw-header-icon-btn:active {
-  transform: scale(0.95);
-}
-
 .draw-header-icon-btn:hover {
   background-color: var(--draw-hover-bg);
+  transform: scale(1.05);
+}
+
+.draw-header-icon-btn:active {
+  transform: scale(0.95);
 }
 
 .draw-header-icon-btn--active,
@@ -1853,6 +1928,7 @@ html.draw-active *::-moz-range-thumb {
 
 .draw-color-btn--dice:hover {
   background-color: var(--draw-hover-bg);
+  transform: scale(1.05);
 }
 
 .draw-color-btn--dice:active {
@@ -3051,6 +3127,10 @@ html.draw-active *::-moz-range-thumb {
   overflow: hidden;
 }
 
+.mobile-toolbar-style:hover {
+  transform: scale(1.05);
+}
+
 .mobile-toolbar-style:active {
   transform: scale(0.93);
 }
@@ -3094,6 +3174,10 @@ html.draw-active *::-moz-range-thumb {
   transition: transform 0.1s;
   padding: 0;
   overflow: hidden;
+}
+
+.mobile-dice-btn:hover {
+  transform: scale(1.05);
 }
 
 .mobile-dice-btn:active {
@@ -3235,8 +3319,16 @@ html.draw-active *::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
   padding: 6px;
+}
+
+.mobile-comment-submit:hover {
+  transform: scale(1.05);
+}
+
+.mobile-comment-submit:active {
+  transform: scale(0.95);
 }
 
 .mobile-comment-submit--empty {
@@ -3301,7 +3393,12 @@ html.draw-active *::-moz-range-thumb {
 
 /* Expanded state — has comments, fills available space */
 .mobile-comment-morph--has-comments {
-  height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px) - 24px);
+  height: calc(100dvh - 24px - env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-comment-morph--has-comments .mobile-comment-morph-content {
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Button icon — fades out fast on expand */
@@ -3326,6 +3423,7 @@ html.draw-active *::-moz-range-thumb {
 
 /* Sheet content — normal flow so it sizes the parent height */
 .mobile-comment-morph-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -3341,6 +3439,38 @@ html.draw-active *::-moz-range-thumb {
   transition: opacity 200ms ease-out 120ms;
 }
 
+/* Scroll fade overlays — top */
+.mobile-comment-morph-content::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 28px;
+  height: 16px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), transparent);
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.mobile-comment-morph-scroll-fade-top::before { opacity: 1; }
+
+/* Scroll fade overlays — bottom */
+.mobile-comment-morph-content::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 52px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.85), transparent);
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.mobile-comment-morph-scroll-fade-bottom::after { opacity: 1; }
+
 .mobile-comment-sheet-handle {
   width: 24px;
   height: 2.5px;
@@ -3352,6 +3482,7 @@ html.draw-active *::-moz-range-thumb {
 
 .mobile-comment-sheet-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 8px;
   -webkit-overflow-scrolling: touch;
@@ -3415,8 +3546,16 @@ html.draw-active *::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
   padding: 6px;
+}
+
+.mobile-comment-reply-btn:hover {
+  transform: scale(1.05);
+}
+
+.mobile-comment-reply-btn:active {
+  transform: scale(0.95);
 }
 
 .mobile-comment-reply-btn--empty {
@@ -3443,7 +3582,7 @@ html.draw-active *::-moz-range-thumb {
   font-size: 16px; /* Prevents iOS zoom */
   resize: none;
   outline: none;
-  max-height: 80px;
+  max-height: 200px;
   font-family: var(--draw-font, inherit);
   background: transparent;
   word-wrap: break-word;

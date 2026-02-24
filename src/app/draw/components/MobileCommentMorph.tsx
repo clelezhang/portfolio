@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Comment } from '../types';
 import { useAutoResizeTextarea } from '../hooks';
 import { SubmitArrowIcon } from './icons';
@@ -47,9 +47,21 @@ export function MobileCommentMorph({
   const [animState, setAnimState] = useState<AnimState>('collapsed');
   const morphRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const handleTextareaResize = useAutoResizeTextarea(80);
+  const handleTextareaResize = useAutoResizeTextarea(160);
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
 
   const hasComments = comments.length > 0;
+
+  // Scroll fade overlays — toggle classes directly on DOM for performance
+  const updateScrollFades = useCallback(() => {
+    const el = contentRef.current;
+    const wrapper = contentWrapperRef.current;
+    if (!el || !wrapper) return;
+    const top = el.scrollTop > 2;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight > 2;
+    wrapper.classList.toggle('mobile-comment-morph-scroll-fade-top', top);
+    wrapper.classList.toggle('mobile-comment-morph-scroll-fade-bottom', bottom);
+  }, []);
 
   // Sync animState with isOpen prop
   useEffect(() => {
@@ -76,12 +88,13 @@ export function MobileCommentMorph({
     return () => el.removeEventListener('transitionend', handler);
   }, [animState]);
 
-  // Scroll to bottom when expanded
+  // Scroll to bottom when expanded, then update fades
   useEffect(() => {
     if (animState === 'expanded' && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
+      updateScrollFades();
     }
-  }, [animState, comments.length]);
+  }, [animState, comments.length, updateScrollFades]);
 
   const isVisuallyOpen = animState === 'expanding' || animState === 'expanded';
   const isVisuallyCollapsed = animState === 'collapsed' || animState === 'collapsing';
@@ -130,12 +143,12 @@ export function MobileCommentMorph({
         </div>
 
         {/* Sheet content — fades in with delay */}
-        <div className={`mobile-comment-morph-content ${isVisuallyOpen ? 'mobile-comment-morph-content--visible' : ''}`}>
+        <div ref={contentWrapperRef} className={`mobile-comment-morph-content ${isVisuallyOpen ? 'mobile-comment-morph-content--visible' : ''}`}>
           {/* Comment list — only when there are comments */}
           {hasComments && (
             <>
               <div className="mobile-comment-sheet-handle" />
-              <div className="mobile-comment-sheet-content" ref={contentRef}>
+              <div className="mobile-comment-sheet-content" ref={contentRef} onScroll={updateScrollFades}>
                 {comments.map((comment, index) => (
                   <div key={index} className="mobile-comment-item">
                     <div className="mobile-comment-item-main">
