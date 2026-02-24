@@ -225,115 +225,6 @@ function ShowcaseCommentInput({ prefilled = false }: { prefilled?: boolean }) {
   );
 }
 
-// ─── CSS Override toggles ────────────────────────────────────────────────────
-// Each toggle represents one change from the animation fix attempt.
-// Checked = change is ACTIVE (current state). Unchecked = REVERTED to original.
-
-interface ChangeToggle {
-  id: string;
-  label: string;
-  description: string;
-  /** CSS to inject when this change is REVERTED (unchecked) */
-  revertCSS: string;
-  group: 'css' | 'js';
-}
-
-const CHANGE_TOGGLES: ChangeToggle[] = [
-  {
-    id: 'max-height-removed',
-    label: '1. Removed max-height: 300px from --open',
-    description: 'Originally .draw-comment-bubble--open had max-height: 300px, constraining the bubble during animation. Removed so grid can expand freely.',
-    revertCSS: `.draw-comment-bubble--open { max-height: 300px !important; }`,
-    group: 'css',
-  },
-  {
-    id: 'open-settled-css',
-    label: '2. --open-settled CSS class (scroll constraints after settle)',
-    description: 'Adds max-height + overflow-y: auto to bubble-inner after animation finishes. Disabling removes scroll constraints.',
-    revertCSS: `.draw-comment-bubble--open-settled .draw-comment-bubble-inner { max-height: unset !important; overflow-y: visible !important; overflow-x: visible !important; overscroll-behavior: auto !important; padding-right: 0 !important; }`,
-    group: 'css',
-  },
-  {
-    id: 'js-settle-system',
-    label: '3-7. JS settle system (isOpenSettled + imperative max-height)',
-    description: 'Groups: isOpenSettled state, bubbleOuterRef, imperative max-height animation, cleanup on close, scroll fade dependency. These are JS — toggle #1 and #2 to see CSS effects.',
-    revertCSS: '', // JS-only, no CSS override
-    group: 'js',
-  },
-  {
-    id: 'min-width',
-    label: '8. min-width: 250px on open-grid-inner',
-    description: 'Locks content width so text doesn\'t reflow during the bubble width transition (42px→260px).',
-    revertCSS: `.draw-comment-open-grid-inner { min-width: 0 !important; }`,
-    group: 'css',
-  },
-  {
-    id: 'gap-removed',
-    label: '9. Removed gap: 8px from bubble-inner in open state',
-    description: 'Originally added gap: 8px between main row and open-grid. Snapped instantly instead of animating.',
-    revertCSS: `.draw-comment-bubble--open .draw-comment-bubble-inner { gap: 8px !important; }`,
-    group: 'css',
-  },
-  {
-    id: 'padding-top',
-    label: '10. padding-top: 8px on open-grid-inner',
-    description: 'Replaces the gap with padding inside the grid, so spacing animates with 0fr→1fr. May leak and make collapsed state too tall.',
-    revertCSS: `.draw-comment-open-grid-inner { padding-top: 0px !important; }`,
-    group: 'css',
-  },
-  {
-    id: 'reply-body-widths',
-    label: '11. Fixed reply body widths in open state',
-    description: 'Locks .draw-comment-row-body in open-grid-inner to flex: none; width: 220px to prevent text reflow.',
-    revertCSS: `.draw-comment-bubble--open .draw-comment-open-grid-inner .draw-comment-row-body { flex: 1 !important; width: auto !important; }`,
-    group: 'css',
-  },
-];
-
-function ChangeTogglePanel({ toggles, onChange }: {
-  toggles: Record<string, boolean>;
-  onChange: (id: string, checked: boolean) => void;
-}) {
-  return (
-    <div
-      style={{
-        position: 'fixed', top: 12, right: 12, zIndex: 9999,
-        background: '#1a1a1a', color: '#ccc', borderRadius: 8,
-        padding: '12px 16px', fontSize: 11, fontFamily: 'monospace',
-        maxWidth: 420, maxHeight: 'calc(100vh - 24px)', overflowY: 'auto',
-        border: '1px solid #333', lineHeight: 1.5,
-      }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-        Change toggles — uncheck to revert
-      </div>
-      {CHANGE_TOGGLES.map((t) => (
-        <label key={t.id} style={{ display: 'flex', gap: 8, marginBottom: 6, cursor: 'pointer', alignItems: 'flex-start' }}>
-          <input
-            type="checkbox"
-            checked={toggles[t.id] ?? true}
-            onChange={(e) => onChange(t.id, e.target.checked)}
-            disabled={t.group === 'js'}
-            style={{ marginTop: 2, accentColor: '#4a9' }}
-          />
-          <span style={{ opacity: t.group === 'js' ? 0.4 : 1 }}>
-            <span style={{ color: toggles[t.id] === false ? '#f88' : '#8f8' }}>
-              {toggles[t.id] === false ? '✗' : '✓'}
-            </span>{' '}
-            {t.label}
-            {t.group === 'js' && <span style={{ color: '#666' }}> (JS — not toggleable)</span>}
-          </span>
-        </label>
-      ))}
-      <div style={{ marginTop: 8, borderTop: '1px solid #333', paddingTop: 8, fontSize: 10, color: '#666' }}>
-        Hover description shown on toggle focus. CSS changes inject !important overrides.
-      </div>
-    </div>
-  );
-}
-
 // ─── Layout helpers ──────────────────────────────────────────────────────────
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -371,20 +262,6 @@ export default function CommentStatesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [closeKey, setCloseKey] = useState(0);
   const lastPoint = useRef<Point | null>(null);
-
-  // Change toggle state — all start checked (current/changed state)
-  const [toggles, setToggles] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(CHANGE_TOGGLES.map(t => [t.id, true]))
-  );
-  const handleToggle = useCallback((id: string, checked: boolean) => {
-    setToggles(prev => ({ ...prev, [id]: checked }));
-  }, []);
-
-  // Build CSS override string from unchecked toggles
-  const overrideCSS = CHANGE_TOGGLES
-    .filter(t => toggles[t.id] === false && t.revertCSS)
-    .map(t => t.revertCSS)
-    .join('\n');
 
   // Comment input state
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -435,9 +312,6 @@ export default function CommentStatesPage() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <CommentDialKit />
-      {/* CSS override injection for change toggles */}
-      {overrideCSS && <style dangerouslySetInnerHTML={{ __html: overrideCSS }} />}
-      <ChangeTogglePanel toggles={toggles} onChange={handleToggle} />
       {/* Grid background */}
       <div
         className="absolute inset-0"

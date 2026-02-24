@@ -313,6 +313,7 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-bubble.draw-comment-bubble--animated {
   transition:
     width var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
+    max-height var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
     padding var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
     border-radius var(--comment-hover-duration) ease-out var(--comment-hover-delay),
     transform var(--comment-hover-duration) var(--comment-hover-easing) var(--comment-hover-delay),
@@ -327,6 +328,7 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--open {
   transition:
     width calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
+    max-height calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
     padding calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
     border-radius calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) ease-out,
     transform calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) var(--comment-open-easing),
@@ -341,6 +343,7 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed {
   transition:
     width calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    max-height calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     padding calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     border-radius calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) ease-out,
     transform calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
@@ -355,6 +358,7 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed.draw-comment-bubble--closing-from-preview {
   transition:
     width var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
+    max-height var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
     padding var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
     border-radius var(--comment-unhover-duration) ease-out var(--comment-unhover-delay),
     transform var(--comment-unhover-duration) var(--comment-unhover-easing) var(--comment-unhover-delay),
@@ -369,6 +373,7 @@ html.draw-active *::-moz-range-thumb {
 .draw-comment-bubble.draw-comment-bubble--animated.draw-comment-bubble--collapsed.draw-comment-bubble--closing-from-open {
   transition:
     width calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
+    max-height calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     padding calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
     border-radius calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) ease-out,
     transform calc(var(--comment-close-duration) + var(--comment-extra-dur, 0ms)) var(--comment-close-easing),
@@ -388,6 +393,7 @@ html.draw-active *::-moz-range-thumb {
    No max-height; grid-template-rows: 0fr on text/open grids collapses content. */
 .draw-comment-bubble--collapsed {
   width: 42px;
+  max-height: 42px;
   overflow: hidden;
   transform: scale(var(--comment-close-scale-to));
   filter: blur(var(--comment-close-blur-to));
@@ -590,21 +596,6 @@ html.draw-active *::-moz-range-thumb {
   min-width: 250px;
 }
 
-/* Cap the grid-inner during the 0fr→1fr transition so that 1fr resolves
-   to the visible range (~250px = 282px inner max − 24px min row − 8px gap).
-   Without this, overflow comments resolve 1fr to their full content height
-   (e.g. 400px+), causing the easing curve to play out beyond the bubble's
-   clip — the visible expansion front-loads into a fraction of the animation
-   time, making it look like a snap.  Non-overflow comments (content < 250px)
-   are unaffected.  Removed after the transition via grid-inner-uncap so the
-   full content becomes scrollable. */
-.draw-comment-bubble--open .draw-comment-open-grid-inner {
-  max-height: 250px;
-  animation: grid-inner-uncap 0s calc(var(--comment-open-duration) + var(--comment-extra-dur, 0ms)) forwards;
-}
-@keyframes grid-inner-uncap {
-  to { max-height: none; }
-}
 
 /* Grid transition fade — visible during 0fr→1fr / 1fr→0fr.
    The --open animation fades it out during the last half of the transition.
@@ -857,7 +848,6 @@ html.draw-active *::-moz-range-thumb {
   font-weight: 400;
   letter-spacing: -0.24px;
   color: inherit;
-  border-radius: 0.5rem;
   outline: none;
   resize: none;
   display: block;
@@ -1691,8 +1681,8 @@ html.draw-active *::-moz-range-thumb {
    Wiggle Filter Effects
    ----------------------------------------------------------------------------- */
 .draw-comment-row-icon:not([src*="claude"]):hover,
-.draw-user-icon:hover,
-.draw-stroke-icon:hover {
+.draw-header-icon-btn:hover > .draw-stroke-icon,
+.draw-icon-btn:hover > .draw-stroke-icon {
   filter: url(#wobbleFilterBtn);
 }
 
