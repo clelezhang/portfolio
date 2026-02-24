@@ -515,35 +515,12 @@ export function CommentBubble({
     }
   }, [effectiveVisualState]);
 
-  // Scroll fades + grid height management — direct DOM via useLayoutEffect.
-  //
-  // The CSS 0fr→1fr grid transition resolves 1fr to the item's full content
-  // height.  For overflow comments (content > bubble max-height), the easing
-  // curve plays out beyond the visible clip, making the open animation snap.
-  //
-  // Fix: use explicit pixel values for grid-template-rows so the browser
-  // interpolates only the visible range.  We pin the grid at 0px in the
-  // current frame (useLayoutEffect, before paint), then set the capped
-  // target height in the NEXT frame (requestAnimationFrame).  This two-frame
-  // approach is necessary because the CSS transition system compares values
-  // between rendering frames — a mid-frame forced reflow doesn't reset its
-  // baseline.  After the settle animation, we remove the inline override
-  // so CSS 1fr takes over (enabling scrolling).  On close, if the inline
-  // pixel value is still set (closed before settle), we transition it to
-  // 0px; otherwise CSS handles the native 1fr→0fr transition.
+  // Scroll fades — direct DOM via useLayoutEffect.
   useLayoutEffect(() => {
     const outer = bubbleOuterRef.current;
-    const gridEl = gridRef.current;
     if (!outer) return;
-    let rafId = 0;
 
     if (effectiveVisualState !== 'open') {
-      // If the grid still has an inline pixel value from the open phase
-      // (user closed before settle), transition it to 0px.
-      // If inline was already removed (after settle), CSS handles 1fr→0fr.
-      if (gridEl && gridEl.style.gridTemplateRows) {
-        gridEl.style.gridTemplateRows = '0px';
-      }
       scrollFadeTopRef.current = false;
       scrollFadeBottomRef.current = false;
       outer.classList.remove('draw-comment-scroll-fade-top');
@@ -552,53 +529,30 @@ export function CommentBubble({
     }
 
     const el = bubbleRef.current;
+    const gridEl = gridRef.current;
     if (!el || !gridEl) return;
 
-    // Pin grid at 0px so this frame commits a pixel value as the
-    // transition baseline (the CSS 0fr is a <flex> type and can't
-    // interpolate to a <length>).
-    gridEl.style.gridTemplateRows = '0px';
-
-    // Measure content and compute the capped target height.
+    // Predict overflow so the bottom fade is present from the first frame.
     const gridInnerEl = gridEl.firstElementChild as HTMLElement | null;
     const gridContentHeight = gridInnerEl?.scrollHeight || 0;
     const mainRow = el.querySelector('.draw-comment-row--main') as HTMLElement | null;
     const mainRowHeight = mainRow?.offsetHeight || 0;
-    const gap = 8; // CSS gap on .draw-comment-bubble-inner when open
-    const maxInnerHeight = 282; // calc(300px bubble max-height − 18px border+padding)
-    const maxVisibleGrid = maxInnerHeight - mainRowHeight - gap;
-    const targetGridHeight = Math.min(gridContentHeight, maxVisibleGrid);
-
-    // Set the target on the NEXT rendering frame so the browser can
-    // transition from the committed 0px baseline to the target.
-    rafId = requestAnimationFrame(() => {
-      gridEl.style.gridTemplateRows = `${targetGridHeight}px`;
-    });
-
-    // Predict overflow for bottom scroll fade (present from first frame).
+    const gap = 8;
+    const maxInnerHeight = 282; // calc(300px - 18px)
     const willOverflow = (mainRowHeight + gap + gridContentHeight) > maxInnerHeight;
     scrollFadeBottomRef.current = willOverflow;
     outer.classList.toggle('draw-comment-scroll-fade-bottom', willOverflow);
 
-    // After settle (overflow-y: auto kicks in):
-    // - Remove inline grid height so CSS 1fr takes over (enables scrolling)
-    // - Suppress transition during the switch to avoid a visible jump
-    // - Pin scroll to top and update fades
+    // After settle (overflow-y: auto kicks in), pin scroll to top
+    // and update scroll fades based on actual scroll position.
     const handleAnimationEnd = (e: AnimationEvent) => {
       if (e.animationName === 'comment-settle') {
-        gridEl.style.transition = 'none';
-        gridEl.style.gridTemplateRows = '';  // CSS 1fr takes over
-        void gridEl.offsetHeight;            // commit without transition
-        gridEl.style.transition = '';         // restore CSS transition
         el.scrollTop = 0;
         updateScrollFades();
       }
     };
     el.addEventListener('animationend', handleAnimationEnd);
-    return () => {
-      cancelAnimationFrame(rafId);
-      el.removeEventListener('animationend', handleAnimationEnd);
-    };
+    return () => el.removeEventListener('animationend', handleAnimationEnd);
   }, [effectiveVisualState, updateScrollFades]);
 
   // Scroll to bottom and animate new reply when reply count increases
