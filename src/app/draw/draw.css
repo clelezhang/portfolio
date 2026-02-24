@@ -439,9 +439,12 @@ html.draw-active *::-moz-range-thumb {
 
 /* Reply rows are hidden by open-grid's 0fr + overflow:hidden — no display:none needed */
 
-/* PREVIEW: Text visible, truncated — height is natural (line-clamp bounds it). */
+/* PREVIEW: Text visible, truncated — height is natural (line-clamp bounds it).
+   max-height constrains to preview content range so the bubble smoothly transitions
+   from ~120px → 300px when opening, rather than snapping to 300px instantly. */
 .draw-comment-bubble--preview {
   width: 180px;
+  max-height: 120px;
   overflow: hidden;
   transform: scale(1);
   filter: blur(0px);
