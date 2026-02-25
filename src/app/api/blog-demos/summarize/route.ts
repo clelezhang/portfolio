@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
+      apiKey: process.env.BLOG_API_KEY!,
     });
 
     // Extract bookmarks if preserveBookmarks is true

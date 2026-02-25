@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Default client using env API key
 const defaultClient = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.DRAW_WEB_API_KEY,
 });
 
 // Create client with user's API key or fallback to default

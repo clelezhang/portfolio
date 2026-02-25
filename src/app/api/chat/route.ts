@@ -10,7 +10,7 @@ import { fetchPortfolioPage, getAvailablePages, PortfolioPageId } from '../../li
 export const runtime = 'edge';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.CHAT_API_KEY,
 });
 
 interface Message {
@@ -100,54 +100,64 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Check for rude/toxic content using Claude - warn first, then stop responding
+    // 4. Check for rude/toxic content using Claude - only moderate after first warning to reduce latency
     if (lastUserMessage && lastUserMessage.sender === 'user') {
-      const moderationResponse = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: lastUserMessage.text }],
-        system: `You are a content moderator. Respond with only "RUDE" or "OK".
+      const warningKey = `chat:${visitorId}:warned`;
+      const rudeCountKey = `chat:${visitorId}:rudeCount`;
+      const hasBeenWarned = await kv.get(warningKey);
+
+      if (hasBeenWarned) {
+        // Already warned - now moderate every message
+        const moderationResponse = await anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: lastUserMessage.text }],
+          system: `You are a content moderator. Respond with only "RUDE" or "OK".
 Say "RUDE" if the message is: rude, mean, disrespectful, insulting, harassing, condescending, passive-aggressive, sexually inappropriate, or generally unkind.
 Say "OK" if the message is neutral or friendly, even if it's a bit blunt or direct.
 Only respond with one word.`,
-      });
+        });
 
-      const moderationResult = moderationResponse.content[0];
-      if (moderationResult.type === 'text' && moderationResult.text.trim().toUpperCase() === 'RUDE') {
-        // Check if visitor has already been warned
-        const warningKey = `chat:${visitorId}:warned`;
-        const hasBeenWarned = await kv.get(warningKey);
-
-        if (hasBeenWarned) {
-          // Already warned - return special marker that frontend will hide
+        const moderationResult = moderationResponse.content[0];
+        if (moderationResult.type === 'text' && moderationResult.text.trim().toUpperCase() === 'RUDE') {
           return new Response('__BLOCKED__', {
             headers: {
               ...allHeaders,
               'Content-Type': 'text/plain; charset=utf-8',
             },
           });
-        } else {
-          // First offense - set warning flag and return warning message
-          await kv.set(warningKey, true, { ex: 86400 }); // expires in 24 hours
+        }
+      } else {
+        // Not yet warned - use lightweight keyword check instead of Haiku call
+        const rudePatterns = /\b(fuck|shit|stfu|bitch|ass ?hole|dick|idiot|stupid|dumb|hate you|kill|die|suck|loser|trash|pathetic|worthless|ugly|retard|cunt|slut|whore|cock|bastard|moron|shut up|piss off|screw you|go away)\b/i;
+        if (rudePatterns.test(lastUserMessage.text)) {
+          // Increment rude count
+          const rudeCount = ((await kv.get(rudeCountKey)) as number || 0) + 1;
+          await kv.set(rudeCountKey, rudeCount, { ex: 86400 });
 
-          const warningMessage = "be nice or i'll stop responding.";
-          const warningStream = new ReadableStream({
-            async start(controller) {
-              const encoder = new TextEncoder();
-              for (const char of warningMessage) {
-                await new Promise(resolve => setTimeout(resolve, 15));
-                controller.enqueue(encoder.encode(char));
-              }
-              controller.close();
-            },
-          });
+          if (rudeCount >= 2) {
+            // Set warned flag and send warning
+            await kv.set(warningKey, true, { ex: 86400 });
 
-          return new Response(warningStream, {
-            headers: {
-              ...allHeaders,
-              'Content-Type': 'text/plain; charset=utf-8',
-            },
-          });
+            const warningMessage = "be nice or i'll stop responding.";
+            const warningStream = new ReadableStream({
+              async start(controller) {
+                const encoder = new TextEncoder();
+                for (const char of warningMessage) {
+                  await new Promise(resolve => setTimeout(resolve, 15));
+                  controller.enqueue(encoder.encode(char));
+                }
+                controller.close();
+              },
+            });
+
+            return new Response(warningStream, {
+              headers: {
+                ...allHeaders,
+                'Content-Type': 'text/plain; charset=utf-8',
+              },
+            });
+          }
         }
       }
     }

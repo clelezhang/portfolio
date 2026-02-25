@@ -1,6 +1,43 @@
 // "opus" pill label used on Claude's cursors
 // Drop shadow is handled by CSS filter on the parent wrapper
-export function OpusLabel() {
+// When `text` is provided, renders a dynamic HTML pill with that text instead of the static "opus" SVG
+
+interface OpusLabelProps {
+  text?: string;
+}
+
+export function OpusLabel({ text }: OpusLabelProps = {}) {
+  if (text) {
+    return (
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: 18,
+          padding: '0 7px',
+          borderRadius: 9,
+          background: '#fff',
+          border: '1.2px solid #000',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 0 0 2.5px #fff',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: '#000',
+            lineHeight: 1,
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {text}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <svg width="40" height="20" viewBox="16 2 40 20" fill="none" overflow="visible" xmlns="http://www.w3.org/2000/svg">
       {/* White outline halo — same pattern as cursor icon white strokes */}

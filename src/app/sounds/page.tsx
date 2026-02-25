@@ -445,6 +445,64 @@ gain.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
 osc.start(now); osc.stop(now + 0.012);`,
     },
     {
+      name: 'Tick Sharp Low',
+      desc: 'Low register sharp tick',
+      technique: 'sine 504→420Hz + white noise snap, 10ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        const o = c.createOscillator(); const g = c.createGain();
+        o.connect(g); g.connect(getAnalyser());
+        o.frequency.setValueAtTime(504, now); o.frequency.exponentialRampToValueAtTime(420, now + 0.01);
+        g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+        o.start(now); o.stop(now + 0.014);
+        const buf = createNoiseBuffer(c, 'white', 0.006);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(3500, now);
+        const g2 = c.createGain(); g2.gain.setValueAtTime(0.1, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.006);
+        src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
+      },
+      code: `// Low sharp tick — sine + white noise snap
+const ctx = new AudioContext();
+const now = ctx.currentTime;
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.connect(gain); gain.connect(ctx.destination);
+osc.frequency.setValueAtTime(504, now);
+osc.frequency.exponentialRampToValueAtTime(420, now + 0.01);
+gain.gain.setValueAtTime(0.35, now);
+gain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+osc.start(now); osc.stop(now + 0.014);`,
+    },
+    {
+      name: 'Tick Sharp High',
+      desc: 'High register sharp tick',
+      technique: 'sine 936→780Hz + white noise snap, 6ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        const o = c.createOscillator(); const g = c.createGain();
+        o.connect(g); g.connect(getAnalyser());
+        o.frequency.setValueAtTime(936, now); o.frequency.exponentialRampToValueAtTime(780, now + 0.006);
+        g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
+        o.start(now); o.stop(now + 0.01);
+        const buf = createNoiseBuffer(c, 'white', 0.004);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(6500, now);
+        const g2 = c.createGain(); g2.gain.setValueAtTime(0.1, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.004);
+        src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
+      },
+      code: `// High sharp tick — sine + white noise snap
+const ctx = new AudioContext();
+const now = ctx.currentTime;
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.connect(gain); gain.connect(ctx.destination);
+osc.frequency.setValueAtTime(936, now);
+osc.frequency.exponentialRampToValueAtTime(780, now + 0.006);
+gain.gain.setValueAtTime(0.35, now);
+gain.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
+osc.start(now); osc.stop(now + 0.01);`,
+    },
+    {
       name: 'Tick Low',
       desc: 'Low register tick',
       technique: 'sine, 420Hz, 12ms',
@@ -1874,6 +1932,108 @@ const now = ctx.currentTime;
 });`,
     },
     {
+      name: 'Sparkle Rising',
+      desc: 'Ascending shimmer — hopeful',
+      technique: 'ascending sine cascade, 300ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        [1047, 1318, 1568, 2093].forEach((freq, i) => {
+          const o = c.createOscillator(); o.type = 'sine';
+          const g = c.createGain();
+          o.connect(g); g.connect(getAnalyser());
+          const t = now + i * 0.06;
+          o.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(0.1 + i * 0.02, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          o.start(t); o.stop(t + 0.2);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Ascending bright notes — hopeful lift
+[1047, 1318, 1568, 2093].forEach((freq, i) => {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  const t = now + i * 0.06;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.1 + i * 0.02, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  osc.start(t); osc.stop(t + 0.2);
+});`,
+    },
+    {
+      name: 'Sparkle Slow',
+      desc: 'Dreamy, stretched shimmer',
+      technique: 'sine cascade, wide gaps, 600ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        [2093, 1568, 1318, 1047].forEach((freq, i) => {
+          const o = c.createOscillator(); o.type = 'sine';
+          const g = c.createGain();
+          o.connect(g); g.connect(getAnalyser());
+          const t = now + i * 0.12;
+          o.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(0.1, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          o.start(t); o.stop(t + 0.38);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Dreamy, stretched sparkle
+[2093, 1568, 1318, 1047].forEach((freq, i) => {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  const t = now + i * 0.12;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.1, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  osc.start(t); osc.stop(t + 0.38);
+});`,
+    },
+    {
+      name: 'Sparkle Glass',
+      desc: 'Glassy triangle shimmer',
+      technique: 'triangle cascade, tight + high, 250ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        [2637, 2093, 1760, 1397].forEach((freq, i) => {
+          const o = c.createOscillator(); o.type = 'triangle';
+          const g = c.createGain();
+          o.connect(g); g.connect(getAnalyser());
+          const t = now + i * 0.045;
+          o.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(0.14, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          o.start(t); o.stop(t + 0.16);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Glassy triangle shimmer — tighter, higher
+[2637, 2093, 1760, 1397].forEach((freq, i) => {
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  const t = now + i * 0.045;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.14, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.start(t); osc.stop(t + 0.16);
+});`,
+    },
+    {
       name: 'Hum',
       desc: 'Warm low completion hum',
       technique: 'sine + triangle, slow fade, 500ms',
@@ -2617,6 +2777,87 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
       });
     },
   },
+  'Sparkle Rising': {
+    tunables: [
+      { key: 'wave', label: 'Waveform', type: 'select', options: ['sine', 'triangle', 'square', 'sawtooth'], default: 'sine' },
+      { key: 'freq1', label: 'Note 1', min: 400, max: 2000, step: 50, default: 1047, unit: 'Hz' },
+      { key: 'freq2', label: 'Note 2', min: 600, max: 2500, step: 50, default: 1318, unit: 'Hz' },
+      { key: 'freq3', label: 'Note 3', min: 800, max: 3000, step: 50, default: 1568, unit: 'Hz' },
+      { key: 'freq4', label: 'Note 4', min: 1000, max: 4000, step: 50, default: 2093, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.02, max: 0.15, step: 0.01, default: 0.06, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.02, max: 0.3, step: 0.01, default: 0.1 },
+      { key: 'decay', label: 'Decay', min: 0.05, max: 0.4, step: 0.01, default: 0.18, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [N(p.freq1), N(p.freq2), N(p.freq3), N(p.freq4)].forEach((freq, i) => {
+        const o = c.createOscillator(); o.type = String(p.wave) as OscillatorType;
+        const g = c.createGain();
+        o.connect(g); g.connect(getAnalyser());
+        const t = now + i * gap;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(vol + i * (vol * 0.2), t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o.start(t); o.stop(t + dec + 0.02);
+      });
+    },
+  },
+  'Sparkle Slow': {
+    tunables: [
+      { key: 'wave', label: 'Waveform', type: 'select', options: ['sine', 'triangle', 'square', 'sawtooth'], default: 'sine' },
+      { key: 'freq1', label: 'Note 1', min: 1000, max: 4000, step: 50, default: 2093, unit: 'Hz' },
+      { key: 'freq2', label: 'Note 2', min: 800, max: 3000, step: 50, default: 1568, unit: 'Hz' },
+      { key: 'freq3', label: 'Note 3', min: 600, max: 2500, step: 50, default: 1318, unit: 'Hz' },
+      { key: 'freq4', label: 'Note 4', min: 400, max: 2000, step: 50, default: 1047, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.04, max: 0.25, step: 0.01, default: 0.12, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.02, max: 0.3, step: 0.01, default: 0.1 },
+      { key: 'decay', label: 'Decay', min: 0.1, max: 0.6, step: 0.01, default: 0.35, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [N(p.freq1), N(p.freq2), N(p.freq3), N(p.freq4)].forEach((freq, i) => {
+        const o = c.createOscillator(); o.type = String(p.wave) as OscillatorType;
+        const g = c.createGain();
+        o.connect(g); g.connect(getAnalyser());
+        const t = now + i * gap;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o.start(t); o.stop(t + dec + 0.02);
+      });
+    },
+  },
+  'Sparkle Glass': {
+    tunables: [
+      { key: 'wave', label: 'Waveform', type: 'select', options: ['triangle', 'sine', 'square', 'sawtooth'], default: 'triangle' },
+      { key: 'freq1', label: 'Note 1', min: 1000, max: 5000, step: 50, default: 2637, unit: 'Hz' },
+      { key: 'freq2', label: 'Note 2', min: 1000, max: 4000, step: 50, default: 2093, unit: 'Hz' },
+      { key: 'freq3', label: 'Note 3', min: 800, max: 3500, step: 50, default: 1760, unit: 'Hz' },
+      { key: 'freq4', label: 'Note 4', min: 600, max: 3000, step: 50, default: 1397, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.02, max: 0.12, step: 0.005, default: 0.045, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.02, max: 0.3, step: 0.01, default: 0.14 },
+      { key: 'decay', label: 'Decay', min: 0.05, max: 0.3, step: 0.01, default: 0.14, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [N(p.freq1), N(p.freq2), N(p.freq3), N(p.freq4)].forEach((freq, i) => {
+        const o = c.createOscillator(); o.type = String(p.wave) as OscillatorType;
+        const g = c.createGain();
+        o.connect(g); g.connect(getAnalyser());
+        const t = now + i * gap;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o.start(t); o.stop(t + dec + 0.02);
+      });
+    },
+  },
 
   // --- New textured variations ---
 
@@ -2691,6 +2932,52 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
       const src = c.createBufferSource(); src.buffer = buf;
       const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(5000, now);
       const g2 = c.createGain(); g2.gain.setValueAtTime(N(p.noiseMix), now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
+      src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
+    },
+  },
+  'Tick Sharp Low': {
+    tunables: [
+      { key: 'freqStart', label: 'Freq start', min: 300, max: 800, step: 10, default: 504, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 200, max: 600, step: 10, default: 420, unit: 'Hz' },
+      { key: 'dur', label: 'Duration', min: 0.004, max: 0.025, step: 0.001, default: 0.01, unit: 's' },
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
+      { key: 'noiseMix', label: 'Noise mix', min: 0.03, max: 0.25, step: 0.01, default: 0.1 },
+      { key: 'vol', label: 'Volume', min: 0.1, max: 0.6, step: 0.02, default: 0.35 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const o = c.createOscillator(); const g = c.createGain();
+      o.connect(g); g.connect(getAnalyser());
+      o.frequency.setValueAtTime(N(p.freqStart), now); o.frequency.exponentialRampToValueAtTime(Math.max(N(p.freqEnd), 20), now + N(p.dur));
+      g.gain.setValueAtTime(N(p.vol), now); g.gain.exponentialRampToValueAtTime(0.001, now + N(p.dur) + 0.002);
+      o.start(now); o.stop(now + N(p.dur) + 0.004);
+      const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.006);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(3500, now);
+      const g2 = c.createGain(); g2.gain.setValueAtTime(N(p.noiseMix), now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.006);
+      src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
+    },
+  },
+  'Tick Sharp High': {
+    tunables: [
+      { key: 'freqStart', label: 'Freq start', min: 600, max: 1500, step: 10, default: 936, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 400, max: 1200, step: 10, default: 780, unit: 'Hz' },
+      { key: 'dur', label: 'Duration', min: 0.002, max: 0.015, step: 0.001, default: 0.006, unit: 's' },
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
+      { key: 'noiseMix', label: 'Noise mix', min: 0.03, max: 0.25, step: 0.01, default: 0.1 },
+      { key: 'vol', label: 'Volume', min: 0.1, max: 0.6, step: 0.02, default: 0.35 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const o = c.createOscillator(); const g = c.createGain();
+      o.connect(g); g.connect(getAnalyser());
+      o.frequency.setValueAtTime(N(p.freqStart), now); o.frequency.exponentialRampToValueAtTime(Math.max(N(p.freqEnd), 20), now + N(p.dur));
+      g.gain.setValueAtTime(N(p.vol), now); g.gain.exponentialRampToValueAtTime(0.001, now + N(p.dur) + 0.002);
+      o.start(now); o.stop(now + N(p.dur) + 0.004);
+      const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.004);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(6500, now);
+      const g2 = c.createGain(); g2.gain.setValueAtTime(N(p.noiseMix), now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.004);
       src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
     },
   },
@@ -3400,7 +3687,7 @@ export default function SoundsPlayground() {
 
   type Bucket = { presets: string[]; selected: string | null; volume: number };
   const [buckets, setBuckets] = useState<Record<RoleId, Bucket>>({
-    'button-click': { presets: ['Tick', 'Dip Low', 'Dip', 'Dip High'], selected: 'Tick', volume: 1 },
+    'button-click': { presets: ['Tick', 'Dip Low', 'Dip', 'Dip High', 'Crisp Click', 'Crisp Line', 'Crisp Drop', 'Tick Sharp'], selected: 'Tick', volume: 1 },
     'stroke-thin': { presets: ['Tick High'], selected: 'Tick High', volume: 1 },
     'stroke-medium': { presets: ['Tick'], selected: 'Tick', volume: 1 },
     'stroke-thick': { presets: ['Tick Low'], selected: 'Tick Low', volume: 1 },
@@ -3487,8 +3774,8 @@ export default function SoundsPlayground() {
     'Tones': ['Mark', 'Settle', 'Pop', 'Soft Tap', 'Tick', 'Tick Low', 'Tick High', 'Dip', 'Dip Low', 'Dip High', 'Dip Warm'],
     'Textures': ['Grab', 'Graphite', 'Fold', 'Let Go', 'Erase', 'Grain', 'Release'],
     'Breaths': ['Gust', 'Exhale', 'Exhale Low', 'Exhale High', 'Exhale Tight', 'Breath'],
-    'Compound': ['Reset', 'Land', 'Land Low', 'Land High', 'Land Heavy', 'Land Cushion', 'Success', 'Success Low', 'Success High', 'Bloom', 'Sparkle'],
-    'Misc': ['Closer', 'Away', 'Hum', 'Resolve', 'Tick Airy', 'Tick Sharp'],
+    'Compound': ['Reset', 'Land', 'Land Low', 'Land High', 'Land Heavy', 'Land Cushion', 'Success', 'Success Low', 'Success High', 'Bloom', 'Sparkle', 'Sparkle Rising', 'Sparkle Slow', 'Sparkle Glass'],
+    'Misc': ['Closer', 'Away', 'Hum', 'Resolve', 'Tick Airy', 'Tick Sharp', 'Tick Sharp Low', 'Tick Sharp High'],
     'Set: Warm': ['Warm Tap', 'Warm Stroke', 'Warm Thump', 'Warm Breath', 'Warm Touch', 'Warm Glow'],
     'Set: Crisp': ['Crisp Click', 'Crisp Line', 'Crisp Drop', 'Crisp Wash', 'Crisp Pick', 'Crisp Chime'],
   });

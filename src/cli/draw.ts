@@ -449,7 +449,7 @@ function handleStatusHover(x: number, y: number): boolean {
 // ============================================================
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.DRAW_TERMINAL_API_KEY,
 });
 
 function getSystemPrompt(): string {

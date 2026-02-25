@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.DRAW_TERMINAL_API_KEY,
 });
 
 type DrawMode = 'all' | 'shapes' | 'ascii';

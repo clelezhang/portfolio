@@ -6,7 +6,7 @@ import { generateVisitorId } from '@/app/lib/security';
 import { BLOG_DEMO_RATE_LIMITS } from '@/app/lib/blog-demo-rate-limits';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.BLOG_API_KEY,
 });
 
 // Lazy-load Exa client to avoid build-time errors

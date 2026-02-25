@@ -5,9 +5,10 @@ import { OpusLabel } from './opus-label';
 // Drop shadow is handled by CSS filter on the parent wrapper
 interface ClaudePencilCursorProps {
   color?: string;
+  labelText?: string;
 }
 
-export function ClaudePencilCursor({ color = '#000' }: ClaudePencilCursorProps) {
+export function ClaudePencilCursor({ color = '#000', labelText }: ClaudePencilCursorProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, pointerEvents: 'none' }}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -21,7 +22,7 @@ export function ClaudePencilCursor({ color = '#000' }: ClaudePencilCursorProps) 
         <path d="M19.7845 15.6947L15.9448 19.5353C15.8171 19.663 15.6655 19.7643 15.4987 19.8334C15.3318 19.9025 15.153 19.9381 14.9724 19.9381C14.7918 19.9381 14.613 19.9025 14.4461 19.8334C14.2793 19.7643 14.1277 19.663 14 19.5353L3.40305 8.93746C3.27482 8.81024 3.17315 8.6588 3.10396 8.49194C3.03476 8.32509 2.99943 8.14614 3.00001 7.96551V4.12496C3.00001 3.76029 3.14487 3.41055 3.40274 3.15269C3.6606 2.89482 4.01033 2.74996 4.37501 2.74996H8.21555C8.39619 2.74938 8.57513 2.78472 8.74199 2.85391C8.90885 2.9231 9.06029 3.02477 9.18751 3.15301L19.7845 13.75C19.9122 13.8776 20.0135 14.0292 20.0826 14.1961C20.1517 14.3629 20.1873 14.5417 20.1873 14.7223C20.1873 14.9029 20.1517 15.0818 20.0826 15.2486C20.0135 15.4154 19.9122 15.567 19.7845 15.6947ZM4.65946 8.24996L11.9375 15.528L13.3718 14.0937L6.09376 6.81652L4.65946 8.24996ZM4.37501 6.59051L6.84055 4.12496H4.37501V6.59051ZM8.50001 4.40941L7.06571 5.84371L14.3438 13.1218L15.7781 11.6875L8.50001 4.40941ZM16.75 12.6594L12.9095 16.5L14.972 18.5625L18.8125 14.7228L16.75 12.6594Z" fill="black"/>
       </svg>
       <div style={{ marginLeft: -8, marginTop: -2 }}>
-        <OpusLabel />
+        <OpusLabel text={labelText} />
       </div>
     </div>
   );

@@ -258,6 +258,12 @@ export default function DrawPage() {
   const headerTextTargetRef = useRef("Let's draw together?");
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Typewriter effect for cursor label (loading messages on opus cursor)
+  const [displayedCursorLabel, setDisplayedCursorLabel] = useState('');
+  const cursorLabelTargetRef = useRef('');
+  const cursorLabelTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cursorLabelFrameRef = useRef<number | null>(null);
+
   // Token tracking state
   type TokenUsage = { input_tokens: number; output_tokens: number };
   const [lastUsage, setLastUsage] = useState<TokenUsage | null>(null);
@@ -715,6 +721,68 @@ export default function DrawPage() {
       }
     });
   }, [isLoading, claudeDrawing, loadingMessage]);
+
+  // Cursor label: only Claude-generated custom messages (no fallback presets)
+  // Cycles through claudePreview with typewriter effect, stays "opus" if no custom messages
+  const cursorLabelIndexRef = useRef(0);
+  const cursorLabelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Typewriter a single message into displayedCursorLabel
+  const typewriteCursorLabel = useCallback((text: string) => {
+    if (cursorLabelTimerRef.current) clearTimeout(cursorLabelTimerRef.current);
+    if (cursorLabelFrameRef.current) cancelAnimationFrame(cursorLabelFrameRef.current);
+    cursorLabelTargetRef.current = text;
+    setDisplayedCursorLabel('');
+
+    cursorLabelFrameRef.current = requestAnimationFrame(() => {
+      const words = text.split(' ');
+      let currentWordIndex = 1;
+      setDisplayedCursorLabel(words[0] || '');
+
+      if (words.length > 1) {
+        const showNextWord = () => {
+          currentWordIndex++;
+          setDisplayedCursorLabel(words.slice(0, currentWordIndex).join(' '));
+          if (currentWordIndex < words.length) {
+            cursorLabelTimerRef.current = setTimeout(showNextWord, 40 + Math.random() * 80);
+          }
+        };
+        cursorLabelTimerRef.current = setTimeout(showNextWord, 40 + Math.random() * 80);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const cleanup = () => {
+      if (cursorLabelTimerRef.current) clearTimeout(cursorLabelTimerRef.current);
+      if (cursorLabelFrameRef.current) cancelAnimationFrame(cursorLabelFrameRef.current);
+      if (cursorLabelIntervalRef.current) clearInterval(cursorLabelIntervalRef.current);
+    };
+
+    const hasCustom = claudePreview && claudePreview.length > 0;
+    // Show label while loading OR while cursor is still animating on screen
+    const cursorActive = isLoading || !!claudeCursorPos;
+
+    if (!cursorActive || !hasCustom) {
+      cleanup();
+      setDisplayedCursorLabel('');
+      cursorLabelTargetRef.current = '';
+      cursorLabelIndexRef.current = 0;
+      return;
+    }
+
+    // Start with first custom message
+    cursorLabelIndexRef.current = 0;
+    typewriteCursorLabel(claudePreview[0]);
+
+    // Cycle through custom messages every 2s
+    cursorLabelIntervalRef.current = setInterval(() => {
+      cursorLabelIndexRef.current = (cursorLabelIndexRef.current + 1) % claudePreview!.length;
+      typewriteCursorLabel(claudePreview![cursorLabelIndexRef.current]);
+    }, 2000);
+
+    return cleanup;
+  }, [isLoading, claudePreview, claudeCursorPos, typewriteCursorLabel]);
 
   // Redraw ASCII blocks and shapes
   const redraw = useCallback(() => {
@@ -2444,11 +2512,11 @@ export default function DrawPage() {
                 }}
               >
                 {animatingAscii ? (
-                  <ClaudeAsciiCursor />
+                  <ClaudeAsciiCursor labelText={displayedCursorLabel || undefined} />
                 ) : animatingShape?.shape.type === 'erase' ? (
-                  <ClaudeEraserCursor />
+                  <ClaudeEraserCursor labelText={displayedCursorLabel || undefined} />
                 ) : (
-                  <ClaudePencilCursor color={(() => {
+                  <ClaudePencilCursor labelText={displayedCursorLabel || undefined} color={(() => {
                     const c = animatingShape?.shape.color || animatingShape?.shape.fill;
                     if (c) lastClaudeCursorColor.current = c;
                     return lastClaudeCursorColor.current;
@@ -2526,8 +2594,6 @@ export default function DrawPage() {
                 <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">
                   {thinkingText}
                 </pre>
-              ) : isLoading ? (
-                <p className="text-xs text-gray-400 italic">{loadingMessage}</p>
               ) : (
                 <p className="text-xs text-gray-400 italic">
                   Claude&apos;s reasoning will appear here when drawing.
