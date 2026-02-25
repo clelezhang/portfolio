@@ -262,6 +262,26 @@
   transform: translateY(0);
 }
 
+.preset-card--mapped {
+  border-color: #2d2d5e;
+}
+
+.preset-card--mapped::after {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  right: 2.8rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6366f1;
+  opacity: 0.6;
+}
+
+.preset-card--mapped:hover::after {
+  opacity: 0;
+}
+
 .preset-card .preset-name {
   font-size: 0.85rem;
   font-weight: 500;
@@ -497,19 +517,6 @@
   gap: 0.5rem 1rem;
 }
 
-/* Drawing sound canvas */
-.draw-sound-canvas {
-  width: 100%;
-  height: 180px;
-  display: block;
-  border-radius: 8px;
-  background: #0e0e1a;
-  border: 1px solid #1e1e30;
-  margin-bottom: 1rem;
-  cursor: crosshair;
-  touch-action: none;
-}
-
 /* Full width card */
 .sound-card.full-width {
   grid-column: 1 / -1;
@@ -662,6 +669,56 @@
   color: #f43f5e;
 }
 
+.bucket-chip--mirror {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.bucket-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.bucket-volume input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #2a2a3e;
+  border-radius: 2px;
+  outline: none;
+}
+
+.bucket-volume input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  border: 1.5px solid #0a0a12;
+}
+
+.bucket-volume input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  border: 1.5px solid #0a0a12;
+}
+
+.bucket-volume-label {
+  font-size: 0.6rem;
+  color: #555;
+  font-family: var(--font-geist-mono), monospace;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
 /* Test UI */
 .test-ui-section {
   margin-bottom: 2rem;
@@ -797,4 +854,154 @@
   height: 32px;
   background: #1e1e30;
   flex-shrink: 0;
+}
+
+/* Bucket tunables (parameter editor) */
+.bucket-tunables {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1a1a2a;
+}
+
+.bucket-tunables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.75rem;
+}
+
+.bucket-tunable {
+  margin-bottom: 0.15rem;
+}
+
+.bucket-tunable-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: #666;
+  margin-bottom: 0.1rem;
+}
+
+.bucket-tunable-label span:last-child {
+  color: #6366f1;
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.bucket-tunable input[type="range"] {
+  width: 100%;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #2a2a3e;
+  border-radius: 2px;
+  outline: none;
+}
+
+.bucket-tunable input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  border: 1px solid #0a0a12;
+}
+
+.bucket-tunable input[type="range"]::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  border: 1px solid #0a0a12;
+}
+
+.bucket-tunable--select {
+  grid-column: 1 / -1;
+}
+
+.bucket-tunable-toggles {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.bucket-tunable-toggle {
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid #2a2a3e;
+  background: transparent;
+  color: #666;
+  font-size: 0.55rem;
+  font-family: var(--font-geist-mono), monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bucket-tunable-toggle:hover {
+  border-color: #6366f1;
+  color: #999;
+}
+
+.bucket-tunable-toggle.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.bucket-tunables-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.bucket-tunables-reset,
+.bucket-tunables-play {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #2a2a3e;
+  background: #1a1a2a;
+  color: #888;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.bucket-tunables-reset:hover {
+  border-color: #f43f5e;
+  color: #f43f5e;
+}
+
+.bucket-tunables-play {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.bucket-tunables-play:hover {
+  background: #5558e6;
+}
+
+.bucket-tunables-note {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #1a1a2a;
+  background: #0a0a12;
+  color: #aaa;
+  font-size: 0.6rem;
+  font-family: var(--font-geist-mono), monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.bucket-tunables-note::placeholder {
+  color: #333;
+}
+
+.bucket-tunables-note:focus {
+  border-color: #6366f1;
+  color: #ddd;
 }

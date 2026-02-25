@@ -11,14 +11,17 @@ const term = termkit.terminal;
 
 import Anthropic from '@anthropic-ai/sdk';
 import { execSync } from 'child_process';
+import { writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { PNG } from 'pngjs';
 
-// Detect dark/light terminal — check macOS dark mode, then COLORFGBG env
 function isDarkTerminal(): boolean {
   try {
     execSync('defaults read -g AppleInterfaceStyle', { stdio: 'pipe' });
-    return true; // "Dark" returned = dark mode
+    return true;
   } catch {
-    return false; // command fails = light mode
+    return false;
   }
 }
 
@@ -51,7 +54,8 @@ interface Turn {
 // Config
 // ============================================================
 
-const COLORS = [IS_DARK ? '#FFFFFF' : '#000000', '#0260CB', '#50AF5B', '#F3381A', '#FC6D1A', '#FECC2D'];
+const COLORS = [IS_DARK ? 15 : 0, 220, 202, 9, 70, 27]; // ANSI 256: white/black, yellow, orange, red, green, blue
+const ANSI_NAMES: Record<number, string> = { 0: 'black', 15: 'white', 220: 'yellow', 202: 'orange', 9: 'red', 70: 'green', 27: 'blue' };
 const BRUSHES = ['█', '#', '*'];
 const STATUS_HEIGHT = 1; // rows reserved for status bar
 
@@ -85,14 +89,39 @@ const FALLBACK_LOADING = [
 let claudeLoadingMessages: string[] = [];
 let typewriterTimeout: ReturnType<typeof setTimeout> | null = null;
 let spinnerInterval: ReturnType<typeof setInterval> | null = null;
+let totalCost = 0; // accumulated $ spent
+let showCost = false; // toggled by holding 't'
+let costTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// ============================================================
+// Cost display (upper right, shown while holding 't')
+// ============================================================
+
+function renderCost() {
+  const label = `$${totalCost.toFixed(4)}`;
+  const x = term.width - label.length;
+  term.moveTo(x, 1);
+  if (showCost) {
+    term.gray(label);
+  } else {
+    // Clear it — restore whatever was there (just blank it)
+    term(' '.repeat(label.length));
+  }
+}
 
 // ============================================================
 // Header (top-left Claude message, like the web app)
 // ============================================================
 
 const FACE = '( ◕ ‿ ◕ )';
+const WINK_FACES = [
+  '( ◕ ‿ ~ )', '( ~ ‿ ◕ )', '( ◕ ‸ ◕ )', '( ◕ ω ◕ )',
+];
 const SPINNER_FRAMES = ['( ◐ ‿ ◐ )', '( ◓ ‿ ◓ )', '( ◑ ‿ ◑ )', '( ◒ ‿ ◒ )'];
 let spinnerIndex = 0;
+let isHoveringFace = false;
+let faceHoverInterval: ReturnType<typeof setInterval> | null = null;
+let isClaudeTalking = false; // prevents hover during AI speech
 
 function showFace(text?: string) {
   term.moveTo(2, 1);
@@ -168,6 +197,9 @@ function stopLoadingCycle() {
   if (loadingInterval) { clearInterval(loadingInterval); loadingInterval = null; }
   if (spinnerInterval) { clearInterval(spinnerInterval); spinnerInterval = null; }
   if (typewriterTimeout) { clearTimeout(typewriterTimeout); typewriterTimeout = null; }
+  // Clear the loading text from header
+  term.moveTo(2, 1);
+  term.eraseLine();
 }
 
 // ============================================================
@@ -199,8 +231,10 @@ function renderCell(x: number, y: number) {
   term.moveTo(x + 1, y + 1); // terminal-kit is 1-indexed
   if (cell.char === ' ') {
     term.defaultColor(' ');
-  } else {
+  } else if (cell.color.startsWith('#')) {
     term.colorRgbHex(cell.color, cell.char);
+  } else {
+    term.color256(parseInt(cell.color), cell.char);
   }
 }
 
@@ -213,13 +247,16 @@ function renderCanvas() {
 }
 
 function clearCanvas() {
-  for (let y = 0; y < canvasHeight; y++) {
+  saveSnapshot();
+  for (let y = 1; y < canvasHeight; y++) {
     for (let x = 0; x < canvasWidth; x++) {
       canvas[y][x] = { char: ' ', color: '#FFFFFF', source: 'empty' };
+      renderCell(x, y);
     }
   }
-  renderCanvas();
   renderStatus();
+  claudeMessage = '';
+  showFace("let's draw together?");
 }
 
 function saveSnapshot() {
@@ -233,59 +270,60 @@ function undo() {
   if (!snapshot) return;
   canvas = snapshot;
   renderCanvas();
+  renderStatus();
+  if (claudeMessage) {
+    showFace(claudeMessage);
+  } else {
+    showFace("let's draw together?");
+  }
 }
 
 // ============================================================
-// Canvas → Text Description (for Claude)
+// Canvas → Image (for Claude vision)
 // ============================================================
 
-function canvasToDescription(): string {
-  const lines: string[] = [];
-  const nonEmptyRows: { y: number; segments: string }[] = [];
+// ANSI 256 → RGB mapping for image rendering
+const ANSI_RGB: Record<number, [number, number, number]> = {
+  0: [0, 0, 0], 15: [255, 255, 255],
+  9: [255, 0, 0], 27: [0, 95, 255], 70: [95, 175, 0],
+  202: [255, 95, 0], 220: [255, 215, 0],
+};
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function cellToRgb(cell: Cell): [number, number, number] {
+  if (cell.char === ' ') return IS_DARK ? [30, 30, 30] : [240, 240, 240]; // background
+  if (cell.color.startsWith('#')) return hexToRgb(cell.color);
+  const n = parseInt(cell.color);
+  return ANSI_RGB[n] || [128, 128, 128];
+}
+
+function canvasToImage(): string {
+  const sx = 2; // horizontal scale
+  const sy = 4; // vertical scale (terminal cells are ~2x taller than wide)
+  const w = canvasWidth * sx;
+  const h = canvasHeight * sy;
+  const png = new PNG({ width: w, height: h });
 
   for (let y = 0; y < canvasHeight; y++) {
-    let rowDesc = '';
-    let runStart = -1;
-    let runChar = '';
-    let runColor = '';
-    let runSource = '';
-
-    const flushRun = () => {
-      if (runStart >= 0 && runChar !== ' ') {
-        const src = runSource === 'claude' ? 'C' : 'H';
-        const len = rowDesc ? 1 : 1; // just note position
-        void len;
-        rowDesc += `[${runStart}:${runChar}${runChar.length > 1 ? '' : ''}(${src})] `;
-      }
-    };
-
     for (let x = 0; x < canvasWidth; x++) {
-      const cell = canvas[y][x];
-      if (cell.char !== runChar || cell.color !== runColor || cell.source !== (runSource as Cell['source'])) {
-        flushRun();
-        runStart = x;
-        runChar = cell.char;
-        runColor = cell.color;
-        runSource = cell.source;
+      const [r, g, b] = cellToRgb(canvas[y][x]);
+      for (let dy = 0; dy < sy; dy++) {
+        for (let dx = 0; dx < sx; dx++) {
+          const idx = ((y * sy + dy) * w + (x * sx + dx)) * 4;
+          png.data[idx] = r;
+          png.data[idx + 1] = g;
+          png.data[idx + 2] = b;
+          png.data[idx + 3] = 255;
+        }
       }
     }
-    flushRun();
-
-    if (rowDesc.trim()) {
-      nonEmptyRows.push({ y, segments: rowDesc.trim() });
-    }
   }
 
-  if (nonEmptyRows.length === 0) {
-    return `<terminal-canvas width="${canvasWidth}" height="${canvasHeight}">\nCanvas is empty.\n</terminal-canvas>`;
-  }
-
-  lines.push(`<terminal-canvas width="${canvasWidth}" height="${canvasHeight}">`);
-  for (const row of nonEmptyRows) {
-    lines.push(`  row ${row.y}: ${row.segments}`);
-  }
-  lines.push('</terminal-canvas>');
-  return lines.join('\n');
+  return PNG.sync.write(png).toString('base64');
 }
 
 // ============================================================
@@ -306,17 +344,9 @@ function renderStatus() {
 
   let col = 1; // 1-indexed cursor position
 
-  // Send button
-  const sendText = ' [⏎]send  ';
-  statusHitZones.push({ x1: col, x2: col + sendText.length - 1, action: 'send' });
-  if (hoveredAction === 'send') {
-    term.defaultColor(sendText);
-  } else {
-    term.gray(sendText);
-  }
-  col += sendText.length;
-
   // Color swatches (hover brackets)
+  term(' ');
+  col += 1;
   for (let i = 0; i < COLORS.length; i++) {
     const num = String(i + 1);
     const c = COLORS[i];
@@ -325,16 +355,16 @@ function renderStatus() {
     const selected = i === colorIndex;
     statusHitZones.push({ x1: col, x2: col + 2, action });
     if (selected) {
-      term.colorRgbHex(c, '[');
-      term.colorRgbHex(c, num);
-      term.colorRgbHex(c, ']');
+      term.color256(c, '[');
+      term.color256(c, num);
+      term.color256(c, ']');
     } else if (hovered) {
       term.gray('[');
-      term.colorRgbHex(c, num);
+      term.color256(c, num);
       term.gray(']');
     } else {
       term(' ');
-      term.colorRgbHex(c, num);
+      term.color256(c, num);
       term(' ');
     }
     col += 3;
@@ -350,7 +380,7 @@ function renderStatus() {
   if (hoveredAction === 'brush') {
     term.defaultColor(brushFull);
   } else {
-    term.colorRgbHex(color, brush);
+    term.color256(color, brush);
     term.gray(' [b]rush');
   }
   col += brushFull.length;
@@ -365,8 +395,26 @@ function renderStatus() {
   }
   col += clearText.length;
 
-  // Quit (not clickable)
-  term.gray('  [ctrl c]quit');
+  // Quit
+  const quitText = '  [ctrl c]quit';
+  statusHitZones.push({ x1: col, x2: col + quitText.length - 1, action: 'quit' });
+  if (hoveredAction === 'quit') {
+    term.defaultColor(quitText);
+  } else {
+    term.gray(quitText);
+  }
+  col += quitText.length;
+
+  // Send button — right-aligned
+  const sendText = '[⏎]send ';
+  const sendX = term.width - sendText.length + 1;
+  term.moveTo(sendX, statusY);
+  statusHitZones.push({ x1: sendX, x2: term.width, action: 'send' });
+  if (hoveredAction === 'send') {
+    term.defaultColor(sendText);
+  } else {
+    term.gray(sendText);
+  }
 }
 
 // Handle clicks on the status bar
@@ -422,7 +470,8 @@ Blocks (ASCII/text):
 </drawing-reference>
 
 <colors>
-Palette: #000000 black, #0260CB blue, #50AF5B green, #F3381A red, #FC6D1A orange, #FECC2D yellow
+Human palette: yellow, orange, red, green, blue (shown in canvas description)
+Your palette: use any hex colors. e.g. #FFD700 #FF5F00 #FF0000 #5FAF00 #005FFF #000000 #FFFFFF #FF69B4 #8B5CF6
 Use colors that complement what's already on canvas.
 </colors>
 
@@ -447,15 +496,12 @@ ${interactionGuide}
 </interaction>
 
 <output-format>
-Output a single JSON object (no markdown, no backticks):
+Output a single JSON object (no markdown, no backticks) with ALL these fields:
 {
-  "drawing": "short summary with ASCII art",
+  "drawing": "short summary with ASCII/unicode art (see <style>)",
   "interactionStyle": "collaborative" or "playful",
-  "blocks": [
-    { "block": "★", "x": 10, "y": 5, "color": "#EAB308" },
-    { "block": "~~~", "x": 5, "y": 20, "color": "#3B82F6" }
-  ],
-  "loadingMessages": ["5 short whimsical messages with ASCII/unicode art (see <style>). vary wildly."]
+  "blocks": [...],
+  "loadingMessages": ["5 short messages about what you see on the canvas / what you're about to draw / reacting to the human's art. with ASCII/unicode art (see <style>). vary wildly."]
 }
 </output-format>`;
 }
@@ -466,7 +512,7 @@ async function claudeTurn() {
   renderStatus();
   startLoadingCycle();
 
-  const canvasDesc = canvasToDescription();
+  const imageBase64 = canvasToImage();
 
   // Build history context — last 3 Claude turns only (token efficiency)
   let historyText = '';
@@ -480,12 +526,23 @@ async function claudeTurn() {
     }).join('\n') + '\n</history>';
   }
 
-  const userMessage = `Here's the current terminal canvas state:
+  // Build raw ASCII grid of non-empty rows
+  const gridLines: string[] = [];
+  for (let y = 0; y < canvasHeight; y++) {
+    let row = '';
+    let hasContent = false;
+    for (let x = 0; x < canvasWidth; x++) {
+      const ch = canvas[y][x].char;
+      row += ch;
+      if (ch !== ' ') hasContent = true;
+    }
+    if (hasContent) {
+      gridLines.push(`Row ${y}: "${row.trimEnd()}"`);
+    }
+  }
+  const asciiGrid = gridLines.length > 0 ? gridLines.join('\n') : 'Canvas is empty.';
 
-${canvasDesc}
-${historyText}
-
-It's your turn to draw! Add something creative to the canvas. Remember: output ONLY valid JSON.`;
+  const textContext = `Canvas: ${canvasWidth} columns × ${canvasHeight} rows. (0,0) is top-left. Image shows colors/positions. ASCII grid below shows exact characters:\n\n${asciiGrid}${historyText}\n\nYour turn — add something creative. Output ONLY valid JSON.`;
 
   saveSnapshot();
 
@@ -495,8 +552,17 @@ It's your turn to draw! Add something creative to the canvas. Remember: output O
       max_tokens: 1024,
       temperature: turnCount <= 3 ? 1.0 : 0.7,
       system: getSystemPrompt(),
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageBase64 } },
+        { type: 'text', text: textContext },
+      ] }],
     });
+
+    // Track cost (Sonnet pricing: $3/M input, $15/M output)
+    if (response.usage) {
+      totalCost += (response.usage.input_tokens / 1_000_000) * 3;
+      totalCost += (response.usage.output_tokens / 1_000_000) * 15;
+    }
 
     // Parse response
     const text = response.content
@@ -554,6 +620,44 @@ It's your turn to draw! Add something creative to the canvas. Remember: output O
 }
 
 // ============================================================
+// Claude Speak (click on face)
+// ============================================================
+
+async function claudeSpeak() {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 60,
+      temperature: 1.0,
+      system: `You're ( ◕ ‿ ◕ ) — the face in a collaborative terminal drawing app called "draw with claude". Someone clicked on you. Say ONE short sentence (max 12 words). Be playful or helpful. No ASCII art, no emojis. You know how the app works:
+- draw on canvas with mouse (click + drag)
+- press enter or click send to send your drawing to claude
+- keys 1-6 change color, b changes brush, c clears canvas
+- ctrl+z undoes, ctrl+c quits
+- claude draws back after you send
+- hold t to see money spent
+Mix between: helpful tips, playful remarks, commenting on the art, or being cheeky about being clicked.
+Examples: "try drawing something and press enter!" | "hey, draw with me?" | "you know you can change colors with 1-6 right?" | "click send when you're ready" | "why are you clicking me, go draw" | "i promise i'll draw something cool back"`,
+      messages: [{ role: 'user', content: `clicked (turn ${turnCount}, canvas ${canvasHeight > 0 && canvas.some(r => r.some(c => c.char !== ' ')) ? 'has drawing' : 'is empty'})` }],
+    });
+    const text = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+    if (response.usage) {
+      totalCost += (response.usage.input_tokens / 1_000_000) * 0.25;
+      totalCost += (response.usage.output_tokens / 1_000_000) * 1.25;
+    }
+    claudeMessage = text.toLowerCase().replace(/^["']|["']$/g, '');
+    typewriteHeader(claudeMessage);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    showFace(`oops: ${msg.slice(0, 40)}`);
+  }
+  isClaudeTalking = false;
+}
+
+// ============================================================
 // Input Handling
 // ============================================================
 
@@ -561,14 +665,14 @@ function drawAt(x: number, y: number) {
   // Convert from 1-indexed terminal coords to 0-indexed canvas coords
   const cx = x - 1;
   const cy = y - 1;
-  if (cy >= canvasHeight) return; // don't draw on status bar
+  if (cy <= 0 || cy >= canvasHeight) return; // don't draw on header or status bar
 
   // Dismiss splash on first draw (but not if loading — header stays)
   if (splashVisible && !isClaudeTurn) {
     splashVisible = false;
   }
 
-  setCell(cx, cy, BRUSHES[brushIndex], COLORS[colorIndex], 'human');
+  setCell(cx, cy, BRUSHES[brushIndex], String(COLORS[colorIndex]), 'human');
   renderCell(cx, cy);
 }
 
@@ -611,14 +715,34 @@ function setupInput() {
 
   term.on('resize', handleResize);
 
+  const faceLen = FACE.length + 2;
+
   term.on('mouse', (name: string, data: { x: number; y: number }) => {
-    // Always allow hover on status bar
+    // Hover handling (status bar + face)
     if (name === 'MOUSE_MOTION' && !isDrawing) {
       handleStatusHover(data.x, data.y);
+      const onFace = data.y === 1 && data.x >= 2 && data.x <= faceLen && !isClaudeTurn && !isClaudeTalking;
+      if (onFace && !isHoveringFace) {
+        isHoveringFace = true;
+        const f = WINK_FACES[Math.floor(Math.random() * WINK_FACES.length)];
+        term.moveTo(2, 1);
+        term.defaultColor(f);
+      } else if (!onFace && isHoveringFace) {
+        isHoveringFace = false;
+        showFace(claudeMessage || "let's draw together?");
+      }
       return;
     }
 
     if (name === 'MOUSE_LEFT_BUTTON_PRESSED') {
+      // Click on header (face + message) — Claude talks
+      if (data.y === 1 && !isClaudeTurn && !isClaudeTalking) {
+        isClaudeTalking = true;
+        if (faceHoverInterval) { clearInterval(faceHoverInterval); faceHoverInterval = null; }
+        isHoveringFace = false;
+        claudeSpeak();
+        return;
+      }
       // Check if click is on status bar
       if (data.y === canvasHeight + 1) {
         const action = handleStatusClick(data.x);
@@ -637,6 +761,12 @@ function setupInput() {
           history = [];
           turnCount = 0;
           renderStatus();
+        } else if (action === 'quit') {
+          term.grabInput(false);
+          term.fullscreen(false);
+          term.clear();
+          term('thanks for visiting :)!');
+          process.exit(0);
         }
         return;
       }
@@ -676,16 +806,24 @@ function setupInput() {
       process.exit(0);
     }
 
-    // Number keys 1-7 for colors
-    const num = parseInt(name);
-    if (num >= 1 && num <= 6) {
-      colorIndex = num - 1;
+    // Flash a status bar button black briefly
+    const flash = (action: string, ms = 120) => {
+      hoveredAction = action;
       renderStatus();
+      setTimeout(() => { hoveredAction = null; renderStatus(); }, ms);
+    };
+
+    // Number keys 1-5 for colors
+    const num = parseInt(name);
+    if (num >= 1 && num <= COLORS.length) {
+      colorIndex = num - 1;
+      flash(`color:${num - 1}`);
       return;
     }
 
     switch (name) {
       case 'ENTER':
+        flash('send');
         // Record human turn and send to Claude
         history.push({ who: 'human' });
         turnCount++;
@@ -693,17 +831,49 @@ function setupInput() {
         break;
       case 'b':
         brushIndex = (brushIndex + 1) % BRUSHES.length;
-        renderStatus();
+        flash('brush');
         break;
       case 'c':
+        flash('clear');
         clearCanvas();
         history = [];
         turnCount = 0;
-        renderStatus();
         break;
       case 'CTRL_Z':
         undo();
         break;
+      case 't':
+        if (!showCost) {
+          showCost = true;
+          renderCost();
+        }
+        if (costTimeout) clearTimeout(costTimeout);
+        costTimeout = setTimeout(() => { showCost = false; renderCost(); }, 500);
+        break;
+      case 'd': {
+        // Debug: save what Claude sees to tmp files and open
+        const imgPath = join(tmpdir(), 'claude-sees.png');
+        const txtPath = join(tmpdir(), 'claude-sees.txt');
+        const imgB64 = canvasToImage();
+        writeFileSync(imgPath, Buffer.from(imgB64, 'base64'));
+        // Build the same text Claude gets
+        const gridLines: string[] = [];
+        for (let y = 0; y < canvasHeight; y++) {
+          let row = '';
+          let has = false;
+          for (let x = 0; x < canvasWidth; x++) {
+            const ch = canvas[y][x].char;
+            row += ch;
+            if (ch !== ' ') has = true;
+          }
+          if (has) gridLines.push(`Row ${y}: "${row.trimEnd()}"`);
+        }
+        writeFileSync(txtPath, gridLines.join('\n') || 'Canvas is empty.');
+        try { execSync(`open "${imgPath}"`); } catch { /* ignore */ }
+        try { execSync(`open "${txtPath}"`); } catch { /* ignore */ }
+        showFace('debug: saved to ' + imgPath);
+        break;
+      }
     }
   });
 }

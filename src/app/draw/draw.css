@@ -227,26 +227,28 @@ button img {
 /* Hide native cursor everywhere on the draw page.
    Uses html.draw-active (set via useEffect) instead of :has() —
    :has() is re-evaluated on every cursor move which causes flicker in Arc.
+   Uses --draw-cursor custom property so JS can swap in a matching CSS cursor image.
+   This works around a Chrome compositor bug that ignores cursor:none in the top ~35px.
    IMPORTANT: Vendor-prefixed pseudo-elements MUST be in separate rules. */
 html.draw-active,
 html.draw-active *,
 html.draw-active *::before,
 html.draw-active *::after {
-  cursor: none !important;
+  cursor: var(--draw-cursor, none) !important;
 }
 
 /* Webkit slider thumbs + scrollbars (Chrome, Safari, Edge) */
 html.draw-active *::-webkit-slider-thumb {
-  cursor: none !important;
+  cursor: var(--draw-cursor, none) !important;
 }
 html.draw-active *::-webkit-scrollbar,
 html.draw-active *::-webkit-scrollbar-thumb {
-  cursor: none !important;
+  cursor: var(--draw-cursor, none) !important;
 }
 
 /* Mozilla slider thumbs (Firefox) */
 html.draw-active *::-moz-range-thumb {
-  cursor: none !important;
+  cursor: var(--draw-cursor, none) !important;
 }
 
 /* Prevent selecting SVGs/icons on draw page and comment components */
