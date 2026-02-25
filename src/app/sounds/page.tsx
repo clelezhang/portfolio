@@ -1355,6 +1355,88 @@ export default function SoundsPlayground() {
     });
   }, []);
 
+  // Sound buckets — drag presets in, pick one as the "go-to"
+  const SOUND_ROLES = [
+    { id: 'button-click', label: 'Button Click', desc: 'Tool switches, keyboard shortcuts' },
+    { id: 'stroke-thin', label: 'Stroke Thin', desc: 'Thin brush size' },
+    { id: 'stroke-medium', label: 'Stroke Medium', desc: 'Medium brush size' },
+    { id: 'stroke-thick', label: 'Stroke Thick', desc: 'Thick brush size' },
+    { id: 'clear-canvas', label: 'Clear Canvas', desc: 'Wipe the board' },
+    { id: 'palette-dice', label: 'Palette Dice', desc: 'Color palette roll' },
+    { id: 'color-swatch', label: 'Color Swatch', desc: 'Pick a color' },
+    { id: 'claude-done', label: 'Claude Done', desc: 'Claude finishes drawing' },
+  ] as const;
+  type RoleId = typeof SOUND_ROLES[number]['id'];
+
+  const [buckets, setBuckets] = useState<Record<RoleId, { presets: string[]; selected: string | null }>>(() => {
+    const init = {} as Record<RoleId, { presets: string[]; selected: string | null }>;
+    for (const r of SOUND_ROLES) init[r.id] = { presets: [], selected: null };
+    return init;
+  });
+
+  // Drag state (shared by preset grid and buckets)
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOverCat, setDragOverCat] = useState<string | null>(null);
+  const [dragOverBucket, setDragOverBucket] = useState<RoleId | null>(null);
+
+  const handleBucketDragOver = useCallback((e: React.DragEvent, roleId: RoleId) => {
+    e.preventDefault();
+    setDragOverBucket(roleId);
+  }, []);
+
+  const handleBucketDrop = useCallback((roleId: RoleId) => {
+    if (!dragging) return;
+    setBuckets(prev => {
+      const next = { ...prev };
+      // Remove from any bucket it's already in
+      for (const key of Object.keys(next) as RoleId[]) {
+        if (next[key].presets.includes(dragging)) {
+          next[key] = {
+            ...next[key],
+            presets: next[key].presets.filter(n => n !== dragging),
+            selected: next[key].selected === dragging ? null : next[key].selected,
+          };
+        }
+      }
+      // Add to target bucket
+      if (!next[roleId].presets.includes(dragging)) {
+        const newPresets = [...next[roleId].presets, dragging];
+        next[roleId] = {
+          presets: newPresets,
+          selected: next[roleId].selected ?? dragging, // auto-select first
+        };
+      }
+      return next;
+    });
+    setDragging(null);
+    setDragOverBucket(null);
+  }, [dragging]);
+
+  const handleBucketDragLeave = useCallback(() => {
+    setDragOverBucket(null);
+  }, []);
+
+  const setBucketSelected = useCallback((roleId: RoleId, presetName: string) => {
+    setBuckets(prev => ({
+      ...prev,
+      [roleId]: { ...prev[roleId], selected: presetName },
+    }));
+  }, []);
+
+  const removeBucketPreset = useCallback((roleId: RoleId, presetName: string) => {
+    setBuckets(prev => {
+      const bucket = prev[roleId];
+      const newPresets = bucket.presets.filter(n => n !== presetName);
+      return {
+        ...prev,
+        [roleId]: {
+          presets: newPresets,
+          selected: bucket.selected === presetName ? (newPresets[0] ?? null) : bucket.selected,
+        },
+      };
+    });
+  }, []);
+
   // Mutable category layout: category name → array of preset names
   const [layout, setLayout] = useState<Record<string, string[]>>(() => {
     const init: Record<string, string[]> = {};
@@ -1367,10 +1449,6 @@ export default function SoundsPlayground() {
   // Comments per preset
   const [comments, setComments] = useState<Record<string, string>>({});
 
-  // Drag state
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [dragOverCat, setDragOverCat] = useState<string | null>(null);
-
   // Flat lookup map for preset data
   const presetByName = useMemo(() => {
     const map = new Map<string, Preset>();
@@ -1379,6 +1457,14 @@ export default function SoundsPlayground() {
     }
     return map;
   }, []);
+
+  // Play the go-to sound for a role
+  const playRoleSound = useCallback((roleId: RoleId) => {
+    const bucket = buckets[roleId];
+    if (!bucket.selected) return;
+    const p = presetByName.get(bucket.selected);
+    if (p) p.play();
+  }, [buckets, presetByName]);
 
   // Visualizer
   useEffect(() => {
@@ -2252,6 +2338,125 @@ export default function SoundsPlayground() {
                 <span>{drawGrainMaxInterval} ms</span>
               </div>
               <input type="range" min={20} max={200} step={5} value={drawGrainMaxInterval} onChange={(e) => setDrawGrainMaxInterval(+e.target.value)} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sound Role Buckets */}
+      <div className="buckets-section">
+        <h2>Sound Mapping</h2>
+        <p className="section-desc">Drag presets from below into each role. Click a chip to set it as the go-to sound.</p>
+
+        <div className="buckets-grid">
+          {SOUND_ROLES.map((role) => {
+            const bucket = buckets[role.id];
+            return (
+              <div
+                key={role.id}
+                className={`bucket-card${dragOverBucket === role.id ? ' bucket-card--drag-over' : ''}${bucket.selected ? ' bucket-card--has-selected' : ''}`}
+                onDragOver={(e) => handleBucketDragOver(e, role.id)}
+                onDragLeave={handleBucketDragLeave}
+                onDrop={() => handleBucketDrop(role.id)}
+              >
+                <div className="bucket-header">
+                  <span className="bucket-label">{role.label}</span>
+                  <span className="bucket-desc">{role.desc}</span>
+                </div>
+                <div className="bucket-chips">
+                  {bucket.presets.length === 0 && (
+                    <span className="bucket-empty">drag sounds here</span>
+                  )}
+                  {bucket.presets.map((name) => (
+                    <button
+                      key={name}
+                      className={`bucket-chip${bucket.selected === name ? ' bucket-chip--selected' : ''}`}
+                      onClick={() => {
+                        setBucketSelected(role.id, name);
+                        const p = presetByName.get(name);
+                        if (p) p.play();
+                      }}
+                    >
+                      {name}
+                      <span
+                        className="bucket-chip-remove"
+                        onClick={(e) => { e.stopPropagation(); removeBucketPreset(role.id, name); }}
+                      >
+                        &times;
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Test UI — mini toolbar mockup */}
+      <div className="test-ui-section">
+        <h2>Test UI</h2>
+        <p className="section-desc">Try the mapped sounds in a toolbar mockup.</p>
+
+        <div className="test-toolbar">
+          <div className="test-group">
+            <span className="test-group-label">Tools</span>
+            <div className="test-buttons">
+              {['Pencil', 'ASCII', 'Eraser', 'Comment'].map((t) => (
+                <button key={t} className="test-btn" onClick={() => playRoleSound('button-click')}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="test-divider" />
+
+          <div className="test-group">
+            <span className="test-group-label">Size</span>
+            <div className="test-buttons">
+              <button className="test-btn test-btn--size" onClick={() => playRoleSound('stroke-thin')}>
+                <span className="test-stroke test-stroke--thin" />
+              </button>
+              <button className="test-btn test-btn--size" onClick={() => playRoleSound('stroke-medium')}>
+                <span className="test-stroke test-stroke--medium" />
+              </button>
+              <button className="test-btn test-btn--size" onClick={() => playRoleSound('stroke-thick')}>
+                <span className="test-stroke test-stroke--thick" />
+              </button>
+            </div>
+          </div>
+
+          <div className="test-divider" />
+
+          <div className="test-group">
+            <span className="test-group-label">Colors</span>
+            <div className="test-buttons">
+              {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'].map((c) => (
+                <button
+                  key={c}
+                  className="test-btn test-btn--color"
+                  style={{ background: c }}
+                  onClick={() => playRoleSound('color-swatch')}
+                />
+              ))}
+              <button className="test-btn" onClick={() => playRoleSound('palette-dice')}>
+                Dice
+              </button>
+            </div>
+          </div>
+
+          <div className="test-divider" />
+
+          <div className="test-group">
+            <span className="test-group-label">Actions</span>
+            <div className="test-buttons">
+              <button className="test-btn test-btn--danger" onClick={() => playRoleSound('clear-canvas')}>
+                Clear
+              </button>
+              <button className="test-btn test-btn--accent" onClick={() => playRoleSound('claude-done')}>
+                Claude Done
+              </button>
             </div>
           </div>
         </div>

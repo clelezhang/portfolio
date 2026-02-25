@@ -100,6 +100,7 @@ export default function DrawPage() {
     return () => document.documentElement.classList.remove('draw-active');
   }, []);
 
+
   // Auth state
   const { user } = useUser();
   const { saveDrawing: saveToCloud } = useDrawings();
@@ -791,9 +792,10 @@ export default function DrawPage() {
       // Always track the path (needed for API to know where user drew)
       setCurrentStroke({
         d: `M ${point.x} ${point.y}`,
-        color: tool === 'erase' ? '#ffffff' : strokeColor,
+        color: tool === 'erase' ? '#000000' : strokeColor,
         strokeWidth: tool === 'erase' ? strokeSize * 5 : strokeSize,
         isAsciiBacking: asciiStroke, // Mark ASCII backing strokes so we don't render them
+        isEraser: tool === 'erase',
       });
     }
   };
@@ -1701,6 +1703,21 @@ export default function DrawPage() {
     imageDragOffset.current = null;
   }, []);
 
+  // Pre-compute eraser mask levels for order-respecting erasure
+  // Each non-eraser element is only erased by erasers that come AFTER it in temporal order
+  const eraserStrokesForMask: { id: string; data: HumanStroke }[] = [];
+  const elementMaskLevel = new Map<string, number>();
+  for (const el of drawingElements) {
+    if (el.type === 'stroke' && (el.data as HumanStroke).isEraser) {
+      eraserStrokesForMask.push({ id: el.id, data: el.data as HumanStroke });
+    } else {
+      elementMaskLevel.set(el.id, eraserStrokesForMask.length);
+    }
+  }
+  const totalErasers = eraserStrokesForMask.length;
+  const hasActiveEraser = !!currentStroke?.isEraser;
+  const needsEraserMasks = totalErasers > 0 || hasActiveEraser;
+
   return (
     <BaseUIProvider>
     <div
@@ -2014,16 +2031,38 @@ export default function DrawPage() {
                   height: '100%',
                 }}
               >
+              {/* Eraser masks: level-based so each element is only erased by later erasers */}
+              {needsEraserMasks && (
+                <defs>
+                  {Array.from({ length: (hasActiveEraser ? totalErasers + 1 : totalErasers) }, (_, level) => (
+                    <mask key={level} id={`eraser-mask-${level}`} maskUnits="userSpaceOnUse" x="-10000" y="-10000" width="20000" height="20000">
+                      <rect x="-10000" y="-10000" width="20000" height="20000" fill="white" />
+                      {eraserStrokesForMask.slice(level).map(({ id, data: s }) => (
+                        <path key={id} d={s.d} stroke="black" strokeWidth={s.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      ))}
+                      {hasActiveEraser && (
+                        <path d={currentStroke!.d} stroke="black" strokeWidth={currentStroke!.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      )}
+                    </mask>
+                  ))}
+                </defs>
+              )}
               {/* Sort: back-layer shapes first, then rest in order */}
               {[...drawingElements].sort((a, b) => {
                 const aBack = a.type === 'shape' && (a.data as Shape).layer === 'back' ? 0 : 1;
                 const bBack = b.type === 'shape' && (b.data as Shape).layer === 'back' ? 0 : 1;
                 return aBack - bBack;
               }).map((element) => {
+                // Compute per-element eraser mask based on temporal order
+                const level = elementMaskLevel.get(element.id) ?? totalErasers;
+                const maxLevel = totalErasers + (hasActiveEraser ? 1 : 0);
+                const eraserMask = needsEraserMasks && level < maxLevel
+                  ? `url(#eraser-mask-${level})` : undefined;
+
                 if (element.type === 'stroke') {
                   const stroke = element.data as HumanStroke;
-                  // Don't render ASCII backing strokes - they're just for API data
-                  if (stroke.isAsciiBacking) return null;
+                  // Don't render ASCII backing strokes or eraser strokes (erasers are in the mask)
+                  if (stroke.isAsciiBacking || stroke.isEraser) return null;
                   return (
                     <path
                       key={element.id}
@@ -2034,6 +2073,7 @@ export default function DrawPage() {
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      mask={eraserMask}
                       filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilterStroke)' : undefined}
                     />
                   );
@@ -2053,6 +2093,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2072,6 +2113,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2092,6 +2134,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2112,6 +2155,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2130,6 +2174,7 @@ export default function DrawPage() {
                       strokeLinecap={shape.strokeLinecap || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2148,6 +2193,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2175,6 +2221,7 @@ export default function DrawPage() {
                       strokeLinejoin={shape.strokeLinejoin || 'round'}
                       opacity={shape.opacity}
                       transform={shape.transform}
+                      mask={eraserMask}
                       filter={safariStrokeFilter}
                     />
                   );
@@ -2230,7 +2277,7 @@ export default function DrawPage() {
                 }
                 return null;
               })()}
-              {currentStroke && !currentStroke.isAsciiBacking && (
+              {currentStroke && !currentStroke.isAsciiBacking && !currentStroke.isEraser && (
                 <path
                   d={currentStroke.d}
                   stroke={currentStroke.color}
@@ -2251,6 +2298,7 @@ export default function DrawPage() {
                   fontFamily="monospace"
                   fontSize={charData.fontSize}
                   className="draw-stroke"
+                  mask={needsEraserMasks ? 'url(#eraser-mask-0)' : undefined}
                   filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilter)' : undefined}
                 >
                   {charData.char}
@@ -2266,6 +2314,7 @@ export default function DrawPage() {
                   fontFamily="monospace"
                   fontSize={16}
                   className="draw-stroke"
+                  mask={needsEraserMasks ? 'url(#eraser-mask-0)' : undefined}
                   filter={isSafari && distortionAmount > 0 ? 'url(#wobbleFilter)' : undefined}
                 >
                   {block.block.split('\n').map((line, lineIdx) => (
@@ -2419,6 +2468,7 @@ export default function DrawPage() {
         )}
 
       </div>
+
 
       {/* Settings panel */}
       {showSettings && (

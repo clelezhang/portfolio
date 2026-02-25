@@ -76,6 +76,7 @@ export interface HumanStroke {
   color: string;
   strokeWidth: number;
   isAsciiBacking?: boolean; // True if this stroke is just for API data (ASCII brush), don't render
+  isEraser?: boolean; // True if this is an eraser stroke (rendered via mask, not white paint)
 }
 
 export interface HumanAsciiChar {

@@ -88,6 +88,13 @@
   --comment-stream-speed: 30;
 }
 
+/* Prevent SVGs and images inside buttons from being draggable */
+button svg,
+button img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 /* -----------------------------------------------------------------------------
    Page Layout
    ----------------------------------------------------------------------------- */
@@ -1432,11 +1439,12 @@ html.draw-active *::-moz-range-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: background-color 0.2s;
 }
 
-.draw-icon-btn:active {
+.draw-icon-btn:active > * {
   transform: scale(0.95);
+  transition: transform 0.1s;
 }
 
 .draw-icon-btn:hover {
@@ -1464,11 +1472,12 @@ html.draw-active *::-moz-range-thumb {
   justify-content: center;
   width: var(--draw-icon-size);
   height: var(--draw-icon-size);
-  transition: all 0.2s, transform 0.1s;
+  transition: all 0.2s;
 }
 
-.draw-toolbar-comment-btn:active {
+.draw-toolbar-comment-btn:active > * {
   transform: scale(0.95);
+  transition: transform 0.1s;
 }
 
 .draw-toolbar-comment-btn:hover img {
@@ -1487,11 +1496,12 @@ html.draw-active *::-moz-range-thumb {
   border-radius: 0.5rem;
   /* cursor hidden globally by .draw-page cursor:none rule */
   color: var(--draw-text-primary);
-  transition: all 0.2s, transform 0.1s;
+  transition: background-color 0.2s;
 }
 
-.draw-header-icon-btn:active {
+.draw-header-icon-btn:active > * {
   transform: scale(0.95);
+  transition: transform 0.1s;
 }
 
 .draw-header-icon-btn:hover {
@@ -1948,15 +1958,16 @@ html.draw-active *::-moz-range-thumb {
   background-color: transparent;
   overflow: visible;
   border-radius: 0 8px 8px 0;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: background-color 0.2s;
 }
 
 .draw-color-btn--dice:hover {
   background-color: var(--draw-hover-bg);
 }
 
-.draw-color-btn--dice:active {
+.draw-color-btn--dice:active > * {
   transform: scale(0.95);
+  transition: transform 0.1s;
 }
 
 .toolbar-dice-cube-container {
@@ -3147,12 +3158,12 @@ html.draw-active *::-moz-range-thumb {
   justify-content: center;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s;
   overflow: hidden;
 }
 
-.mobile-toolbar-style:active {
+.mobile-toolbar-style:active > * {
   transform: scale(0.93);
+  transition: transform 0.1s;
 }
 
 .mobile-toolbar-style-color {
@@ -3191,13 +3202,13 @@ html.draw-active *::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s;
   padding: 0;
   overflow: hidden;
 }
 
-.mobile-dice-btn:active {
+.mobile-dice-btn:active > * {
   transform: scale(0.93);
+  transition: transform 0.1s;
 }
 
 /* Floating color strip — rounded all sides */
@@ -3385,8 +3396,12 @@ html.draw-active *::-moz-range-thumb {
 }
 
 .mobile-comment-morph:active:not(.mobile-comment-morph--expanded) {
-  transform: scale(0.93);
   background: rgba(230, 230, 230, 1);
+}
+
+.mobile-comment-morph:active:not(.mobile-comment-morph--expanded) > * {
+  transform: scale(0.93);
+  transition: transform 0.1s;
 }
 
 /* Expanded state — input bar only (no comments) */
