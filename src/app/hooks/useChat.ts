@@ -44,7 +44,15 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       cardImage,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Create assistant message ID upfront so dots show immediately
+    const messageId = (Date.now() + 1).toString();
+
+    setMessages(prev => [...prev, userMessage, {
+      id: messageId,
+      text: '',
+      sender: 'assistant',
+      timestamp: new Date(),
+    }]);
 
     try {
       // Prepare request with card context if from card interaction
@@ -77,17 +85,6 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
       if (!reader) {
         throw new Error('No response body');
       }
-
-      // Create initial assistant message that will be updated as we stream
-      const messageId = (Date.now() + 1).toString();
-      const initialMessage: Message = {
-        id: messageId,
-        text: '',
-        sender: 'assistant',
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, initialMessage]);
 
       let accumulatedText = '';
       let updateBuffer = '';
@@ -156,8 +153,8 @@ export function useChat(initialMessages: Message[] = []): UseChatReturn {
 
       setError(userFriendlyError);
 
-      // Remove the user message if there was an error
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      // Remove the user and empty assistant messages on error
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== messageId));
     } finally {
       setIsLoading(false);
     }

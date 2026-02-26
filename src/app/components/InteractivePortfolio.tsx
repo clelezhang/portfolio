@@ -208,6 +208,7 @@ const ChatMessage = memo(({ message, isLastInGroup, showTyping }: {
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number>(0);
+  const showDots = showTyping && !message.text;
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -283,10 +284,10 @@ const ChatMessage = memo(({ message, isLastInGroup, showTyping }: {
           }`}
         >
           <p className="font-detail text-sm leading-tight whitespace-pre-wrap">
-            {showTyping && !message.text ? (
+            {showDots ? (
               <span className="inline-flex items-center gap-[5px] py-[2px]">
                 {[0, 1, 2].map(i => (
-                  <span key={i} className="typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />
+                  <span key={i} className="typing-dot" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </span>
             ) : message.text}

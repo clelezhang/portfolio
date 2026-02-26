@@ -401,7 +401,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       >
         <SpinningCD
           artwork={trackInfo.artwork}
-          isPlaying={isPlaying && !isMuted}
+          isPaused={playerState === 'muted'}
           isLoading={playerState === 'loading'}
           className="flex-shrink-0"
         />
