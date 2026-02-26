@@ -8,12 +8,14 @@ interface SpinningCDProps {
   artwork?: string;
   className?: string;
   isPlaying?: boolean;
+  isLoading?: boolean;
 }
 
 const SpinningCD = memo(function SpinningCD({
   artwork = "/cd.png",
   className = "",
-  isPlaying = true
+  isPlaying = true,
+  isLoading = false
 }: SpinningCDProps) {
   const controls = useAnimationControls();
   const rotationRef = useRef(0);
@@ -21,11 +23,11 @@ const SpinningCD = memo(function SpinningCD({
   const lastTimeRef = useRef<number | null>(null);
   const [isStopped, setIsStopped] = useState(!isPlaying);
 
-  // Speed in degrees per second when playing
-  const SPIN_SPEED = 45; // 360/8 = 45 deg/s (matches original 8s per rotation)
+  const spinSpeedRef = useRef(isLoading ? 120 : 45);
+  spinSpeedRef.current = isLoading ? 120 : 45;
 
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying || isLoading) {
       setIsStopped(false);
       lastTimeRef.current = null;
 
@@ -40,7 +42,7 @@ const SpinningCD = memo(function SpinningCD({
         if (lastTimeRef.current === null) lastTimeRef.current = time;
         const dt = (time - lastTimeRef.current) / 1000;
         lastTimeRef.current = time;
-        rotationRef.current = (rotationRef.current + SPIN_SPEED * dt) % 360;
+        rotationRef.current = (rotationRef.current + spinSpeedRef.current * dt) % 360;
         controls.set({ rotate: rotationRef.current });
         animFrameRef.current = requestAnimationFrame(spin);
       };
@@ -52,7 +54,7 @@ const SpinningCD = memo(function SpinningCD({
         animFrameRef.current = null;
       }
 
-      let velocity = SPIN_SPEED;
+      let velocity = spinSpeedRef.current;
       let lastTime: number | null = null;
 
       const decelerate = (time: number) => {
@@ -81,7 +83,7 @@ const SpinningCD = memo(function SpinningCD({
         animFrameRef.current = null;
       }
     };
-  }, [isPlaying, controls]);
+  }, [isPlaying, isLoading, controls]);
 
   return (
     <div className={`relative w-8 h-8 group ${className}`}>

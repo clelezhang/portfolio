@@ -394,13 +394,15 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
       />
       
       <div 
-        className={`flex h-10 items-center gap-1 bg-glass backdrop-blur-[20px] rounded-full px-1 pr-3 py-2 cursor-pointer transition-all duration-150 hover:bg-glass-bg-hover active:bg-glass-bg-hover w-30 ${className}`} 
+        className={`flex h-10 items-center gap-1 bg-glass backdrop-blur-[20px] rounded-full px-1 pr-3 py-2 cursor-pointer transition-all duration-150 hover:bg-glass-bg-hover active:bg-glass-bg-hover w-30 ${className}`}
+        style={{ willChange: 'backdrop-filter', transform: 'translateZ(0)' }}
         onClick={handleCDClick}
         onMouseEnter={handleHover}
       >
         <SpinningCD
           artwork={trackInfo.artwork}
           isPlaying={isPlaying && !isMuted}
+          isLoading={playerState === 'loading'}
           className="flex-shrink-0"
         />
         
