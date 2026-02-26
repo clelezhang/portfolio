@@ -61,7 +61,7 @@ const SpinningCD = memo(function SpinningCD({
         lastTime = time;
 
         // Exponential decay — feels like friction
-        velocity *= Math.pow(0.04, dt); // drops to ~4% per second
+        velocity *= Math.pow(0.005, dt); // fast friction
         rotationRef.current = (rotationRef.current + velocity * dt) % 360;
         controls.set({ rotate: rotationRef.current });
 
