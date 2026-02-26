@@ -201,9 +201,10 @@ function portfolioReducer(state: PortfolioState, action: PortfolioAction): Portf
 }
 
 // Memoized message component to prevent unnecessary re-renders
-const ChatMessage = memo(({ message, isLastInGroup }: { 
-  message: Message; 
+const ChatMessage = memo(({ message, isLastInGroup, showTyping }: {
+  message: Message;
   isLastInGroup: boolean;
+  showTyping?: boolean;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number>(0);
@@ -270,7 +271,7 @@ const ChatMessage = memo(({ message, isLastInGroup }: {
       <div 
         className="message-bubble"
         style={{
-          height: height || 'auto'
+          height: (showTyping && !message.text) ? 'auto' : (height || 'auto')
         }}
       >
         <div 
@@ -281,11 +282,15 @@ const ChatMessage = memo(({ message, isLastInGroup }: {
               : 'message-content--assistant'
           }`}
         >
-          <p 
-            className="font-detail text-sm leading-tight whitespace-pre-wrap"
-          >
-             {message.text}
-           </p>
+          <p className="font-detail text-sm leading-tight whitespace-pre-wrap">
+            {showTyping && !message.text ? (
+              <span className="inline-flex items-center gap-[5px] py-[2px]">
+                {[0, 1, 2].map(i => (
+                  <span key={i} className="typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />
+                ))}
+              </span>
+            ) : message.text}
+          </p>
         </div>
       </div>
     </div>
@@ -889,17 +894,17 @@ export default function InteractivePortfolio({ onCardClick }: InteractivePortfol
               {messages.map((message, index) => {
                 const nextMessage = messages[index + 1];
                 const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
-                
+                const isLastMessage = index === messages.length - 1;
+
                 return (
                   <ChatMessage
                     key={message.id}
                     message={message}
                     isLastInGroup={isLastInGroup}
+                    showTyping={isLoading && isLastMessage && message.sender === 'assistant'}
                   />
                 );
               })}
-              
-
 
               {error && (
                 <div className="flex items-center justify-center mb-3">

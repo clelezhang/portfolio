@@ -99,6 +99,20 @@ html {
   animation: loadingDot 0.9s ease-in-out infinite;
 }
 
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gray-400);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
 /* Expandable text page styles */
 .expand-page {
   max-width: 600px;

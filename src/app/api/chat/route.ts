@@ -251,10 +251,11 @@ Only respond with one word.`,
       const nonToolStream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
-          // Stream character by character with delay
-          for (const char of textContent) {
-            await new Promise(resolve => setTimeout(resolve, 15));
-            controller.enqueue(encoder.encode(char));
+          // Stream in word-sized chunks for natural feel
+          const words = textContent.split(/(\s+)/);
+          for (const word of words) {
+            controller.enqueue(encoder.encode(word));
+            if (word.trim()) await new Promise(resolve => setTimeout(resolve, 30));
           }
 
           // Save to KV
@@ -308,8 +309,6 @@ Only respond with one word.`,
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               const text = chunk.delta.text;
               fullAssistantResponse += text;
-              // Add artificial delay for slower streaming effect
-              await new Promise(resolve => setTimeout(resolve, 200));
               controller.enqueue(encoder.encode(text));
             }
           }

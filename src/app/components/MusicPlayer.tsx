@@ -53,12 +53,6 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clickCountRef = useRef<number>(0);
 
-  // Detect mobile devices where volume control doesn't work
-  const isMobile = typeof window !== 'undefined' && (
-    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    window.matchMedia('(max-width: 768px)').matches
-  );
-
   // Save mute state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -214,7 +208,11 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
     });
 
     widget.bind((window as any).SC.Widget.Events.PAUSE, () => {
-      setPlayerState('ready');
+      setPlayerState(prevState => {
+        // If user intentionally paused (muted state), don't override
+        if (prevState === 'muted') return prevState;
+        return 'ready';
+      });
       stopProgressTracking();
     });
 
@@ -267,18 +265,14 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         setProgress(0);
         cachedDuration.current = null;
         
-        // If music was playing, keep it playing
+        // If music was playing, keep it playing; if paused, stay paused
         if (playerState === 'playing' || playerState === 'muted') {
           setTimeout(() => {
             if (widgetRef.current) {
-              if (isMobile) {
-                // On mobile, handle play/pause state
-                if (playerState === 'muted') {
-                  widgetRef.current.pause();
-                } // If playing, it should continue playing automatically
+              if (playerState === 'muted') {
+                widgetRef.current.pause();
               } else {
-                // On desktop, set volume
-                widgetRef.current.setVolume(playerState === 'muted' ? 0 : 25);
+                widgetRef.current.setVolume(25);
               }
             }
           }, 100);
@@ -287,7 +281,7 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         console.error('Failed to skip to next song:', error);
       }
     }
-  }, [playerState, isMobile]);
+  }, [playerState]);
 
   const handleSingleClick = useCallback(() => {
     switch (playerState) {
@@ -342,36 +336,25 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         break;
         
       case 'playing':
-        // Currently playing - mute
+        // Currently playing - pause
         if (widgetRef.current) {
-          if (isMobile) {
-            // On mobile, pause instead of setting volume to 0
-            widgetRef.current.pause();
-          } else {
-            // On desktop, use volume control
-            widgetRef.current.setVolume(0);
-          }
+          widgetRef.current.pause();
           setIsMuted(true);
           setPlayerState('muted');
         }
         break;
-        
+
       case 'muted':
-        // Currently muted - unmute
+        // Currently paused - resume
         if (widgetRef.current) {
-          if (isMobile) {
-            // On mobile, resume playing
-            widgetRef.current.play();
-          } else {
-            // On desktop, restore volume
-            widgetRef.current.setVolume(25);
-          }
+          widgetRef.current.setVolume(25);
+          widgetRef.current.play();
           setIsMuted(false);
           setPlayerState('playing');
         }
         break;
     }
-  }, [playerState, isMobile, initializeWidget]);
+  }, [playerState, initializeWidget]);
 
   const handleCDClick = useCallback(() => {
     clickCountRef.current += 1;
@@ -415,8 +398,9 @@ export default function MusicPlayer({ className = "" }: MusicPlayerProps) {
         onClick={handleCDClick}
         onMouseEnter={handleHover}
       >
-        <SpinningCD 
+        <SpinningCD
           artwork={trackInfo.artwork}
+          isPlaying={isPlaying && !isMuted}
           className="flex-shrink-0"
         />
         
