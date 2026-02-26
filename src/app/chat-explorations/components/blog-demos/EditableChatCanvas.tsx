@@ -70,6 +70,7 @@ export default function EditableChatCanvas({
   const abortControllerRef = useRef<AbortController | null>(null);
   const queueItemsRef = useRef<import('@/app/lib/types').QueueItem[]>(queueItems);
   const isGeneratingRef = useRef<boolean>(false);
+  const messagesRef = useRef<Message[]>(messages);
 
   // Animation config for FloatingToolbar
   const animationConfig: AnimationConfig = {
@@ -88,6 +89,11 @@ export default function EditableChatCanvas({
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
   }, [isGenerating]);
+
+  // Keep messagesRef in sync with messages
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Sync with initialMessages when they change (e.g., different conversation loaded)
   useEffect(() => {
@@ -664,6 +670,7 @@ Your response (keep it brief):`;
         ));
       }
     } finally {
+      isGeneratingRef.current = false;
       setIsGenerating(false);
       setGeneratingMessageId(null);
       abortControllerRef.current = null;
@@ -870,14 +877,13 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
     // If item has content, send it as a message
     if (item.content) {
       const userMessage = createMessage('user', item.content);
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages, userMessage];
+      // Use messagesRef to get current messages and avoid side effects inside state updater
+      const currentMessages = messagesRef.current;
+      const updatedMessages = [...currentMessages, userMessage];
+      setMessages(updatedMessages);
 
-        // Pass the topic directly since we know which item is being played
-        runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
-
-        return updatedMessages;
-      });
+      // Call API outside of state updater to prevent React replaying it multiple times
+      runMessageWithMessagesAndTopic(userMessage.id, updatedMessages, item.title);
     }
   }, [setQueueItems, runMessageWithMessagesAndTopic]);
 
@@ -973,7 +979,10 @@ Example output: ["Topic 1", "Topic 2", "Topic 3"]`,
       if (nextItem) {
         // Small delay before auto-playing next item
         const timer = setTimeout(() => {
-          handleQueueSkip();
+          // Double-check ref to prevent duplicate calls from effect re-runs
+          if (!isGeneratingRef.current) {
+            handleQueueSkip();
+          }
         }, 500);
         return () => clearTimeout(timer);
       }
