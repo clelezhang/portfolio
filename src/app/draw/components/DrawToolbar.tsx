@@ -5,6 +5,7 @@ import { COLOR_PALETTES, TOOLTIP_OVERRIDES } from '../constants';
 import { DrawIconButton } from './DrawIconButton';
 import { ToolbarDiceCube } from './ToolbarDiceCube';
 import { ToolbarPencilIcon } from './icons/toolbar-pencil-icon';
+import { playSound } from '@/lib/sounds';
 
 // Toggle to disable tooltips globally (set to false to disable)
 const TOOLTIPS_ENABLED = false;
@@ -172,6 +173,7 @@ export function DrawToolbar({
   }, [paletteIndex, isRolling]);
 
   const handleDiceClick = () => {
+    playSound('palette-dice');
     const now = Date.now();
     const timeSinceLastClick = now - lastClickTimeRef.current;
     lastClickTimeRef.current = now;
@@ -251,7 +253,7 @@ export function DrawToolbar({
         <div className="draw-tools-container">
           {/* Pencil - uses dynamic color */}
           <MaybeTooltip content="Pencil" placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
-            <button onClick={() => { setTool('draw'); setAsciiStroke(false); }} className="draw-tool-btn">
+            <button onClick={() => { playSound('button-click'); setTool('draw'); setAsciiStroke(false); }} className="draw-tool-btn">
               <ToolbarPencilIcon
                 color={strokeColor}
                 className={`draw-tool-icon ${tool === 'draw' && !asciiStroke ? 'draw-tool-icon--selected' : ''}`}
@@ -264,8 +266,8 @@ export function DrawToolbar({
           </MaybeTooltip>
           {/* ASCII and Eraser */}
           {[
-            { id: 'ascii', label: 'ASCII art', icon: 'tool-ascii', isSelected: tool === 'draw' && asciiStroke, onClick: () => { setTool('draw'); setAsciiStroke(true); } },
-            { id: 'eraser', label: 'Eraser', icon: 'test-eraser', isSelected: tool === 'erase', onClick: () => setTool('erase') },
+            { id: 'ascii', label: 'ASCII art', icon: 'tool-ascii', isSelected: tool === 'draw' && asciiStroke, onClick: () => { playSound('button-click'); setTool('draw'); setAsciiStroke(true); } },
+            { id: 'eraser', label: 'Eraser', icon: 'test-eraser', isSelected: tool === 'erase', onClick: () => { playSound('button-click'); setTool('erase'); } },
           ].map(({ id, label, icon, isSelected, onClick }) => (
             <MaybeTooltip key={id} content={label} placement={PLACEMENT.top} popperOptions={toolsPopperOptions}>
               <button onClick={onClick} className="draw-tool-btn">
@@ -322,6 +324,7 @@ export function DrawToolbar({
                 <button
                   key={`${paletteIndex}-${index}`}
                   onClick={() => {
+                    playSound('color-swatch');
                     setStrokeColor(color);
                     setPoppingColorIndex(index);
                     setTimeout(() => setPoppingColorIndex(null), 250);
@@ -381,7 +384,7 @@ export function DrawToolbar({
             <DrawIconButton
               key={size}
               icon={icon}
-              onClick={() => setStrokeSize(size)}
+              onClick={() => { playSound(size === 2 ? 'stroke-thin' : size === 6 ? 'stroke-medium' : 'stroke-thick'); setStrokeSize(size); }}
               tooltip={label}
               isActive={strokeSize === size}
               size="sm"

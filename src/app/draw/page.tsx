@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import './draw.css';
+import { playSound } from '@/lib/sounds';
 
 // Types
 import {
@@ -445,6 +446,15 @@ export default function DrawPage() {
     runTestShapes,
   } = useClaudeAnimation({ animationSpeed, setDrawingElements, setAsciiBlocks, elementIdCounter });
 
+  // Play sound when Claude finishes drawing
+  const prevClaudeDrawing = useRef(false);
+  useEffect(() => {
+    if (prevClaudeDrawing.current && !claudeIsDrawing) {
+      playSound('claude-done');
+    }
+    prevClaudeDrawing.current = claudeIsDrawing;
+  }, [claudeIsDrawing]);
+
   const {
     comments,
     setComments,
@@ -488,15 +498,15 @@ export default function DrawPage() {
     return 'user';
   })();
 
-  // Set a matching CSS cursor image on <html> so Chrome's top-of-window bug zone
-  // shows the correct cursor instead of the default arrow.
-  // The div-based CustomCursor still handles smooth positioning everywhere else.
+  // Chrome-only: set a matching CSS cursor image on <html> so Chrome's top-of-window
+  // bug zone shows the correct cursor instead of the default arrow.
+  // Safari uses the div-based CustomCursor instead (the CSS cursors look worse there).
   useEffect(() => {
-    if (!CUSTOM_CURSORS_ENABLED) return;
+    if (!CUSTOM_CURSORS_ENABLED || isSafari) return;
     const value = buildCssCursorValue(cursorMode, strokeColor);
     document.documentElement.style.setProperty('--draw-cursor', value);
     return () => { document.documentElement.style.removeProperty('--draw-cursor'); };
-  }, [cursorMode, strokeColor]);
+  }, [cursorMode, strokeColor, isSafari]);
 
   // Save current state to undo stack
   const saveToUndoStack = useCallback(() => {
@@ -1395,6 +1405,7 @@ export default function DrawPage() {
   handleYourTurnRef.current = handleYourTurn;
 
   const handleClear = () => {
+    playSound('clear-canvas');
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
@@ -3067,9 +3078,15 @@ export default function DrawPage() {
         currentDrawingId={currentDrawingId}
       />
 
-      {/* Custom cursor is now handled entirely via CSS cursor: url() images
-          set on --draw-cursor (see buildCssCursorValue + useEffect above).
-          The div-based CustomCursor is no longer rendered to avoid double-cursor lag. */}
+      {/* Safari: use div-based custom cursor (smoother there, CSS cursors look worse).
+          Chrome: CSS cursor handles everything via --draw-cursor (workaround for top-35px bug). */}
+      {CUSTOM_CURSORS_ENABLED && !isTouch && isSafari && (
+        <CustomCursor
+          ref={cursorRef}
+          mode={cursorMode}
+          strokeColor={strokeColor}
+        />
+      )}
     </div>
     </BaseUIProvider>
   );

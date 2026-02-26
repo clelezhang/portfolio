@@ -76,7 +76,7 @@ function fadeCurveCSS(holdPct: number, power: number, samples = 40): string {
 export function CommentDialKit() {
   const dial = useDialKit('Comments', {
     '✅ input (comment box appear/close/send)': {
-      'appear duration (ms)': [380, 50, 600] as [number, number, number],
+      'appear duration (ms)': [360, 50, 600] as [number, number, number],
       'appear easing': { type: 'spring' as const, stiffness: 278, damping: 21, mass: 1.03 },
       'appear scale from': [0.83, 0.5, 1] as [number, number, number],
       'close duration (ms)': [80, 50, 600] as [number, number, number],
@@ -85,13 +85,13 @@ export function CommentDialKit() {
       'send easing': { type: 'spring' as const, stiffness: 335, damping: 41, mass: 1.93 },
     },
     '✅ hover (collapsed → preview)': {
-      'duration (ms)': [435, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, stiffness: 470, damping: 40, mass: 1.42 },
+      'duration (ms)': [400, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 470, damping: 40, mass: 1.5 },
       'delay (ms)': [60, 0, 300] as [number, number, number],
     },
     '✅ open (preview → expanded)': {
-      'duration (ms)': [320, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, stiffness: 418, damping: 35, mass: 1.27 },
+      'duration (ms)': [340, 50, 600] as [number, number, number],
+      easing: { type: 'spring' as const, stiffness: 418, damping: 35, mass: 1.4 },
     },
     '✅ unhover (preview → collapsed)': {
       'duration (ms)': [380, 50, 600] as [number, number, number],
@@ -102,12 +102,12 @@ export function CommentDialKit() {
     },
     '✅ close (expanded → collapsed)': {
       'duration (ms)': [380, 50, 600] as [number, number, number],
-      easing: { type: 'spring' as const, stiffness: 673, damping: 25, mass: 0.43 },
+      easing: { type: 'spring' as const, stiffness: 673, damping: 25, mass: 0.44 },
       'scale to': [1, 0.5, 1] as [number, number, number],
       'blur to (px)': [0, 0, 10] as [number, number, number],
     },
     '✅ temp fade (auto-dismiss lifetime)': {
-      'lifetime (s)': [60, 5, 120] as [number, number, number],
+      'lifetime (s)': [30, 5, 120] as [number, number, number],
       'blur max (px)': [1, 0, 5] as [number, number, number],
       'hold (%)': [10, 0, 90] as [number, number, number],
       'acceleration': [1.25, 1, 6] as [number, number, number],
@@ -118,10 +118,10 @@ export function CommentDialKit() {
       'scale to': [0.70, 0.5, 1] as [number, number, number],
     },
     '✅ temp style (border/outline transition)': {
-      'transition (ms)': [100, 50, 600] as [number, number, number],
+      'transition (ms)': [200, 50, 600] as [number, number, number],
     },
     '✅ temp buttons (slide in/out)': {
-      'duration (ms)': [120, 50, 400] as [number, number, number],
+      'duration (ms)': [100, 50, 400] as [number, number, number],
       'slide-in easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
       'slide-out easing': { type: 'select' as const, options: EASING_OPTIONS, default: 'cubic-bezier(0.4, 0, 1, 1)' },
     },
@@ -281,35 +281,37 @@ export const CommentSystem = memo(function CommentSystem({
   dismissComment,
   isDrawing,
 }: CommentSystemProps) {
-  // Hover delay from CSS var default (80ms)
-  const hoverDelay = 80;
-
   // Ref to track hover timer for debouncing
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Hover handlers — enter is instant (so cursor switches immediately),
-  // leave is debounced to prevent jitter when mouse briefly exits
+  // Read hover delay from CSS var (synced with DialKit)
+  const getHoverDelay = useCallback(() => {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--comment-hover-delay') || '60');
+  }, []);
+
+  // Hover handlers — both enter and leave are delayed to match CSS transition delay
   const handleMouseEnter = useCallback((index: number) => {
     if (isDrawing) return;
-    // Clear any pending leave timer
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
-    setHoveredCommentIndex(index);
-  }, [setHoveredCommentIndex, isDrawing]);
+    const delay = getHoverDelay();
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredCommentIndex(index);
+    }, delay);
+  }, [setHoveredCommentIndex, isDrawing, getHoverDelay]);
 
   const handleMouseLeave = useCallback(() => {
-    // Clear any pending enter timer
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
-    // Clear hover after delay
+    const delay = getHoverDelay();
     hoverTimerRef.current = setTimeout(() => {
       setHoveredCommentIndex(null);
-    }, hoverDelay);
-  }, [setHoveredCommentIndex, hoverDelay]);
+    }, delay);
+  }, [setHoveredCommentIndex, getHoverDelay]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -467,8 +469,8 @@ export function CommentBubble({
     outer.classList.toggle('draw-comment-scroll-fade-bottom', bottom);
   }, []);
 
-  // When temp→saved, capture the current (faded) opacity so the CSS transition
-  // can smoothly recover it instead of snapping from the removed animation value.
+  // When temp→saved, capture the current (faded) opacity and smoothly
+  // transition back to full opacity instead of snapping.
   useLayoutEffect(() => {
     const wasTemp = prevIsTempRef.current;
     prevIsTempRef.current = isTemp;
@@ -476,8 +478,10 @@ export function CommentBubble({
       const el = bubbleOuterRef.current;
       if (el) {
         const currentOpacity = getComputedStyle(el).opacity;
+        el.style.transition = 'none';
         el.style.opacity = currentOpacity;
         requestAnimationFrame(() => {
+          el.style.transition = '';
           el.style.opacity = '';
         });
       }
@@ -596,7 +600,8 @@ export function CommentBubble({
   useEffect(() => {
     if (isTemp && comment.tempStartedAt && onDismiss) {
       const elapsed = Date.now() - comment.tempStartedAt;
-      const remaining = 60000 - elapsed;
+      const lifetimeMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--comment-fade-total') || '30') * 1000;
+      const remaining = lifetimeMs - elapsed;
 
       if (remaining <= 0) {
         handleAutoDismiss();
@@ -617,9 +622,6 @@ export function CommentBubble({
   const visualStateClass = `draw-comment-bubble--${effectiveVisualState}`;
   const animateClass = hasAnimated ? 'draw-comment-bubble--animated' : '';
   const closingFromClass = closingFrom ? `draw-comment-bubble--closing-from-${closingFrom}` : '';
-  // Extra animation time for comments with more content (replies add height)
-  const replyCount = comment.replies?.length ?? 0;
-  const extraDurationMs = replyCount * 40; // 40ms per reply row
 
   return (
     <div
@@ -634,7 +636,7 @@ export function CommentBubble({
       <div
         ref={bubbleOuterRef}
         className={`draw-comment-bubble ${authorClass} ${stateClass} ${visualStateClass} ${animateClass} ${closingFromClass}${scrollFadeTopRef.current ? ' draw-comment-scroll-fade-top' : ''}${scrollFadeBottomRef.current ? ' draw-comment-scroll-fade-bottom' : ''}`}
-        style={{ '--stroke-color': strokeColor, '--comment-extra-dur': `${extraDurationMs}ms` } as React.CSSProperties}
+        style={{ '--stroke-color': strokeColor } as React.CSSProperties}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();

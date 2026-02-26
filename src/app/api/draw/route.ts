@@ -531,8 +531,8 @@ const DRAW_TOOL: Anthropic.Tool = {
       say: { type: 'string', description: 'Optional comment to add on canvas' },
       sayX: { type: 'number', description: 'X position for comment' },
       sayY: { type: 'number', description: 'Y position for comment' },
-      replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed)' },
-      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Comment indices to dismiss/resolve (1-indexed). Use to clear addressed or stale comments.' },
+      replyTo: { type: 'number', description: 'Thread id to reply to (from <thread id="N">)' },
+      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Thread ids to dismiss/resolve.' },
       setPaletteIndex: { type: 'number', description: 'Switch human palette (0-5)' },
       interactionStyle: { type: 'string', enum: ['collaborative', 'playful'], description: 'collaborative=add to their work, playful=subvert/tease' },
       loadingMessages: { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5, description: '5 short loading messages about the drawing with ASCII/unicode art (see <style>). Vary wildly.' },
@@ -551,11 +551,11 @@ const COMMENT_TOOL: Anthropic.Tool = {
       say: { type: 'string', description: 'Your comment response' },
       sayX: { type: 'number', description: 'X position for new comment (only if not replying)' },
       sayY: { type: 'number', description: 'Y position for new comment (only if not replying)' },
-      replyTo: { type: 'number', description: 'Comment index to reply to (1-indexed). Use this to reply in-thread.' },
-      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Comment indices to dismiss/resolve (1-indexed).' },
+      replyTo: { type: 'number', description: 'Thread id to reply to (from <thread id="N">). Required when replying to an existing thread.' },
+      dismissComments: { type: 'array', items: { type: 'number' }, description: 'Thread ids to dismiss/resolve.' },
       needsCanvas: { type: 'boolean', description: 'Set true if you need to see the canvas to respond (e.g. the human asked you to draw something, or asked about what\'s on the canvas). Do NOT set for normal conversation.' },
     },
-    required: ['say'],
+    required: ['say', 'replyTo'],
   },
 };
 
@@ -633,22 +633,34 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
       }
     }
 
-    // Build comment thread context
+    // Build comment thread context — structured so Claude can clearly distinguish threads
     let messageContext = '';
     if (comments && Array.isArray(comments) && comments.length > 0) {
-      messageContext = `\n\nComments on the canvas (UI appears bottom-right of coordinates, max width 240px):\n`;
+      // Find the latest human activity (newest unanswered comment, or newest human reply)
+      let latestHumanThreadIdx = -1;
+      (comments as Comment[]).forEach((comment, i) => {
+        if (comment.from === 'human') latestHumanThreadIdx = i;
+        if (comment.replies?.some(r => r.from === 'human')) latestHumanThreadIdx = i;
+      });
+
+      messageContext = `\n\n<comments>\n`;
       (comments as Comment[]).forEach((comment, i) => {
         const speaker = comment.from === 'human' ? 'Human' : 'You';
         const hasReply = comment.replies && comment.replies.length > 0;
-        const unanswered = comment.from === 'human' && !hasReply ? ' [unanswered]' : '';
-        messageContext += `${i + 1}. ${speaker}${unanswered} at (${Math.round(comment.x)}, ${Math.round(comment.y)}): "${comment.text}"\n`;
+        const needsResponse = comment.from === 'human' && (!hasReply || comment.replies![comment.replies!.length - 1].from === 'human');
+        const isLatest = i === latestHumanThreadIdx;
+
+        messageContext += `<thread id="${i + 1}" by="${speaker}" at="(${Math.round(comment.x)},${Math.round(comment.y)})"${needsResponse ? ' needs-response="true"' : ''}${isLatest ? ' latest="true"' : ''}>\n`;
+        messageContext += `  ${speaker}: "${comment.text}"\n`;
         if (hasReply) {
           comment.replies!.forEach((reply) => {
             const replySpeaker = reply.from === 'human' ? 'Human' : 'You';
-            messageContext += `   ↳ ${replySpeaker} replied: "${reply.text}"\n`;
+            messageContext += `  ${replySpeaker}: "${reply.text}"\n`;
           });
         }
+        messageContext += `</thread>\n`;
       });
+      messageContext += `</comments>`;
     } else if (humanMessages && humanMessages.length > 0) {
       // Fallback to old format if comments not provided
       messageContext = `\n\nThe human said: "${humanMessages.join('" and "')}"`;
@@ -696,7 +708,7 @@ ${blocksSummary ? `<your-blocks>${blocksSummary}</your-blocks>` : ''}
 
       const commentUserMessage = `The canvas is ${canvasWidth}x${canvasHeight} pixels.${historyContext}${messageContext}${drawInstructions}
 
-Respond to the human's comment using the respond tool. Use replyTo to reply in-thread.`;
+Reply to threads that have needs-response="true", prioritizing latest="true". Use replyTo with the thread id to reply in-thread.`;
 
       // Build user content — include image if available so Claude can see the canvas
       const userContent: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [];

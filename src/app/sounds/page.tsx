@@ -416,30 +416,28 @@ osc.start(now); osc.stop(now + 0.02);`,
     {
       name: 'Tick Sharp',
       desc: 'Crisp, snappy tick',
-      technique: 'sine 700Hz + white noise snap, 8ms',
+      technique: 'sine 990→660Hz + white noise snap, 8ms',
       play: () => {
         const c = getCtx(); const now = c.currentTime;
-        // Sharp sine
         const o = c.createOscillator(); const g = c.createGain();
         o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(720, now); o.frequency.exponentialRampToValueAtTime(600, now + 0.008);
+        o.frequency.setValueAtTime(990, now); o.frequency.exponentialRampToValueAtTime(660, now + 0.008);
         g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
         o.start(now); o.stop(now + 0.012);
-        // Tiny noise snap
         const buf = createNoiseBuffer(c, 'white', 0.005);
         const src = c.createBufferSource(); src.buffer = buf;
         const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(5000, now);
         const g2 = c.createGain(); g2.gain.setValueAtTime(0.1, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
         src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
       },
-      code: `// Sine + white noise snap
+      code: `// Sine + white noise snap (B5→E5)
 const ctx = new AudioContext();
 const now = ctx.currentTime;
 const osc = ctx.createOscillator();
 const gain = ctx.createGain();
 osc.connect(gain); gain.connect(ctx.destination);
-osc.frequency.setValueAtTime(720, now);
-osc.frequency.exponentialRampToValueAtTime(600, now + 0.008);
+osc.frequency.setValueAtTime(990, now);
+osc.frequency.exponentialRampToValueAtTime(660, now + 0.008);
 gain.gain.setValueAtTime(0.35, now);
 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
 osc.start(now); osc.stop(now + 0.012);`,
@@ -447,12 +445,12 @@ osc.start(now); osc.stop(now + 0.012);`,
     {
       name: 'Tick Sharp Low',
       desc: 'Low register sharp tick',
-      technique: 'sine 504→420Hz + white noise snap, 10ms',
+      technique: 'sine 660→440Hz + white noise snap, 10ms',
       play: () => {
         const c = getCtx(); const now = c.currentTime;
         const o = c.createOscillator(); const g = c.createGain();
         o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(504, now); o.frequency.exponentialRampToValueAtTime(420, now + 0.01);
+        o.frequency.setValueAtTime(660, now); o.frequency.exponentialRampToValueAtTime(440, now + 0.01);
         g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
         o.start(now); o.stop(now + 0.014);
         const buf = createNoiseBuffer(c, 'white', 0.006);
@@ -461,14 +459,14 @@ osc.start(now); osc.stop(now + 0.012);`,
         const g2 = c.createGain(); g2.gain.setValueAtTime(0.1, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.006);
         src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
       },
-      code: `// Low sharp tick — sine + white noise snap
+      code: `// Low sharp tick (E5→A4) — sine + white noise snap
 const ctx = new AudioContext();
 const now = ctx.currentTime;
 const osc = ctx.createOscillator();
 const gain = ctx.createGain();
 osc.connect(gain); gain.connect(ctx.destination);
-osc.frequency.setValueAtTime(504, now);
-osc.frequency.exponentialRampToValueAtTime(420, now + 0.01);
+osc.frequency.setValueAtTime(660, now);
+osc.frequency.exponentialRampToValueAtTime(440, now + 0.01);
 gain.gain.setValueAtTime(0.35, now);
 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
 osc.start(now); osc.stop(now + 0.014);`,
@@ -476,12 +474,12 @@ osc.start(now); osc.stop(now + 0.014);`,
     {
       name: 'Tick Sharp High',
       desc: 'High register sharp tick',
-      technique: 'sine 936→780Hz + white noise snap, 6ms',
+      technique: 'sine 1320→880Hz + white noise snap, 6ms',
       play: () => {
         const c = getCtx(); const now = c.currentTime;
         const o = c.createOscillator(); const g = c.createGain();
         o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(936, now); o.frequency.exponentialRampToValueAtTime(780, now + 0.006);
+        o.frequency.setValueAtTime(1320, now); o.frequency.exponentialRampToValueAtTime(880, now + 0.006);
         g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
         o.start(now); o.stop(now + 0.01);
         const buf = createNoiseBuffer(c, 'white', 0.004);
@@ -490,14 +488,14 @@ osc.start(now); osc.stop(now + 0.014);`,
         const g2 = c.createGain(); g2.gain.setValueAtTime(0.1, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.004);
         src.connect(hp); hp.connect(g2); g2.connect(getAnalyser()); src.start(now);
       },
-      code: `// High sharp tick — sine + white noise snap
+      code: `// High sharp tick (E6→A5) — sine + white noise snap
 const ctx = new AudioContext();
 const now = ctx.currentTime;
 const osc = ctx.createOscillator();
 const gain = ctx.createGain();
 osc.connect(gain); gain.connect(ctx.destination);
-osc.frequency.setValueAtTime(936, now);
-osc.frequency.exponentialRampToValueAtTime(780, now + 0.006);
+osc.frequency.setValueAtTime(1320, now);
+osc.frequency.exponentialRampToValueAtTime(880, now + 0.006);
 gain.gain.setValueAtTime(0.35, now);
 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
 osc.start(now); osc.stop(now + 0.01);`,
@@ -1757,8 +1755,8 @@ const now = ctx.currentTime;
     },
     {
       name: 'Success High',
-      desc: 'Bright completion chime',
-      technique: 'two ascending tones [680, 857]Hz',
+      desc: 'Bright completion chime + brown noise',
+      technique: 'two ascending tones [680, 857]Hz + brown noise',
       play: () => {
         const c = getCtx();
         const now = c.currentTime;
@@ -1772,6 +1770,17 @@ const now = ctx.currentTime;
           g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.15);
           o.start(now + i * 0.12);
           o.stop(now + i * 0.12 + 0.16);
+          // Brown noise texture per tone — long burst, loose filter
+          const buf = createNoiseBuffer(c, 'brown', 0.2);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(freq * 0.8, now + i * 0.12); bp.Q.setValueAtTime(0.7, now);
+          const gn = c.createGain();
+          gn.gain.setValueAtTime(0, now);
+          gn.gain.linearRampToValueAtTime(0.3, now + i * 0.12 + 0.01);
+          gn.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.18);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser());
+          src.start(now + i * 0.12);
         });
       },
       code: `const ctx = new AudioContext();
@@ -1786,6 +1795,17 @@ const now = ctx.currentTime;
   gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.15);
   osc.start(now + i * 0.12);
   osc.stop(now + i * 0.12 + 0.16);
+  // Brown noise texture — long burst, loose filter
+  const buf = createNoiseBuffer(ctx, 'brown', 0.2);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = freq * 0.8; bp.Q.value = 0.7;
+  const gn = ctx.createGain();
+  gn.gain.setValueAtTime(0, now);
+  gn.gain.linearRampToValueAtTime(0.3, now + i * 0.12 + 0.01);
+  gn.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.18);
+  src.connect(bp); bp.connect(gn); gn.connect(ctx.destination);
+  src.start(now + i * 0.12);
 });`,
     },
     {
@@ -1933,36 +1953,77 @@ const now = ctx.currentTime;
     },
     {
       name: 'Sparkle Rising',
-      desc: 'Ascending shimmer — hopeful',
-      technique: 'ascending sine cascade, 300ms',
+      desc: 'Ascending shimmer — layered',
+      technique: 'sine + detuned chorus + pink noise, 400ms',
       play: () => {
         const c = getCtx(); const now = c.currentTime;
         [1047, 1318, 1568, 2093].forEach((freq, i) => {
-          const o = c.createOscillator(); o.type = 'sine';
-          const g = c.createGain();
-          o.connect(g); g.connect(getAnalyser());
-          const t = now + i * 0.06;
-          o.frequency.setValueAtTime(freq, t);
-          g.gain.setValueAtTime(0, now);
-          g.gain.linearRampToValueAtTime(0.1 + i * 0.02, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-          o.start(t); o.stop(t + 0.2);
+          const t = now + i * 0.07;
+          // Main voice
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t);
+          g1.gain.setValueAtTime(0, now);
+          g1.gain.linearRampToValueAtTime(0.09 + i * 0.015, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          o1.start(t); o1.stop(t + 0.28);
+          // Detuned companion — width/chorus
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq + 6, t);
+          g2.gain.setValueAtTime(0, now);
+          g2.gain.linearRampToValueAtTime(0.05 + i * 0.01, t + 0.01);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o2.start(t); o2.stop(t + 0.25);
+          // Noise texture — longer, looser filter so noise type matters
+          const buf = createNoiseBuffer(c, 'pink', 0.12);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(freq, t); bp.Q.setValueAtTime(1.2, t);
+          const gn = c.createGain();
+          gn.gain.setValueAtTime(0, now);
+          gn.gain.linearRampToValueAtTime(0.1, t + 0.005);
+          gn.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser());
+          src.start(t);
         });
       },
       code: `const ctx = new AudioContext();
 const now = ctx.currentTime;
-// Ascending bright notes — hopeful lift
+// Ascending — sine + detuned chorus + noise texture
 [1047, 1318, 1568, 2093].forEach((freq, i) => {
-  const osc = ctx.createOscillator();
-  osc.type = 'sine';
-  const gain = ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  const t = now + i * 0.06;
-  osc.frequency.setValueAtTime(freq, t);
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.1 + i * 0.02, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-  osc.start(t); osc.stop(t + 0.2);
+  const t = now + i * 0.07;
+  // Main sine voice
+  const o1 = ctx.createOscillator(); o1.type = 'sine';
+  const g1 = ctx.createGain();
+  o1.connect(g1); g1.connect(ctx.destination);
+  o1.frequency.setValueAtTime(freq, t);
+  g1.gain.setValueAtTime(0, now);
+  g1.gain.linearRampToValueAtTime(0.09 + i * 0.015, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  o1.start(t); o1.stop(t + 0.28);
+  // Detuned chorus
+  const o2 = ctx.createOscillator(); o2.type = 'sine';
+  const g2 = ctx.createGain();
+  o2.connect(g2); g2.connect(ctx.destination);
+  o2.frequency.setValueAtTime(freq + 6, t);
+  g2.gain.setValueAtTime(0, now);
+  g2.gain.linearRampToValueAtTime(0.05 + i * 0.01, t + 0.01);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  o2.start(t); o2.stop(t + 0.25);
+  // Noise texture (longer, wider filter)
+  const buf = createNoiseBuffer(ctx, 'pink', 0.12);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.2;
+  const gn = ctx.createGain();
+  gn.gain.setValueAtTime(0, now);
+  gn.gain.linearRampToValueAtTime(0.1, t + 0.005);
+  gn.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  src.connect(bp); bp.connect(gn); gn.connect(ctx.destination);
+  src.start(t);
 });`,
     },
     {
@@ -2032,6 +2093,803 @@ const now = ctx.currentTime;
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
   osc.start(t); osc.stop(t + 0.16);
 });`,
+    },
+    {
+      name: 'Sparkle Dust',
+      desc: 'Scattered pink noise grains',
+      technique: 'pink noise bursts, bandpass cascade, 350ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Staggered filtered noise grains — like sand or dust
+        [3200, 2400, 1800, 1200].forEach((freq, i) => {
+          const buf = createNoiseBuffer(c, 'pink', 0.06);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(freq, now); bp.Q.setValueAtTime(4, now);
+          const g = c.createGain();
+          const t = now + i * 0.065;
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(0.25, t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+          src.connect(bp); bp.connect(g); g.connect(getAnalyser());
+          src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Pink noise grains at descending frequencies
+[3200, 2400, 1800, 1200].forEach((freq, i) => {
+  const buf = createNoiseBuffer(ctx, 'pink', 0.06);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 4;
+  const gain = ctx.createGain();
+  const t = now + i * 0.065;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.25, t + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+  src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+  src.start(t);
+});`,
+    },
+    {
+      name: 'Sparkle Crackle',
+      desc: 'Warm pops with faint tonal pings',
+      technique: 'brown noise pops + sine pings, 400ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Brown noise pops — like embers popping
+        [0, 0.07, 0.15, 0.24].forEach((offset, i) => {
+          const t = now + offset;
+          // Noise pop
+          const buf = createNoiseBuffer(c, 'brown', 0.035);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(1800 + i * 400, t);
+          const g1 = c.createGain();
+          g1.gain.setValueAtTime(0.35, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+          src.connect(lp); lp.connect(g1); g1.connect(getAnalyser());
+          src.start(t);
+          // Faint tonal ping underneath
+          const o = c.createOscillator(); o.type = 'triangle';
+          const g2 = c.createGain();
+          o.connect(g2); g2.connect(getAnalyser());
+          o.frequency.setValueAtTime([1800, 1400, 1100, 900][i], t);
+          g2.gain.setValueAtTime(0.04, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.start(t); o.stop(t + 0.1);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Brown noise pops with triangle pings
+[0, 0.07, 0.15, 0.24].forEach((offset, i) => {
+  const t = now + offset;
+  const buf = createNoiseBuffer(ctx, 'brown', 0.035);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 1800 + i * 400;
+  const g1 = ctx.createGain();
+  g1.gain.setValueAtTime(0.35, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  src.connect(lp); lp.connect(g1); g1.connect(ctx.destination);
+  src.start(t);
+  const osc = ctx.createOscillator(); osc.type = 'triangle';
+  const g2 = ctx.createGain();
+  osc.connect(g2); g2.connect(ctx.destination);
+  osc.frequency.value = [1800, 1400, 1100, 900][i];
+  g2.gain.setValueAtTime(0.04, t);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  osc.start(t); osc.stop(t + 0.1);
+});`,
+    },
+    {
+      name: 'Sparkle Fizz',
+      desc: 'Effervescent noise shimmer',
+      technique: 'white noise, sweeping bandpass, 300ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Continuous white noise through a rising bandpass — fizzy
+        const buf = createNoiseBuffer(c, 'white', 0.3);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.setValueAtTime(2.5, now);
+        bp.frequency.setValueAtTime(1200, now);
+        bp.frequency.exponentialRampToValueAtTime(6000, now + 0.2);
+        bp.frequency.exponentialRampToValueAtTime(2000, now + 0.3);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.3, now + 0.015);
+        g.gain.setValueAtTime(0.3, now + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        src.connect(bp); bp.connect(g); g.connect(getAnalyser());
+        src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// White noise through sweeping bandpass — fizzy shimmer
+const buf = createNoiseBuffer(ctx, 'white', 0.3);
+const src = ctx.createBufferSource(); src.buffer = buf;
+const bp = ctx.createBiquadFilter();
+bp.type = 'bandpass'; bp.Q.value = 2.5;
+bp.frequency.setValueAtTime(1200, now);
+bp.frequency.exponentialRampToValueAtTime(6000, now + 0.2);
+bp.frequency.exponentialRampToValueAtTime(2000, now + 0.3);
+const gain = ctx.createGain();
+gain.gain.setValueAtTime(0, now);
+gain.gain.linearRampToValueAtTime(0.3, now + 0.015);
+gain.gain.setValueAtTime(0.3, now + 0.05);
+gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+src.start(now);`,
+    },
+    {
+      name: 'Timer Ding',
+      desc: 'Gentle oven timer — warm single bell',
+      technique: 'sine 1050Hz + inharmonic partials, long decay, 800ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Warm bell fundamental — lower, rounder
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain();
+        o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(1050, now);
+        o1.frequency.exponentialRampToValueAtTime(1040, now + 0.8);
+        g1.gain.setValueAtTime(0.3, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        o1.start(now); o1.stop(now + 0.82);
+        // Inharmonic partial 1 — bell character
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain();
+        o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(1050 * 2.76, now); // ~2898Hz
+        g2.gain.setValueAtTime(0.06, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        o2.start(now); o2.stop(now + 0.32);
+        // Inharmonic partial 2 — shimmer
+        const o3 = c.createOscillator(); o3.type = 'sine';
+        const g3 = c.createGain();
+        o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(1050 * 5.4, now); // ~5670Hz
+        g3.gain.setValueAtTime(0.02, now);
+        g3.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        o3.start(now); o3.stop(now + 0.14);
+        // Soft strike transient
+        const buf = createNoiseBuffer(c, 'pink', 0.012);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2000, now); bp.Q.setValueAtTime(1, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.12, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Warm bell fundamental
+const o1 = ctx.createOscillator(); o1.type = 'sine';
+const g1 = ctx.createGain();
+o1.connect(g1); g1.connect(ctx.destination);
+o1.frequency.setValueAtTime(1050, now);
+g1.gain.setValueAtTime(0.3, now);
+g1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+o1.start(now); o1.stop(now + 0.82);
+// Inharmonic partials — bell character
+const o2 = ctx.createOscillator(); o2.type = 'sine';
+const g2 = ctx.createGain();
+o2.connect(g2); g2.connect(ctx.destination);
+o2.frequency.setValueAtTime(2898, now);
+g2.gain.setValueAtTime(0.06, now);
+g2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+o2.start(now); o2.stop(now + 0.32);`,
+    },
+    {
+      name: 'Timer Double',
+      desc: 'Gentle ding-ding — oven done',
+      technique: 'two warm bells 1050Hz, 600ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        [0, 0.22].forEach((offset) => {
+          const t = now + offset;
+          // Bell fundamental
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(1050, t);
+          o1.frequency.exponentialRampToValueAtTime(1040, t + 0.5);
+          g1.gain.setValueAtTime(0, now);
+          g1.gain.setValueAtTime(0.25, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o1.start(t); o1.stop(t + 0.52);
+          // Inharmonic overtone
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(1050 * 2.76, t);
+          g2.gain.setValueAtTime(0, now);
+          g2.gain.setValueAtTime(0.04, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          o2.start(t); o2.stop(t + 0.17);
+          // Soft strike
+          const buf = createNoiseBuffer(c, 'pink', 0.01);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2000, t); bp.Q.setValueAtTime(1, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+[0, 0.22].forEach((offset) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(1050, t);
+  g.gain.setValueAtTime(0.25, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o.start(t); o.stop(t + 0.52);
+});`,
+    },
+    {
+      name: 'Timer Trill',
+      desc: 'Mechanical egg timer ring-down',
+      technique: 'decelerating bell strikes, 900ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Egg timer: rapid dings that slow down as the spring unwinds
+        const gaps = [0, 0.06, 0.13, 0.21, 0.31, 0.43, 0.57, 0.73];
+        gaps.forEach((offset, i) => {
+          const t = now + offset;
+          const o = c.createOscillator(); o.type = 'sine';
+          const g = c.createGain();
+          o.connect(g); g.connect(getAnalyser());
+          o.frequency.setValueAtTime(1200, t);
+          o.frequency.exponentialRampToValueAtTime(1190, t + 0.08);
+          g.gain.setValueAtTime(0, now);
+          g.gain.setValueAtTime(Math.max(0.05, 0.2 - i * 0.018), t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.start(t); o.stop(t + 0.1);
+          // Overtone
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(1200 * 2.76, t);
+          g2.gain.setValueAtTime(0, now);
+          g2.gain.setValueAtTime(Math.max(0.01, 0.04 - i * 0.004), t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+          o2.start(t); o2.stop(t + 0.06);
+          // Mechanical click each strike
+          const buf = createNoiseBuffer(c, 'white', 0.003);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(3000, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.003);
+          src.connect(hp); hp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Decelerating bell strikes — egg timer unwinding
+const gaps = [0, 0.06, 0.13, 0.21, 0.31, 0.43, 0.57, 0.73];
+gaps.forEach((offset, i) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(1200, t);
+  g.gain.setValueAtTime(Math.max(0.05, 0.2 - i * 0.018), t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  o.start(t); o.stop(t + 0.1);
+});`,
+    },
+    {
+      name: 'Timer Gentle',
+      desc: 'Soft meditation-bell ding',
+      technique: 'sine 680Hz + triangle undertone, long decay, 1.2s',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Low, round bell — meditation/singing bowl quality
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain();
+        o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(680, now);
+        o1.frequency.exponentialRampToValueAtTime(675, now + 1.2);
+        g1.gain.setValueAtTime(0.25, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        o1.start(now); o1.stop(now + 1.22);
+        // Triangle undertone — warmth
+        const o2 = c.createOscillator(); o2.type = 'triangle';
+        const g2 = c.createGain();
+        o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(340, now);
+        g2.gain.setValueAtTime(0.1, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        o2.start(now); o2.stop(now + 0.82);
+        // Inharmonic shimmer
+        const o3 = c.createOscillator(); o3.type = 'sine';
+        const g3 = c.createGain();
+        o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(680 * 3.2, now); // ~2176Hz
+        g3.gain.setValueAtTime(0.03, now);
+        g3.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        o3.start(now); o3.stop(now + 0.42);
+        // Soft mallet transient
+        const buf = createNoiseBuffer(c, 'brown', 0.02);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(1200, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.1, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+        src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Singing bowl — low, round bell
+const o1 = ctx.createOscillator(); o1.type = 'sine';
+const g1 = ctx.createGain();
+o1.connect(g1); g1.connect(ctx.destination);
+o1.frequency.setValueAtTime(680, now);
+g1.gain.setValueAtTime(0.25, now);
+g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+o1.start(now); o1.stop(now + 1.22);
+// Triangle warmth undertone
+const o2 = ctx.createOscillator(); o2.type = 'triangle';
+const g2 = ctx.createGain();
+o2.connect(g2); g2.connect(ctx.destination);
+o2.frequency.setValueAtTime(340, now);
+g2.gain.setValueAtTime(0.1, now);
+g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+o2.start(now); o2.stop(now + 0.82);`,
+    },
+    {
+      name: 'Timer Beep',
+      desc: 'Digital microwave beep pattern',
+      technique: 'square 1800Hz, 3 short beeps, 500ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Three short electronic beeps — microwave/digital timer
+        [0, 0.15, 0.3].forEach((offset) => {
+          const t = now + offset;
+          const o = c.createOscillator(); o.type = 'square';
+          const g = c.createGain();
+          // Lowpass to soften the square wave
+          const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(3000, t);
+          o.connect(lp); lp.connect(g); g.connect(getAnalyser());
+          o.frequency.setValueAtTime(1800, t);
+          g.gain.setValueAtTime(0, now);
+          g.gain.setValueAtTime(0.15, t);
+          g.gain.setValueAtTime(0.15, t + 0.06);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+          o.start(t); o.stop(t + 0.07);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Three short electronic beeps
+[0, 0.15, 0.3].forEach((offset) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'square';
+  const g = ctx.createGain();
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.value = 3000;
+  o.connect(lp); lp.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(1800, t);
+  g.gain.setValueAtTime(0.15, t);
+  g.gain.setValueAtTime(0.15, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+  o.start(t); o.stop(t + 0.07);
+});`,
+    },
+    {
+      name: 'Timer Spoon',
+      desc: 'Spoon tapping a ceramic mug',
+      technique: 'sine 1400Hz + filtered noise thunk, 300ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Ceramic resonance — bright but short
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain();
+        o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(1400, now);
+        o1.frequency.exponentialRampToValueAtTime(1350, now + 0.3);
+        g1.gain.setValueAtTime(0.2, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        o1.start(now); o1.stop(now + 0.32);
+        // Second partial — ceramic has clustered modes
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain();
+        o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(1400 * 1.47, now); // ~2058Hz
+        g2.gain.setValueAtTime(0.1, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        o2.start(now); o2.stop(now + 0.14);
+        // Thunk — the physical tap
+        const buf = createNoiseBuffer(c, 'pink', 0.015);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(800, now); bp.Q.setValueAtTime(0.8, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.2, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Ceramic resonance
+const o1 = ctx.createOscillator(); o1.type = 'sine';
+const g1 = ctx.createGain();
+o1.connect(g1); g1.connect(ctx.destination);
+o1.frequency.setValueAtTime(1400, now);
+g1.gain.setValueAtTime(0.2, now);
+g1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+o1.start(now); o1.stop(now + 0.32);
+// Ceramic second mode
+const o2 = ctx.createOscillator(); o2.type = 'sine';
+const g2 = ctx.createGain();
+o2.connect(g2); g2.connect(ctx.destination);
+o2.frequency.setValueAtTime(2058, now);
+g2.gain.setValueAtTime(0.1, now);
+g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+o2.start(now); o2.stop(now + 0.14);`,
+    },
+    {
+      name: 'Timer Rise',
+      desc: 'Ascending bell pair — low then high',
+      technique: 'bell 800Hz→1100Hz, inharmonic partials, 900ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        [{ t: 0, freq: 800, vol: 0.25, dec: 0.6 }, { t: 0.18, freq: 1100, vol: 0.28, dec: 0.7 }].forEach(({ t: offset, freq, vol, dec }) => {
+          const t = now + offset;
+          // Bell fundamental
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, t + dec);
+          g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+          o1.start(t); o1.stop(t + dec + 0.02);
+          // Inharmonic partial — bell character
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq * 2.76, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.05, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.35);
+          o2.start(t); o2.stop(t + dec * 0.35 + 0.02);
+          // Shimmer partial
+          const o3 = c.createOscillator(); o3.type = 'sine';
+          const g3 = c.createGain();
+          o3.connect(g3); g3.connect(getAnalyser());
+          o3.frequency.setValueAtTime(freq * 5.4, t);
+          g3.gain.setValueAtTime(0, now); g3.gain.setValueAtTime(0.015, t);
+          g3.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.15);
+          o3.start(t); o3.stop(t + dec * 0.15 + 0.02);
+          // Strike
+          const buf = createNoiseBuffer(c, 'pink', 0.01);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1800, t); bp.Q.setValueAtTime(0.8, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Ascending bell pair — low then high
+[{t:0, freq:800, dec:0.6}, {t:0.18, freq:1100, dec:0.7}].forEach(({t: offset, freq, dec}) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.25, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+  o.start(t); o.stop(t + dec + 0.02);
+});`,
+    },
+    {
+      name: 'Timer Rise Soft',
+      desc: 'Gentle ascending bells — wider interval',
+      technique: 'bell 680Hz→1020Hz, triangle warmth, 1.1s',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Wider interval (perfect fifth), softer attack
+        [{ t: 0, freq: 680, vol: 0.2, dec: 0.7 }, { t: 0.22, freq: 1020, vol: 0.22, dec: 0.9 }].forEach(({ t: offset, freq, vol, dec }) => {
+          const t = now + offset;
+          // Bell fundamental
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + dec);
+          g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+          o1.start(t); o1.stop(t + dec + 0.02);
+          // Triangle warmth sub
+          const o2 = c.createOscillator(); o2.type = 'triangle';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq / 2, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.06, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.5);
+          o2.start(t); o2.stop(t + dec * 0.5 + 0.02);
+          // Inharmonic partial
+          const o3 = c.createOscillator(); o3.type = 'sine';
+          const g3 = c.createGain();
+          o3.connect(g3); g3.connect(getAnalyser());
+          o3.frequency.setValueAtTime(freq * 2.76, t);
+          g3.gain.setValueAtTime(0, now); g3.gain.setValueAtTime(0.03, t);
+          g3.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.25);
+          o3.start(t); o3.stop(t + dec * 0.25 + 0.02);
+          // Soft mallet
+          const buf = createNoiseBuffer(c, 'brown', 0.015);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(1000, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
+          src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Gentle ascending bells — perfect fifth
+[{t:0, freq:680, dec:0.7}, {t:0.22, freq:1020, dec:0.9}].forEach(({t: offset, freq, dec}) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.2, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+  o.start(t); o.stop(t + dec + 0.02);
+});`,
+    },
+    {
+      name: 'Timer Rise Bright',
+      desc: 'Bright ascending bell pair — close interval',
+      technique: 'bell 1000Hz→1200Hz, shimmer partials, 700ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Closer interval (major third feel), brighter
+        [{ t: 0, freq: 1000, vol: 0.22, dec: 0.5 }, { t: 0.15, freq: 1200, vol: 0.25, dec: 0.6 }].forEach(({ t: offset, freq, vol, dec }) => {
+          const t = now + offset;
+          // Bell fundamental
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, t + dec);
+          g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+          o1.start(t); o1.stop(t + dec + 0.02);
+          // Inharmonic partial 1
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq * 2.76, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.06, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.3);
+          o2.start(t); o2.stop(t + dec * 0.3 + 0.02);
+          // High shimmer
+          const o3 = c.createOscillator(); o3.type = 'sine';
+          const g3 = c.createGain();
+          o3.connect(g3); g3.connect(getAnalyser());
+          o3.frequency.setValueAtTime(freq * 5.4, t);
+          g3.gain.setValueAtTime(0, now); g3.gain.setValueAtTime(0.02, t);
+          g3.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.12);
+          o3.start(t); o3.stop(t + dec * 0.12 + 0.02);
+          // Strike
+          const buf = createNoiseBuffer(c, 'pink', 0.008);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2500, t); bp.Q.setValueAtTime(0.8, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.006);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Bright ascending bells — close interval
+[{t:0, freq:1000, dec:0.5}, {t:0.15, freq:1200, dec:0.6}].forEach(({t: offset, freq, dec}) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+  o.start(t); o.stop(t + dec + 0.02);
+});`,
+    },
+    {
+      name: 'Timer Bowl',
+      desc: 'Singing bowl — two close frequencies beat together',
+      technique: 'sine 520Hz + 524Hz beating, triangle sub, 1.8s',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Two close frequencies create a gentle beating/pulsing
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain();
+        o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(520, now);
+        g1.gain.setValueAtTime(0.2, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+        o1.start(now); o1.stop(now + 1.82);
+        // Second voice — 4Hz beating
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain();
+        o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(524, now);
+        g2.gain.setValueAtTime(0.2, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+        o2.start(now); o2.stop(now + 1.82);
+        // Low triangle warmth
+        const o3 = c.createOscillator(); o3.type = 'triangle';
+        const g3 = c.createGain();
+        o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(260, now);
+        g3.gain.setValueAtTime(0.08, now);
+        g3.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        o3.start(now); o3.stop(now + 1.02);
+        // Mallet strike
+        const buf = createNoiseBuffer(c, 'brown', 0.025);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(800, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.12, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Two close frequencies — beating effect
+const o1 = ctx.createOscillator(); o1.type = 'sine';
+const g1 = ctx.createGain();
+o1.connect(g1); g1.connect(ctx.destination);
+o1.frequency.setValueAtTime(520, now);
+g1.gain.setValueAtTime(0.2, now);
+g1.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+o1.start(now); o1.stop(now + 1.82);
+const o2 = ctx.createOscillator(); o2.type = 'sine';
+const g2 = ctx.createGain();
+o2.connect(g2); g2.connect(ctx.destination);
+o2.frequency.setValueAtTime(524, now);
+g2.gain.setValueAtTime(0.2, now);
+g2.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+o2.start(now); o2.stop(now + 1.82);`,
+    },
+    {
+      name: 'Timer Chime',
+      desc: 'Doorbell ding-dong — two-note descending',
+      technique: 'sine 880Hz→660Hz, warm partials, 800ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Ding — higher note
+        [{ t: 0, freq: 880, vol: 0.22, dec: 0.4 }, { t: 0.25, freq: 660, vol: 0.25, dec: 0.55 }].forEach(({ t: offset, freq, vol, dec }) => {
+          const t = now + offset;
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + dec);
+          g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+          o1.start(t); o1.stop(t + dec + 0.02);
+          // Warm partial
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq * 2.76, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.035, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.3);
+          o2.start(t); o2.stop(t + dec * 0.3 + 0.02);
+          // Soft strike
+          const buf = createNoiseBuffer(c, 'pink', 0.01);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1500, t); bp.Q.setValueAtTime(0.8, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Ding-dong — descending two-note chime
+[{t:0, freq:880, dec:0.4}, {t:0.25, freq:660, dec:0.55}].forEach(({t: offset, freq, dec}) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+  o.start(t); o.stop(t + dec + 0.02);
+});`,
+    },
+    {
+      name: 'Timer Triple',
+      desc: 'Three gentle descending dings — done!',
+      technique: 'sine 1050→940→840Hz, soft bells, 900ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Three descending gentle dings
+        [{ t: 0, freq: 1050 }, { t: 0.2, freq: 940 }, { t: 0.4, freq: 840 }].forEach(({ t: offset, freq }) => {
+          const t = now + offset;
+          const o1 = c.createOscillator(); o1.type = 'sine';
+          const g1 = c.createGain();
+          o1.connect(g1); g1.connect(getAnalyser());
+          o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + 0.5);
+          g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(0.2, t);
+          g1.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o1.start(t); o1.stop(t + 0.52);
+          // Overtone
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain();
+          o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq * 2.76, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.03, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          o2.start(t); o2.stop(t + 0.17);
+          // Soft tap
+          const buf = createNoiseBuffer(c, 'pink', 0.008);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1800, t); bp.Q.setValueAtTime(0.8, t);
+          const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.006);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        });
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Three descending gentle bells
+[{t:0, freq:1050}, {t:0.2, freq:940}, {t:0.4, freq:840}].forEach(({t: offset, freq}) => {
+  const t = now + offset;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.2, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o.start(t); o.stop(t + 0.52);
+});`,
+    },
+    {
+      name: 'Timer Mallet',
+      desc: 'Soft mallet on a resonant bar — xylophone',
+      technique: 'sine 900Hz + triangle sub, brown noise thump, 600ms',
+      play: () => {
+        const c = getCtx(); const now = c.currentTime;
+        // Resonant bar — bright but warm
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain();
+        o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(900, now);
+        o1.frequency.exponentialRampToValueAtTime(895, now + 0.6);
+        g1.gain.setValueAtTime(0.25, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        o1.start(now); o1.stop(now + 0.62);
+        // Octave above — bar resonance has strong 2nd partial
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain();
+        o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(1800, now);
+        g2.gain.setValueAtTime(0.08, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        o2.start(now); o2.stop(now + 0.22);
+        // Triangle sub — body
+        const o3 = c.createOscillator(); o3.type = 'triangle';
+        const g3 = c.createGain();
+        o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(450, now);
+        g3.gain.setValueAtTime(0.06, now);
+        g3.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        o3.start(now); o3.stop(now + 0.37);
+        // Mallet thump — soft, warm transient
+        const buf = createNoiseBuffer(c, 'brown', 0.03);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.15, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+        src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      },
+      code: `const ctx = new AudioContext();
+const now = ctx.currentTime;
+// Resonant bar
+const o1 = ctx.createOscillator(); o1.type = 'sine';
+const g1 = ctx.createGain();
+o1.connect(g1); g1.connect(ctx.destination);
+o1.frequency.setValueAtTime(900, now);
+g1.gain.setValueAtTime(0.25, now);
+g1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+o1.start(now); o1.stop(now + 0.62);
+// Strong 2nd partial
+const o2 = ctx.createOscillator(); o2.type = 'sine';
+const g2 = ctx.createGain();
+o2.connect(g2); g2.connect(ctx.destination);
+o2.frequency.setValueAtTime(1800, now);
+g2.gain.setValueAtTime(0.08, now);
+g2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+o2.start(now); o2.stop(now + 0.22);`,
     },
     {
       name: 'Hum',
@@ -2780,27 +3638,55 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
   'Sparkle Rising': {
     tunables: [
       { key: 'wave', label: 'Waveform', type: 'select', options: ['sine', 'triangle', 'square', 'sawtooth'], default: 'sine' },
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['pink', 'white', 'brown'], default: 'pink' },
       { key: 'freq1', label: 'Note 1', min: 400, max: 2000, step: 50, default: 1047, unit: 'Hz' },
       { key: 'freq2', label: 'Note 2', min: 600, max: 2500, step: 50, default: 1318, unit: 'Hz' },
       { key: 'freq3', label: 'Note 3', min: 800, max: 3000, step: 50, default: 1568, unit: 'Hz' },
       { key: 'freq4', label: 'Note 4', min: 1000, max: 4000, step: 50, default: 2093, unit: 'Hz' },
-      { key: 'gap', label: 'Gap', min: 0.02, max: 0.15, step: 0.01, default: 0.06, unit: 's' },
-      { key: 'vol', label: 'Volume', min: 0.02, max: 0.3, step: 0.01, default: 0.1 },
-      { key: 'decay', label: 'Decay', min: 0.05, max: 0.4, step: 0.01, default: 0.18, unit: 's' },
+      { key: 'gap', label: 'Gap', min: 0.03, max: 0.15, step: 0.005, default: 0.07, unit: 's' },
+      { key: 'detune', label: 'Detune', min: 0, max: 20, step: 1, default: 6, unit: 'Hz' },
+      { key: 'chorusVol', label: 'Chorus mix', min: 0, max: 0.15, step: 0.005, default: 0.05 },
+      { key: 'noiseVol', label: 'Noise mix', min: 0, max: 0.3, step: 0.01, default: 0.1 },
+      { key: 'noiseQ', label: 'Noise Q', min: 0.3, max: 5, step: 0.1, default: 1.2 },
+      { key: 'vol', label: 'Volume', min: 0.02, max: 0.3, step: 0.005, default: 0.09 },
+      { key: 'decay', label: 'Decay', min: 0.1, max: 0.5, step: 0.01, default: 0.25, unit: 's' },
     ],
     playTuned: (p) => {
       const c = getCtx(); const now = c.currentTime;
       const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      const det = N(p.detune); const chVol = N(p.chorusVol); const nVol = N(p.noiseVol);
       [N(p.freq1), N(p.freq2), N(p.freq3), N(p.freq4)].forEach((freq, i) => {
-        const o = c.createOscillator(); o.type = String(p.wave) as OscillatorType;
-        const g = c.createGain();
-        o.connect(g); g.connect(getAnalyser());
         const t = now + i * gap;
-        o.frequency.setValueAtTime(freq, t);
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(vol + i * (vol * 0.2), t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
-        o.start(t); o.stop(t + dec + 0.02);
+        // Main voice
+        const o1 = c.createOscillator(); o1.type = String(p.wave) as OscillatorType;
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t);
+        g1.gain.setValueAtTime(0, now);
+        g1.gain.linearRampToValueAtTime(vol + i * (vol * 0.15), t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o1.start(t); o1.stop(t + dec + 0.03);
+        // Detuned chorus
+        if (det > 0 && chVol > 0) {
+          const o2 = c.createOscillator(); o2.type = String(p.wave) as OscillatorType;
+          const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq + det, t);
+          g2.gain.setValueAtTime(0, now);
+          g2.gain.linearRampToValueAtTime(chVol + i * (chVol * 0.15), t + 0.01);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.88);
+          o2.start(t); o2.stop(t + dec);
+        }
+        // Noise texture
+        if (nVol > 0) {
+          const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.12);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(freq, t); bp.Q.setValueAtTime(N(p.noiseQ), t);
+          const gn = c.createGain();
+          gn.gain.setValueAtTime(0, now);
+          gn.gain.linearRampToValueAtTime(nVol, t + 0.005);
+          gn.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        }
       });
     },
   },
@@ -2856,6 +3742,569 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
         g.gain.exponentialRampToValueAtTime(0.001, t + dec);
         o.start(t); o.stop(t + dec + 0.02);
       });
+    },
+  },
+  'Sparkle Dust': {
+    tunables: [
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['pink', 'white', 'brown'], default: 'pink' },
+      { key: 'freq1', label: 'Band 1', min: 1500, max: 6000, step: 100, default: 3200, unit: 'Hz' },
+      { key: 'freq2', label: 'Band 2', min: 1000, max: 5000, step: 100, default: 2400, unit: 'Hz' },
+      { key: 'freq3', label: 'Band 3', min: 800, max: 4000, step: 100, default: 1800, unit: 'Hz' },
+      { key: 'freq4', label: 'Band 4', min: 500, max: 3000, step: 100, default: 1200, unit: 'Hz' },
+      { key: 'q', label: 'Q', min: 1, max: 10, step: 0.5, default: 4 },
+      { key: 'gap', label: 'Gap', min: 0.03, max: 0.15, step: 0.005, default: 0.065, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.6, step: 0.02, default: 0.25 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const q = N(p.q);
+      [N(p.freq1), N(p.freq2), N(p.freq3), N(p.freq4)].forEach((freq, i) => {
+        const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.06);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(freq, now); bp.Q.setValueAtTime(q, now);
+        const g = c.createGain();
+        const t = now + i * gap;
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(vol, t + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+        src.connect(bp); bp.connect(g); g.connect(getAnalyser());
+        src.start(t);
+      });
+    },
+  },
+  'Sparkle Crackle': {
+    tunables: [
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['brown', 'pink', 'white'], default: 'brown' },
+      { key: 'pingWave', label: 'Ping wave', type: 'select', options: ['triangle', 'sine', 'square'], default: 'triangle' },
+      { key: 'lpFreq', label: 'LP cutoff', min: 800, max: 4000, step: 100, default: 1800, unit: 'Hz' },
+      { key: 'popVol', label: 'Pop vol', min: 0.1, max: 0.7, step: 0.02, default: 0.35 },
+      { key: 'pingVol', label: 'Ping vol', min: 0.01, max: 0.15, step: 0.005, default: 0.04 },
+      { key: 'gap', label: 'Gap', min: 0.04, max: 0.15, step: 0.005, default: 0.07, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const popVol = N(p.popVol); const pingVol = N(p.pingVol);
+      const lpBase = N(p.lpFreq);
+      [0, 1, 2, 3].forEach((i) => {
+        const t = now + i * gap;
+        const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.035);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(lpBase + i * 400, t);
+        const g1 = c.createGain(); g1.gain.setValueAtTime(popVol, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+        src.connect(lp); lp.connect(g1); g1.connect(getAnalyser()); src.start(t);
+        const o = c.createOscillator(); o.type = String(p.pingWave) as OscillatorType;
+        const g2 = c.createGain(); o.connect(g2); g2.connect(getAnalyser());
+        o.frequency.setValueAtTime([1800, 1400, 1100, 900][i], t);
+        g2.gain.setValueAtTime(pingVol, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        o.start(t); o.stop(t + 0.1);
+      });
+    },
+  },
+  'Sparkle Fizz': {
+    tunables: [
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
+      { key: 'q', label: 'Q', min: 0.5, max: 6, step: 0.25, default: 2.5 },
+      { key: 'freqStart', label: 'Freq start', min: 600, max: 3000, step: 100, default: 1200, unit: 'Hz' },
+      { key: 'freqPeak', label: 'Freq peak', min: 2000, max: 10000, step: 200, default: 6000, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 800, max: 5000, step: 100, default: 2000, unit: 'Hz' },
+      { key: 'dur', label: 'Duration', min: 0.15, max: 0.5, step: 0.01, default: 0.3, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.6, step: 0.02, default: 0.3 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const dur = N(p.dur); const vol = N(p.vol);
+      const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, dur);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.setValueAtTime(N(p.q), now);
+      bp.frequency.setValueAtTime(N(p.freqStart), now);
+      bp.frequency.exponentialRampToValueAtTime(Math.max(N(p.freqPeak), 20), now + dur * 0.67);
+      bp.frequency.exponentialRampToValueAtTime(Math.max(N(p.freqEnd), 20), now + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(vol, now + 0.015);
+      g.gain.setValueAtTime(vol, now + dur * 0.17);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.93);
+      src.connect(bp); bp.connect(g); g.connect(getAnalyser()); src.start(now);
+    },
+  },
+  'Timer Ding': {
+    tunables: [
+      { key: 'freq', label: 'Bell freq', min: 400, max: 2000, step: 10, default: 1050, unit: 'Hz' },
+      { key: 'overtoneRatio', label: 'Overtone ratio', min: 1.5, max: 6, step: 0.1, default: 2.76 },
+      { key: 'overtoneVol', label: 'Overtone vol', min: 0, max: 0.15, step: 0.005, default: 0.06 },
+      { key: 'hitVol', label: 'Strike vol', min: 0, max: 0.3, step: 0.01, default: 0.12 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.6, step: 0.01, default: 0.3 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 2, step: 0.05, default: 0.8, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const dec = N(p.decay);
+      const o1 = c.createOscillator(); o1.type = 'sine';
+      const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+      o1.frequency.setValueAtTime(freq, now); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, now + dec);
+      g1.gain.setValueAtTime(N(p.vol), now); g1.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o1.start(now); o1.stop(now + dec + 0.02);
+      if (N(p.overtoneVol) > 0) {
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * N(p.overtoneRatio), now);
+        g2.gain.setValueAtTime(N(p.overtoneVol), now); g2.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.4);
+        o2.start(now); o2.stop(now + dec * 0.4 + 0.02);
+      }
+      if (N(p.hitVol) > 0) {
+        const buf = createNoiseBuffer(c, 'pink', 0.012);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2000, now); bp.Q.setValueAtTime(1, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(N(p.hitVol), now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      }
+    },
+  },
+  'Timer Double': {
+    tunables: [
+      { key: 'freq', label: 'Bell freq', min: 400, max: 2000, step: 10, default: 1050, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.1, max: 0.5, step: 0.01, default: 0.22, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.6, step: 0.01, default: 0.25 },
+      { key: 'decay', label: 'Decay', min: 0.1, max: 1, step: 0.01, default: 0.5, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [0, gap].forEach((offset) => {
+        const t = now + offset;
+        const o = c.createOscillator(); o.type = 'sine';
+        const g = c.createGain(); o.connect(g); g.connect(getAnalyser());
+        o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.99, t + dec);
+        g.gain.setValueAtTime(0, now); g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o.start(t); o.stop(t + dec + 0.02);
+        // Overtone
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * 2.76, t);
+        g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.04, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.3);
+        o2.start(t); o2.stop(t + dec * 0.3 + 0.02);
+        // Soft strike
+        const buf = createNoiseBuffer(c, 'pink', 0.01);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2000, t); bp.Q.setValueAtTime(1, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+  'Timer Trill': {
+    tunables: [
+      { key: 'freq', label: 'Bell freq', min: 600, max: 2000, step: 10, default: 1200, unit: 'Hz' },
+      { key: 'count', label: 'Rings', min: 4, max: 12, step: 1, default: 8 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.2 },
+      { key: 'volDecay', label: 'Vol decay', min: 0, max: 0.03, step: 0.002, default: 0.018 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const vol = N(p.vol); const vDec = N(p.volDecay);
+      const count = Math.round(N(p.count));
+      // Generate decelerating gaps
+      const gaps: number[] = [0];
+      let t = 0;
+      for (let i = 1; i < count; i++) { t += 0.05 + i * 0.012; gaps.push(t); }
+      gaps.forEach((offset, i) => {
+        const st = now + offset;
+        const o = c.createOscillator(); o.type = 'sine';
+        const g = c.createGain(); o.connect(g); g.connect(getAnalyser());
+        o.frequency.setValueAtTime(freq, st);
+        g.gain.setValueAtTime(0, now); g.gain.setValueAtTime(Math.max(0.05, vol - i * vDec), st);
+        g.gain.exponentialRampToValueAtTime(0.001, st + 0.08);
+        o.start(st); o.stop(st + 0.1);
+        // Overtone
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * 2.76, st);
+        g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(Math.max(0.01, 0.04 - i * 0.004), st);
+        g2.gain.exponentialRampToValueAtTime(0.001, st + 0.04);
+        o2.start(st); o2.stop(st + 0.06);
+        // Mechanical click
+        const buf = createNoiseBuffer(c, 'white', 0.003);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(3000, st);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, st); gn.gain.exponentialRampToValueAtTime(0.001, st + 0.003);
+        src.connect(hp); hp.connect(gn); gn.connect(getAnalyser()); src.start(st);
+      });
+    },
+  },
+  'Timer Gentle': {
+    tunables: [
+      { key: 'freq', label: 'Bell freq', min: 300, max: 1200, step: 10, default: 680, unit: 'Hz' },
+      { key: 'warmth', label: 'Warmth', min: 0, max: 0.2, step: 0.01, default: 0.1 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.25 },
+      { key: 'decay', label: 'Decay', min: 0.4, max: 2.5, step: 0.05, default: 1.2, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const dec = N(p.decay); const vol = N(p.vol);
+      // Bell fundamental
+      const o1 = c.createOscillator(); o1.type = 'sine';
+      const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+      o1.frequency.setValueAtTime(freq, now); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, now + dec);
+      g1.gain.setValueAtTime(vol, now); g1.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o1.start(now); o1.stop(now + dec + 0.02);
+      // Triangle warmth undertone
+      if (N(p.warmth) > 0) {
+        const o2 = c.createOscillator(); o2.type = 'triangle';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq / 2, now);
+        g2.gain.setValueAtTime(N(p.warmth), now); g2.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.65);
+        o2.start(now); o2.stop(now + dec * 0.65 + 0.02);
+      }
+      // Shimmer partial
+      const o3 = c.createOscillator(); o3.type = 'sine';
+      const g3 = c.createGain(); o3.connect(g3); g3.connect(getAnalyser());
+      o3.frequency.setValueAtTime(freq * 3.2, now);
+      g3.gain.setValueAtTime(0.03, now); g3.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.3);
+      o3.start(now); o3.stop(now + dec * 0.3 + 0.02);
+      // Soft mallet
+      const buf = createNoiseBuffer(c, 'brown', 0.02);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(1200, now);
+      const gn = c.createGain(); gn.gain.setValueAtTime(0.1, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+      src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+    },
+  },
+  'Timer Beep': {
+    tunables: [
+      { key: 'freq', label: 'Beep freq', min: 800, max: 3000, step: 50, default: 1800, unit: 'Hz' },
+      { key: 'count', label: 'Beeps', min: 1, max: 5, step: 1, default: 3 },
+      { key: 'gap', label: 'Gap', min: 0.08, max: 0.3, step: 0.01, default: 0.15, unit: 's' },
+      { key: 'beepLen', label: 'Beep length', min: 0.03, max: 0.12, step: 0.005, default: 0.06, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.4, step: 0.01, default: 0.15 },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const gap = N(p.gap); const vol = N(p.vol); const bLen = N(p.beepLen);
+      const count = Math.round(N(p.count));
+      for (let i = 0; i < count; i++) {
+        const t = now + i * gap;
+        const o = c.createOscillator(); o.type = 'square';
+        const g = c.createGain();
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(3000, t);
+        o.connect(lp); lp.connect(g); g.connect(getAnalyser());
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, now); g.gain.setValueAtTime(vol, t);
+        g.gain.setValueAtTime(vol, t + bLen);
+        g.gain.exponentialRampToValueAtTime(0.001, t + bLen + 0.005);
+        o.start(t); o.stop(t + bLen + 0.01);
+      }
+    },
+  },
+  'Timer Spoon': {
+    tunables: [
+      { key: 'freq', label: 'Ceramic freq', min: 800, max: 2500, step: 10, default: 1400, unit: 'Hz' },
+      { key: 'partialRatio', label: 'Partial ratio', min: 1.2, max: 2.5, step: 0.05, default: 1.47 },
+      { key: 'thunkVol', label: 'Thunk vol', min: 0, max: 0.4, step: 0.01, default: 0.2 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.2 },
+      { key: 'decay', label: 'Decay', min: 0.1, max: 0.8, step: 0.02, default: 0.3, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const dec = N(p.decay); const vol = N(p.vol);
+      // Main resonance
+      const o1 = c.createOscillator(); o1.type = 'sine';
+      const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+      o1.frequency.setValueAtTime(freq, now); o1.frequency.exponentialRampToValueAtTime(freq * 0.96, now + dec);
+      g1.gain.setValueAtTime(vol, now); g1.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o1.start(now); o1.stop(now + dec + 0.02);
+      // Second partial
+      const o2 = c.createOscillator(); o2.type = 'sine';
+      const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+      o2.frequency.setValueAtTime(freq * N(p.partialRatio), now);
+      g2.gain.setValueAtTime(vol * 0.5, now); g2.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.4);
+      o2.start(now); o2.stop(now + dec * 0.4 + 0.02);
+      // Thunk
+      if (N(p.thunkVol) > 0) {
+        const buf = createNoiseBuffer(c, 'pink', 0.015);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(800, now); bp.Q.setValueAtTime(0.8, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(N(p.thunkVol), now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      }
+    },
+  },
+  'Timer Rise': {
+    tunables: [
+      { key: 'freq1', label: 'Low bell', min: 400, max: 1200, step: 10, default: 800, unit: 'Hz' },
+      { key: 'freq2', label: 'High bell', min: 600, max: 1600, step: 10, default: 1100, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.1, max: 0.4, step: 0.01, default: 0.18, unit: 's' },
+      { key: 'overtoneVol', label: 'Overtone', min: 0, max: 0.12, step: 0.005, default: 0.05 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.25 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 1.5, step: 0.05, default: 0.65, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay); const otVol = N(p.overtoneVol);
+      [{ t: 0, freq: N(p.freq1), d: dec * 0.9 }, { t: gap, freq: N(p.freq2), d: dec }].forEach(({ t: offset, freq, d }) => {
+        const t = now + offset;
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, t + d);
+        g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + d);
+        o1.start(t); o1.stop(t + d + 0.02);
+        if (otVol > 0) {
+          const o2 = c.createOscillator(); o2.type = 'sine';
+          const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq * 2.76, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(otVol, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + d * 0.35);
+          o2.start(t); o2.stop(t + d * 0.35 + 0.02);
+        }
+        const buf = createNoiseBuffer(c, 'pink', 0.01);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1800, t); bp.Q.setValueAtTime(0.8, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+  'Timer Rise Soft': {
+    tunables: [
+      { key: 'freq1', label: 'Low bell', min: 300, max: 1000, step: 10, default: 680, unit: 'Hz' },
+      { key: 'freq2', label: 'High bell', min: 500, max: 1500, step: 10, default: 1020, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.12, max: 0.5, step: 0.01, default: 0.22, unit: 's' },
+      { key: 'warmth', label: 'Warmth', min: 0, max: 0.12, step: 0.01, default: 0.06 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.2 },
+      { key: 'decay', label: 'Decay', min: 0.3, max: 1.8, step: 0.05, default: 0.8, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay); const warm = N(p.warmth);
+      [{ t: 0, freq: N(p.freq1), d: dec * 0.85 }, { t: gap, freq: N(p.freq2), d: dec }].forEach(({ t: offset, freq, d }) => {
+        const t = now + offset;
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + d);
+        g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + d);
+        o1.start(t); o1.stop(t + d + 0.02);
+        // Triangle warmth sub
+        if (warm > 0) {
+          const o2 = c.createOscillator(); o2.type = 'triangle';
+          const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+          o2.frequency.setValueAtTime(freq / 2, t);
+          g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(warm, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + d * 0.5);
+          o2.start(t); o2.stop(t + d * 0.5 + 0.02);
+        }
+        // Inharmonic partial
+        const o3 = c.createOscillator(); o3.type = 'sine';
+        const g3 = c.createGain(); o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(freq * 2.76, t);
+        g3.gain.setValueAtTime(0, now); g3.gain.setValueAtTime(0.03, t);
+        g3.gain.exponentialRampToValueAtTime(0.001, t + d * 0.25);
+        o3.start(t); o3.stop(t + d * 0.25 + 0.02);
+        // Mallet
+        const buf = createNoiseBuffer(c, 'brown', 0.015);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(1000, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
+        src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+  'Timer Rise Bright': {
+    tunables: [
+      { key: 'freq1', label: 'Low bell', min: 600, max: 1400, step: 10, default: 1000, unit: 'Hz' },
+      { key: 'freq2', label: 'High bell', min: 800, max: 1800, step: 10, default: 1200, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.08, max: 0.3, step: 0.01, default: 0.15, unit: 's' },
+      { key: 'shimmer', label: 'Shimmer', min: 0, max: 0.05, step: 0.005, default: 0.02 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.22 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 1.2, step: 0.05, default: 0.55, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay); const shim = N(p.shimmer);
+      [{ t: 0, freq: N(p.freq1), d: dec * 0.9 }, { t: gap, freq: N(p.freq2), d: dec }].forEach(({ t: offset, freq, d }) => {
+        const t = now + offset;
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.99, t + d);
+        g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + d);
+        o1.start(t); o1.stop(t + d + 0.02);
+        // Inharmonic partial
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * 2.76, t);
+        g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.06, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + d * 0.3);
+        o2.start(t); o2.stop(t + d * 0.3 + 0.02);
+        // High shimmer
+        if (shim > 0) {
+          const o3 = c.createOscillator(); o3.type = 'sine';
+          const g3 = c.createGain(); o3.connect(g3); g3.connect(getAnalyser());
+          o3.frequency.setValueAtTime(freq * 5.4, t);
+          g3.gain.setValueAtTime(0, now); g3.gain.setValueAtTime(shim, t);
+          g3.gain.exponentialRampToValueAtTime(0.001, t + d * 0.12);
+          o3.start(t); o3.stop(t + d * 0.12 + 0.02);
+        }
+        // Strike
+        const buf = createNoiseBuffer(c, 'pink', 0.008);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2500, t); bp.Q.setValueAtTime(0.8, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.1, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.006);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+
+  'Timer Bowl': {
+    tunables: [
+      { key: 'freq', label: 'Bowl freq', min: 300, max: 900, step: 5, default: 520, unit: 'Hz' },
+      { key: 'beating', label: 'Beat rate', min: 1, max: 8, step: 0.5, default: 4, unit: 'Hz' },
+      { key: 'warmth', label: 'Warmth', min: 0, max: 0.15, step: 0.01, default: 0.08 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.2 },
+      { key: 'decay', label: 'Decay', min: 0.5, max: 3, step: 0.1, default: 1.8, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const beat = N(p.beating); const dec = N(p.decay); const vol = N(p.vol);
+      // Two close frequencies — beating
+      const o1 = c.createOscillator(); o1.type = 'sine';
+      const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+      o1.frequency.setValueAtTime(freq, now);
+      g1.gain.setValueAtTime(vol, now); g1.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o1.start(now); o1.stop(now + dec + 0.02);
+      const o2 = c.createOscillator(); o2.type = 'sine';
+      const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+      o2.frequency.setValueAtTime(freq + beat, now);
+      g2.gain.setValueAtTime(vol, now); g2.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o2.start(now); o2.stop(now + dec + 0.02);
+      // Triangle warmth sub
+      if (N(p.warmth) > 0) {
+        const o3 = c.createOscillator(); o3.type = 'triangle';
+        const g3 = c.createGain(); o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(freq / 2, now);
+        g3.gain.setValueAtTime(N(p.warmth), now); g3.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.55);
+        o3.start(now); o3.stop(now + dec * 0.55 + 0.02);
+      }
+      // Mallet
+      const buf = createNoiseBuffer(c, 'brown', 0.025);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(800, now);
+      const gn = c.createGain(); gn.gain.setValueAtTime(0.12, now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+    },
+  },
+  'Timer Chime': {
+    tunables: [
+      { key: 'freq1', label: 'Ding freq', min: 500, max: 1500, step: 10, default: 880, unit: 'Hz' },
+      { key: 'freq2', label: 'Dong freq', min: 400, max: 1200, step: 10, default: 660, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.12, max: 0.5, step: 0.01, default: 0.25, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.22 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 1.2, step: 0.05, default: 0.55, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [{ t: 0, freq: N(p.freq1), d: dec * 0.73 }, { t: gap, freq: N(p.freq2), d: dec }].forEach(({ t: offset, freq, d }) => {
+        const t = now + offset;
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + d);
+        g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + d);
+        o1.start(t); o1.stop(t + d + 0.02);
+        // Warm partial
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * 2.76, t);
+        g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.035, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + d * 0.3);
+        o2.start(t); o2.stop(t + d * 0.3 + 0.02);
+        // Soft strike
+        const buf = createNoiseBuffer(c, 'pink', 0.01);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1500, t); bp.Q.setValueAtTime(0.8, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+  'Timer Triple': {
+    tunables: [
+      { key: 'freq1', label: 'Note 1', min: 600, max: 1500, step: 10, default: 1050, unit: 'Hz' },
+      { key: 'freq2', label: 'Note 2', min: 500, max: 1400, step: 10, default: 940, unit: 'Hz' },
+      { key: 'freq3', label: 'Note 3', min: 400, max: 1200, step: 10, default: 840, unit: 'Hz' },
+      { key: 'gap', label: 'Gap', min: 0.1, max: 0.4, step: 0.01, default: 0.2, unit: 's' },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.2 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 1, step: 0.05, default: 0.5, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      [N(p.freq1), N(p.freq2), N(p.freq3)].forEach((freq, i) => {
+        const t = now + i * gap;
+        const o1 = c.createOscillator(); o1.type = 'sine';
+        const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+        o1.frequency.setValueAtTime(freq, t); o1.frequency.exponentialRampToValueAtTime(freq * 0.995, t + dec);
+        g1.gain.setValueAtTime(0, now); g1.gain.setValueAtTime(vol, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o1.start(t); o1.stop(t + dec + 0.02);
+        // Overtone
+        const o2 = c.createOscillator(); o2.type = 'sine';
+        const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+        o2.frequency.setValueAtTime(freq * 2.76, t);
+        g2.gain.setValueAtTime(0, now); g2.gain.setValueAtTime(0.03, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + dec * 0.3);
+        o2.start(t); o2.stop(t + dec * 0.3 + 0.02);
+        // Soft tap
+        const buf = createNoiseBuffer(c, 'pink', 0.008);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1800, t); bp.Q.setValueAtTime(0.8, t);
+        const gn = c.createGain(); gn.gain.setValueAtTime(0, now); gn.gain.setValueAtTime(0.08, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.006);
+        src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+      });
+    },
+  },
+  'Timer Mallet': {
+    tunables: [
+      { key: 'freq', label: 'Bar freq', min: 500, max: 1500, step: 10, default: 900, unit: 'Hz' },
+      { key: 'body', label: 'Body', min: 0, max: 0.12, step: 0.01, default: 0.06 },
+      { key: 'thumpVol', label: 'Thump vol', min: 0, max: 0.3, step: 0.01, default: 0.15 },
+      { key: 'vol', label: 'Volume', min: 0.05, max: 0.5, step: 0.01, default: 0.25 },
+      { key: 'decay', label: 'Decay', min: 0.2, max: 1.2, step: 0.05, default: 0.6, unit: 's' },
+    ],
+    playTuned: (p) => {
+      const c = getCtx(); const now = c.currentTime;
+      const freq = N(p.freq); const dec = N(p.decay); const vol = N(p.vol);
+      // Main resonance
+      const o1 = c.createOscillator(); o1.type = 'sine';
+      const g1 = c.createGain(); o1.connect(g1); g1.connect(getAnalyser());
+      o1.frequency.setValueAtTime(freq, now); o1.frequency.exponentialRampToValueAtTime(freq * 0.994, now + dec);
+      g1.gain.setValueAtTime(vol, now); g1.gain.exponentialRampToValueAtTime(0.001, now + dec);
+      o1.start(now); o1.stop(now + dec + 0.02);
+      // 2nd partial — octave
+      const o2 = c.createOscillator(); o2.type = 'sine';
+      const g2 = c.createGain(); o2.connect(g2); g2.connect(getAnalyser());
+      o2.frequency.setValueAtTime(freq * 2, now);
+      g2.gain.setValueAtTime(0.08, now); g2.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.33);
+      o2.start(now); o2.stop(now + dec * 0.33 + 0.02);
+      // Triangle sub — body
+      if (N(p.body) > 0) {
+        const o3 = c.createOscillator(); o3.type = 'triangle';
+        const g3 = c.createGain(); o3.connect(g3); g3.connect(getAnalyser());
+        o3.frequency.setValueAtTime(freq / 2, now);
+        g3.gain.setValueAtTime(N(p.body), now); g3.gain.exponentialRampToValueAtTime(0.001, now + dec * 0.6);
+        o3.start(now); o3.stop(now + dec * 0.6 + 0.02);
+      }
+      // Mallet thump
+      if (N(p.thumpVol) > 0) {
+        const buf = createNoiseBuffer(c, 'brown', 0.03);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, now);
+        const gn = c.createGain(); gn.gain.setValueAtTime(N(p.thumpVol), now); gn.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+        src.connect(lp); lp.connect(gn); gn.connect(getAnalyser()); src.start(now);
+      }
     },
   },
 
@@ -2914,8 +4363,8 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
 
   'Tick Sharp': {
     tunables: [
-      { key: 'freqStart', label: 'Freq start', min: 500, max: 1200, step: 10, default: 720, unit: 'Hz' },
-      { key: 'freqEnd', label: 'Freq end', min: 300, max: 900, step: 10, default: 600, unit: 'Hz' },
+      { key: 'freqStart', label: 'Freq start', min: 500, max: 1500, step: 10, default: 990, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 300, max: 1000, step: 10, default: 660, unit: 'Hz' },
       { key: 'dur', label: 'Duration', min: 0.003, max: 0.02, step: 0.001, default: 0.008, unit: 's' },
       { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
       { key: 'noiseMix', label: 'Noise mix', min: 0.03, max: 0.25, step: 0.01, default: 0.1 },
@@ -2937,8 +4386,8 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
   },
   'Tick Sharp Low': {
     tunables: [
-      { key: 'freqStart', label: 'Freq start', min: 300, max: 800, step: 10, default: 504, unit: 'Hz' },
-      { key: 'freqEnd', label: 'Freq end', min: 200, max: 600, step: 10, default: 420, unit: 'Hz' },
+      { key: 'freqStart', label: 'Freq start', min: 300, max: 1000, step: 10, default: 660, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 200, max: 700, step: 10, default: 440, unit: 'Hz' },
       { key: 'dur', label: 'Duration', min: 0.004, max: 0.025, step: 0.001, default: 0.01, unit: 's' },
       { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
       { key: 'noiseMix', label: 'Noise mix', min: 0.03, max: 0.25, step: 0.01, default: 0.1 },
@@ -2960,8 +4409,8 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
   },
   'Tick Sharp High': {
     tunables: [
-      { key: 'freqStart', label: 'Freq start', min: 600, max: 1500, step: 10, default: 936, unit: 'Hz' },
-      { key: 'freqEnd', label: 'Freq end', min: 400, max: 1200, step: 10, default: 780, unit: 'Hz' },
+      { key: 'freqStart', label: 'Freq start', min: 600, max: 2000, step: 10, default: 1320, unit: 'Hz' },
+      { key: 'freqEnd', label: 'Freq end', min: 400, max: 1500, step: 10, default: 880, unit: 'Hz' },
       { key: 'dur', label: 'Duration', min: 0.002, max: 0.015, step: 0.001, default: 0.006, unit: 's' },
       { key: 'noise', label: 'Noise type', type: 'select', options: ['white', 'pink', 'brown'], default: 'white' },
       { key: 'noiseMix', label: 'Noise mix', min: 0.03, max: 0.25, step: 0.01, default: 0.1 },
@@ -3294,24 +4743,41 @@ const presetTunables: Record<string, { tunables: TunableParam[]; playTuned: (p: 
   'Success High': {
     tunables: [
       { key: 'wave', label: 'Waveform', type: 'select', options: ['sine', 'triangle', 'square', 'sawtooth'], default: 'sine' },
+      { key: 'noise', label: 'Noise type', type: 'select', options: ['brown', 'pink', 'white'], default: 'brown' },
       { key: 'freq1', label: 'Tone 1', min: 200, max: 1500, step: 10, default: 680, unit: 'Hz' },
       { key: 'freq2', label: 'Tone 2', min: 200, max: 1500, step: 10, default: 857, unit: 'Hz' },
       { key: 'gap', label: 'Gap', min: 0.04, max: 0.3, step: 0.01, default: 0.12, unit: 's' },
+      { key: 'noiseVol', label: 'Noise mix', min: 0, max: 0.6, step: 0.01, default: 0.3 },
+      { key: 'noiseQ', label: 'Noise Q', min: 0.3, max: 5, step: 0.1, default: 0.7 },
       { key: 'vol', label: 'Volume', min: 0.05, max: 1, step: 0.05, default: 0.4 },
       { key: 'decay', label: 'Decay', min: 0.05, max: 0.4, step: 0.01, default: 0.15, unit: 's' },
     ],
     playTuned: (p) => {
       const c = getCtx(); const now = c.currentTime;
       const gap = N(p.gap); const vol = N(p.vol); const dec = N(p.decay);
+      const nVol = N(p.noiseVol); const nQ = N(p.noiseQ);
       [N(p.freq1), N(p.freq2)].forEach((freq, i) => {
+        const t = now + i * gap;
         const o = c.createOscillator(); o.type = String(p.wave) as OscillatorType;
         const g = c.createGain();
         o.connect(g); g.connect(getAnalyser());
-        o.frequency.setValueAtTime(freq, now + i * gap);
+        o.frequency.setValueAtTime(freq, t);
         g.gain.setValueAtTime(0, now);
-        g.gain.setValueAtTime(vol, now + i * gap);
-        g.gain.exponentialRampToValueAtTime(0.001, now + i * gap + dec);
-        o.start(now + i * gap); o.stop(now + i * gap + dec + 0.01);
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+        o.start(t); o.stop(t + dec + 0.01);
+        // Noise texture — long burst, loose filter for audible character
+        if (nVol > 0) {
+          const buf = createNoiseBuffer(c, String(p.noise) as NoiseType, 0.25);
+          const src = c.createBufferSource(); src.buffer = buf;
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(freq * 0.8, t); bp.Q.setValueAtTime(nQ, t);
+          const gn = c.createGain();
+          gn.gain.setValueAtTime(0, now);
+          gn.gain.linearRampToValueAtTime(nVol, t + 0.01);
+          gn.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          src.connect(bp); bp.connect(gn); gn.connect(getAnalyser()); src.start(t);
+        }
       });
     },
   },
@@ -3648,18 +5114,20 @@ export default function SoundsPlayground() {
 
   // Palette tick designer — slow→fast→slow curve
   const [tickDuration, setTickDuration] = useState(500);
-  const [tickCount, setTickCount] = useState(12);
-  const [tickCurve, setTickCurve] = useState(0.33);
+  const [tickCount, setTickCount] = useState(11);
+  const [tickCurveType, setTickCurveType] = useState<'ease-in-out' | 'ease-in' | 'ease-out' | 'exp-in' | 'exp-out'>('ease-in-out');
+  const [tickCurve, setTickCurve] = useState(0.37);
   const [tickNoiseType, setTickNoiseType] = useState<'white' | 'pink' | 'brown'>('white');
   const [tickFilterType, setTickFilterType] = useState<'highpass' | 'bandpass'>('bandpass');
-  const [tickFilterFreq, setTickFilterFreq] = useState(5250);
-  const [tickFilterQ, setTickFilterQ] = useState(0.2);
-  const [tickLandFilterFreq, setTickLandFilterFreq] = useState(700);
-  const [tickStartVol, setTickStartVol] = useState(0.4);
+  const [tickFilterFreq, setTickFilterFreq] = useState(5750);
+  const [tickFilterQ, setTickFilterQ] = useState(3.4);
+  const [tickLandFilterFreq, setTickLandFilterFreq] = useState(4400);
+  const [tickStartVol, setTickStartVol] = useState(1.2);
   const [tickVolDecay, setTickVolDecay] = useState(0.08);
-  const [tickLandVol, setTickLandVol] = useState(0.36);
-  const [tickLen, setTickLen] = useState(11);
-  const [tickLandLen, setTickLandLen] = useState(13);
+  const [tickLandVol, setTickLandVol] = useState(0.8);
+  const [tickLen, setTickLen] = useState(6);
+  const [tickLandLen, setTickLandLen] = useState(8);
+  const [tickLandPause, setTickLandPause] = useState(80);
 
   // Liked presets
   const [likedPresets, setLikedPresets] = useState<Set<string>>(new Set());
@@ -3687,14 +5155,14 @@ export default function SoundsPlayground() {
 
   type Bucket = { presets: string[]; selected: string | null; volume: number };
   const [buckets, setBuckets] = useState<Record<RoleId, Bucket>>({
-    'button-click': { presets: ['Tick', 'Dip Low', 'Dip', 'Dip High', 'Crisp Click', 'Crisp Line', 'Crisp Drop', 'Tick Sharp'], selected: 'Tick', volume: 1 },
-    'stroke-thin': { presets: ['Tick High'], selected: 'Tick High', volume: 1 },
-    'stroke-medium': { presets: ['Tick'], selected: 'Tick', volume: 1 },
-    'stroke-thick': { presets: ['Tick Low'], selected: 'Tick Low', volume: 1 },
+    'button-click': { presets: ['Tick Sharp', 'Tick', 'Dip Low', 'Dip', 'Dip High', 'Crisp Click', 'Crisp Line', 'Crisp Drop'], selected: 'Tick Sharp', volume: 1 },
+    'stroke-thin': { presets: ['Tick Sharp High', 'Tick High'], selected: 'Tick Sharp High', volume: 1 },
+    'stroke-medium': { presets: ['Tick Sharp', 'Tick'], selected: 'Tick Sharp', volume: 1 },
+    'stroke-thick': { presets: ['Tick Sharp Low', 'Tick Low'], selected: 'Tick Sharp Low', volume: 1 },
     'clear-canvas': { presets: ['Exhale Low', 'Exhale', 'Exhale High'], selected: 'Exhale', volume: 1 },
     'palette-dice': { presets: [], selected: null, volume: 1 },
-    'color-swatch': { presets: ['Snap Low', 'Snap', 'Snap High'], selected: 'Snap', volume: 1 },
-    'claude-done': { presets: ['Success Low', 'Success', 'Success High'], selected: 'Success', volume: 1 },
+    'color-swatch': { presets: ['Snap Low', 'Snap', 'Snap High', 'Crisp Pick'], selected: 'Crisp Pick', volume: 1 },
+    'claude-done': { presets: ['Timer Ding', 'Timer Double', 'Timer Trill', 'Timer Gentle', 'Timer Beep', 'Timer Spoon', 'Timer Bowl', 'Timer Chime', 'Timer Triple', 'Timer Mallet', 'Timer Rise', 'Timer Rise Soft', 'Timer Rise Bright', 'Success Low', 'Success', 'Success High', 'Sparkle', 'Sparkle Rising', 'Bloom', 'Release'], selected: 'Timer Double', volume: 1 },
   });
 
   // Drag state (shared by preset grid and buckets)
@@ -3703,7 +5171,15 @@ export default function SoundsPlayground() {
   const [dragOverBucket, setDragOverBucket] = useState<RoleId | null>(null);
 
   // Per-bucket parameter overrides (tuning sliders)
-  const [bucketOverrides, setBucketOverrides] = useState<Record<string, Record<string, number | string>>>({});
+  const [bucketOverrides, setBucketOverrides] = useState<Record<string, Record<string, number | string>>>({
+    'button-click': { dur: 0.010, noiseMix: 0.06, vol: 1.35 },
+    'stroke-thin': { dur: 0.008, noiseMix: 0.12, vol: 1.35},
+    'stroke-medium': { dur: 0.010, noiseMix: 0.06, vol: 1.35 },
+    'stroke-thick': { dur: 0.012, noiseMix: 0.08, vol: 1.5 },
+    'color-swatch': { filterQ: 2.70, vol: 1.7 },
+    'clear-canvas': { noise: 'pink', freqEnd: 2000, filterQ: 0.40, dur: 0.27, attack: 0.045, vol: 1 },
+    'claude-done': { freq1: 810, freq2: 1080, gap: 0.12, overtoneVol: 0.05, vol: 0.25, decay: 0.6 },
+  });
 
   // Per-bucket tuning notes
   const [bucketNotes, setBucketNotes] = useState<Record<string, string>>({});
@@ -3770,12 +5246,12 @@ export default function SoundsPlayground() {
 
   // Mutable category layout: category name → array of preset names
   const [layout, setLayout] = useState<Record<string, string[]>>({
-    'Taps': ['Snap', 'Snap Low', 'Snap High', 'Typing', 'Paper Touch', 'Lift'],
+    'Taps': ['Snap', 'Snap Low', 'Snap High', 'Typing', 'Paper Touch', 'Lift', 'Tick Sharp'],
     'Tones': ['Mark', 'Settle', 'Pop', 'Soft Tap', 'Tick', 'Tick Low', 'Tick High', 'Dip', 'Dip Low', 'Dip High', 'Dip Warm'],
     'Textures': ['Grab', 'Graphite', 'Fold', 'Let Go', 'Erase', 'Grain', 'Release'],
     'Breaths': ['Gust', 'Exhale', 'Exhale Low', 'Exhale High', 'Exhale Tight', 'Breath'],
-    'Compound': ['Reset', 'Land', 'Land Low', 'Land High', 'Land Heavy', 'Land Cushion', 'Success', 'Success Low', 'Success High', 'Bloom', 'Sparkle', 'Sparkle Rising', 'Sparkle Slow', 'Sparkle Glass'],
-    'Misc': ['Closer', 'Away', 'Hum', 'Resolve', 'Tick Airy', 'Tick Sharp', 'Tick Sharp Low', 'Tick Sharp High'],
+    'Compound': ['Reset', 'Land', 'Land Low', 'Land High', 'Land Heavy', 'Land Cushion', 'Success', 'Success Low', 'Success High', 'Bloom', 'Sparkle', 'Sparkle Rising', 'Sparkle Slow', 'Sparkle Glass', 'Sparkle Dust', 'Sparkle Crackle', 'Sparkle Fizz', 'Timer Ding', 'Timer Double', 'Timer Trill', 'Timer Gentle', 'Timer Beep', 'Timer Spoon', 'Timer Bowl', 'Timer Chime', 'Timer Triple', 'Timer Mallet', 'Timer Rise', 'Timer Rise Soft', 'Timer Rise Bright'],
+    'Misc': ['Closer', 'Away', 'Hum', 'Resolve', 'Tick Airy', 'Tick Sharp Low', 'Tick Sharp High'],
     'Set: Warm': ['Warm Tap', 'Warm Stroke', 'Warm Thump', 'Warm Breath', 'Warm Touch', 'Warm Glow'],
     'Set: Crisp': ['Crisp Click', 'Crisp Line', 'Crisp Drop', 'Crisp Wash', 'Crisp Pick', 'Crisp Chime'],
   });
@@ -4042,14 +5518,48 @@ export default function SoundsPlayground() {
   // Tick schedule: slow→fast→slow using sine curve
   // tickCurve controls bunching: 0 = even spacing, 1 = max bunching in middle
   const tickSchedule = useMemo(() => {
+    const c = tickCurve; // intensity 0..1
     const times: number[] = [];
     for (let i = 0; i < tickCount; i++) {
       const t = i / (tickCount - 1); // 0 to 1
-      const pos = t + tickCurve * Math.sin(2 * Math.PI * t) / (2 * Math.PI);
+      let pos: number;
+      switch (tickCurveType) {
+        case 'ease-in-out':
+          // slow→fast→slow (original sin-based)
+          pos = t + c * Math.sin(2 * Math.PI * t) / (2 * Math.PI);
+          break;
+        case 'ease-in':
+          // slow start, fast end — power curve
+          pos = t * (1 - c) + Math.pow(t, 1 + c * 3) * c;
+          break;
+        case 'ease-out':
+          // fast start, slow end — inverse power curve
+          pos = t * (1 - c) + (1 - Math.pow(1 - t, 1 + c * 3)) * c;
+          break;
+        case 'exp-in':
+          // very slow start, accelerating hard
+          pos = t * (1 - c) + ((Math.exp(t * 3 * c) - 1) / (Math.exp(3 * c) - 1 || 1)) * c;
+          break;
+        case 'exp-out':
+          // fast start, decelerating hard
+          pos = t * (1 - c) + (1 - (Math.exp((1 - t) * 3 * c) - 1) / (Math.exp(3 * c) - 1 || 1)) * c;
+          break;
+        default:
+          pos = t;
+      }
       times.push(Math.round(pos * tickDuration));
     }
+    // Landing pause — compress earlier ticks to carve out a gap before the last tick
+    if (tickLandPause > 0 && times.length > 2) {
+      const lastTime = times[times.length - 1];
+      const pause = Math.min(tickLandPause, lastTime - 1);
+      const compressedEnd = lastTime - pause;
+      for (let i = 1; i < times.length - 1; i++) {
+        times[i] = Math.round(times[i] * (compressedEnd / (lastTime || 1)));
+      }
+    }
     return times;
-  }, [tickDuration, tickCount, tickCurve]);
+  }, [tickDuration, tickCount, tickCurve, tickCurveType, tickLandPause]);
 
   const handlePlayTick = useCallback(() => {
     const c = getCtx();
@@ -4573,9 +6083,15 @@ export default function SoundsPlayground() {
               </div>
               <input type="range" min={4} max={20} step={1} value={tickCount} onChange={(e) => setTickCount(+e.target.value)} />
             </div>
-            <div className="slider-group">
+            <div className="slider-group" style={{ gridColumn: '1 / -1' }}>
+              <div className="slider-label" style={{ marginBottom: '0.35rem' }}><span>Curve</span></div>
+              <div className="toggle-row" style={{ marginBottom: '0.4rem' }}>
+                {(['ease-in-out', 'ease-in', 'ease-out', 'exp-in', 'exp-out'] as const).map((t) => (
+                  <button key={t} className={`toggle-btn ${tickCurveType === t ? 'active' : ''}`} onClick={() => setTickCurveType(t)}>{t}</button>
+                ))}
+              </div>
               <div className="slider-label">
-                <span>Curve</span>
+                <span>Intensity</span>
                 <span>{tickCurve.toFixed(2)}</span>
               </div>
               <input type="range" min={0} max={0.95} step={0.01} value={tickCurve} onChange={(e) => setTickCurve(+e.target.value)} />
@@ -4635,6 +6151,13 @@ export default function SoundsPlayground() {
                 <span>{tickLandLen} ms</span>
               </div>
               <input type="range" min={5} max={50} step={1} value={tickLandLen} onChange={(e) => setTickLandLen(+e.target.value)} />
+            </div>
+            <div className="slider-group">
+              <div className="slider-label">
+                <span>Landing pause</span>
+                <span>{tickLandPause} ms</span>
+              </div>
+              <input type="range" min={0} max={300} step={5} value={tickLandPause} onChange={(e) => setTickLandPause(+e.target.value)} />
             </div>
           </div>
 
@@ -4745,10 +6268,16 @@ export default function SoundsPlayground() {
                                       className={`bucket-tunable-toggle${String(val) === opt ? ' active' : ''}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
+                                        const newOverrides = { ...overrides, [t.key]: opt };
                                         setBucketOverrides(prev => ({
                                           ...prev,
                                           [role.id]: { ...(prev[role.id] || {}), [t.key]: opt },
                                         }));
+                                        // Auto-play on change
+                                        const defaults: Record<string, number | string> = {};
+                                        for (const tu of preset.tunables!) defaults[tu.key] = tu.default;
+                                        setPlaybackVolume(bucket.volume);
+                                        preset.playTuned!({ ...defaults, ...newOverrides });
                                       }}
                                     >
                                       {opt}
@@ -4770,10 +6299,17 @@ export default function SoundsPlayground() {
                                 min={rt.min} max={rt.max} step={rt.step}
                                 value={val}
                                 onChange={(e) => {
+                                  const newVal = +e.target.value;
+                                  const newOverrides = { ...overrides, [t.key]: newVal };
                                   setBucketOverrides(prev => ({
                                     ...prev,
-                                    [role.id]: { ...(prev[role.id] || {}), [t.key]: +e.target.value },
+                                    [role.id]: { ...(prev[role.id] || {}), [t.key]: newVal },
                                   }));
+                                  // Auto-play on change
+                                  const defaults: Record<string, number | string> = {};
+                                  for (const tu of preset.tunables!) defaults[tu.key] = tu.default;
+                                  setPlaybackVolume(bucket.volume);
+                                  preset.playTuned!({ ...defaults, ...newOverrides });
                                 }}
                               />
                             </div>

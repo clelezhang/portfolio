@@ -112,10 +112,8 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
 
     setComments((prev) => {
       const newComments = [...prev, newComment];
-      // Auto-open Claude's comments
-      if (from === 'claude') {
-        setOpenCommentIndex(newComments.length - 1);
-      }
+      // Auto-open newly created comments
+      setOpenCommentIndex(newComments.length - 1);
       return newComments;
     });
   }, [canvasRef, lastDrawnPoint]);
@@ -129,16 +127,11 @@ export function useComments({ canvasRef, lastDrawnPoint }: UseCommentsProps): Us
   const addReplyToComment = useCallback((index: number, text: string, from: 'human' | 'claude') => {
     setComments((prev) => prev.map((comment, i) => {
       if (i === index) {
-        // Claude reply → make temp; User reply to temp → auto-save
+        // User reply to temp → auto-save
         let newStatus = comment.status;
         let newTempStartedAt = comment.tempStartedAt;
 
-        if (from === 'claude') {
-          // Claude replying puts comment in temp state
-          newStatus = 'temp';
-          newTempStartedAt = Date.now();
-        } else if (from === 'human' && comment.status === 'temp') {
-          // User replying to temp comment auto-saves it
+        if (from === 'human' && comment.status === 'temp') {
           newStatus = 'saved';
           newTempStartedAt = undefined;
         }
